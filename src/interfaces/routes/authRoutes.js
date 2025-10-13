@@ -1,4 +1,5 @@
 const express = require('express');
+const { authenticate, authorize } = require('../middlewares/authMiddleware');
 
 // Hàm khởi tạo router, nhận controller làm tham số
 // Đây là kỹ thuật Dependency Injection để controller không bị cứng
