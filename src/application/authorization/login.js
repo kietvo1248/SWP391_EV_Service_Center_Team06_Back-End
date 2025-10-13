@@ -10,28 +10,27 @@ class LoginUser {
         // 1. Tìm người dùng bằng email
         const user = await this.userRepository.findByEmail(email);
         if (!user) {
-            throw new Error('Invalid credentials.'); // Lỗi không tìm thấy email
+            throw new Error('Invalid email.'); // Lỗi không tìm thấy email
         }
 
-        // 2. So sánh mật khẩu đã nhập với mật khẩu đã mã hóa trong DB
         const isPasswordMatch = await bcrypt.compare(password, user.passwordHash);
         if (!isPasswordMatch) {
-            throw new Error('Invalid credentials.'); // Lỗi sai mật khẩu
+            throw new Error('Invalid password.');
         }
 
-        // 3. Tạo payload cho JWT (chứa thông tin cần thiết về user)
+        // 3. Tạo payload cho JWT (user cần gì thì chứa nó)
         const payload = {
-            //id: user.id,
+            id: user.id,
+            fullName: user.fullName,
             email: user.email,
             role: user.role,
         };
 
         // 4. Ký và tạo token với khóa bí mật và thời gian hết hạn
         const token = jwt.sign(payload, process.env.JWT_SECRET, {
-            expiresIn: '1h', // Token sẽ hết hạn sau 1 giờ
+            expiresIn: '1h',
         });
 
-        // 5. Trả về token
         return { token };
     }
 }
