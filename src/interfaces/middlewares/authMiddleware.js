@@ -14,7 +14,7 @@ const authenticate = (req, res, next) => {
         if (err) {
             return res.status(403).json({ message: 'Token is invalid or has expired.' });
         }
-        req.user = user; // Lưu thông tin user đã giải mã vào request
+        req.user = user;
         next();
     });
 };
