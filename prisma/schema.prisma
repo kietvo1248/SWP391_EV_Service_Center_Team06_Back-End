@@ -15,23 +15,201 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String    @id @default(uuid())
-  userCode      String?   @unique @map("user_code") 
-  fullName      String    @map("full_name")
-  email         String    @unique
-  passwordHash  String    @map("password_hash")
-  phoneNumber   String?   @map("phone_number")
-  address       String?
-  role          Role      @default(CUSTOMER)
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-
-  @@map("users")
-}
+// ==============
+// ENUMS
+// ==============
 
 enum Role {
   CUSTOMER
   TECHNICIAN
+  INVENTORY_MANAGER
   ADMIN
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  OVERDUE
+}
+
+// ==============
+// AUTH & USERS
+// ==============
+
+// Bảng User trung tâm, chứa thông tin xác thực chung cho mọi vai trò
+model User {
+  id           String  @id @default(uuid())
+  userCode     String? @unique @map("user_code")
+  fullName     String  @map("full_name")
+  email        String  @unique
+  passwordHash String  @map("password_hash")
+  phoneNumber  String? @map("phone_number")
+  role         Role    @default(CUSTOMER)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // --- Relations ---
+  // Nếu là CUSTOMER, có thể có nhiều xe
+  vehicles          Vehicle[]
+  // Nếu là CUSTOMER, có thể có nhiều lịch hẹn
+  appointments      ServiceAppointment[]
+  // Nếu là TECHNICIAN, sẽ có một hồ sơ kỹ thuật viên
+  technicianProfile TechnicianProfile?
+  // Nếu là TECHNICIAN, có thể được gán cho nhiều hồ sơ dịch vụ
+  assignedServices  ServiceRecord[]
+
+  @@map("users")
+}
+
+// Bảng chứa thông tin riêng của Kỹ thuật viên (TECHNICIAN)
+// Quan hệ một-một với bảng User
+model TechnicianProfile {
+  id             String @id @default(uuid())
+  specialization String // Chuyên môn (VD: "Hệ thống pin", "Điện tử")
+  certifications Json   // Lưu danh sách chứng chỉ dưới dạng JSON: ["Cert A", "Cert B"]
+
+  userId String @unique // Khóa ngoại, tạo quan hệ 1-1
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("technician_profiles")
+}
+
+
+// ==============
+// CORE DOMAIN
+// ==============
+
+// Thông tin xe của khách hàng (CUSTOMER)
+model Vehicle {
+  id           String  @id @default(uuid())
+  make         String  // Hãng xe
+  model        String  // Mẫu xe
+  year         Int
+  vin          String  @unique // Số VIN
+  licensePlate String? @map("license_plate")
+
+  // --- Relations ---
+  ownerId String // Khóa ngoại đến User
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  appointments ServiceAppointment[]
+
+  @@map("vehicles")
+}
+
+// Lịch hẹn dịch vụ
+model ServiceAppointment {
+  id                 String            @id @default(uuid())
+  appointmentDate    DateTime          @map("appointment_date")
+  status             AppointmentStatus @default(PENDING)
+  customerNotes      String?           @map("customer_notes")
+  createdAt          DateTime          @default(now()) @map("created_at")
+
+  // --- Relations ---
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id])
+
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+
+  // Mỗi lịch hẹn sau khi hoàn thành sẽ có một hồ sơ dịch vụ
+  serviceRecord ServiceRecord?
+
+  @@map("service_appointments")
+}
+
+// Hồ sơ ghi nhận công việc đã thực hiện
+model ServiceRecord {
+  id           String    @id @default(uuid())
+  startTime    DateTime? @map("start_time")
+  endTime      DateTime? @map("end_time")
+  staffNotes   String?   @map("staff_notes")
+
+  // --- Relations ---
+  appointmentId String  @unique // Quan hệ 1-1 với lịch hẹn
+  appointment   ServiceAppointment @relation(fields: [appointmentId], references: [id])
+
+  technicianId String
+  technician   User   @relation(fields: [technicianId], references: [id])
+
+  // Một hồ sơ dịch vụ có thể sử dụng nhiều phụ tùng
+  partsUsed PartUsage[]
+  // Một hồ sơ dịch vụ sẽ có một hóa đơn
+  invoice   Invoice?
+
+  @@map("service_records")
+}
+
+
+// ==============
+// INVENTORY & FINANCE
+// ==============
+
+// Định nghĩa một loại phụ tùng
+model Part {
+  id          String  @id @default(uuid())
+  sku         String  @unique // Stock Keeping Unit
+  name        String
+  description String?
+  price       Decimal @db.Decimal(12, 2)
+
+  // --- Relations ---
+  inventoryItems InventoryItem[]
+  partUsages     PartUsage[]
+
+  @@map("parts")
+}
+
+// Số lượng tồn kho của một phụ tùng tại một trung tâm
+model InventoryItem {
+  id              String @id @default(uuid())
+  quantityInStock Int    @default(0) @map("quantity_in_stock")
+  minStockLevel   Int    @default(5)  @map("min_stock_level")
+
+  // --- Relations ---
+  partId String
+  part   Part   @relation(fields: [partId], references: [id])
+  
+  // serviceCenterId String // Sẽ thêm khi có bảng ServiceCenter
+
+  @@map("inventory_items")
+}
+
+// Ghi nhận việc sử dụng phụ tùng trong một lần dịch vụ
+model PartUsage {
+  id        String  @id @default(uuid())
+  quantity  Int
+  unitPrice Decimal @db.Decimal(12, 2) @map("unit_price")
+
+  // --- Relations ---
+  serviceRecordId String
+  serviceRecord   ServiceRecord @relation(fields: [serviceRecordId], references: [id])
+
+  partId String
+  part   Part   @relation(fields: [partId], references: [id])
+
+  @@map("part_usages")
+}
+
+// Hóa đơn
+model Invoice {
+  id           String        @id @default(uuid())
+  totalAmount  Decimal       @db.Decimal(12, 2) @map("total_amount")
+  issueDate    DateTime      @default(now()) @map("issue_date")
+  dueDate      DateTime      @map("due_date")
+  status       InvoiceStatus @default(UNPAID)
+
+  // --- Relations ---
+  serviceRecordId String @unique // Quan hệ 1-1 với hồ sơ dịch vụ
+  serviceRecord   ServiceRecord @relation(fields: [serviceRecordId], references: [id])
+
+  @@map("invoices")
 }
