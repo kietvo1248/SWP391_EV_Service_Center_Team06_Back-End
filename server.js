@@ -14,6 +14,7 @@ const createUser = require('./src/application/authorization/createAccount');
 const viewUserProfile = require('./src/application/authorization/viewProfile');
 const viewAllAccounts = require('./src/application/authorization/viewAllAccount');
 const updateUserProfile = require('./src/application/authorization/updateprofile');
+const ChangePassword = require('./src/application/authorization/changePassword');
 
 
 
@@ -33,7 +34,8 @@ const createUserUseCase = new createUser(userRepository);
 const viewUserProfileUseCase = new viewUserProfile(userRepository);
 const viewAllAccountsUseCase = new viewAllAccounts(userRepository);
 const updateUserProfileUseCase = new updateUserProfile(userRepository);
-const authController = new AuthController(registerUseCase, loginUseCase, createUserUseCase, viewUserProfileUseCase, viewAllAccountsUseCase, updateUserProfileUseCase);
+const changePasswordUseCase = new ChangePassword(userRepository);
+const authController = new AuthController(registerUseCase, loginUseCase, createUserUseCase, viewUserProfileUseCase, viewAllAccountsUseCase, updateUserProfileUseCase, changePasswordUseCase);
 const authRouter = createAuthRouter(authController);
 
 // Sử dụng router

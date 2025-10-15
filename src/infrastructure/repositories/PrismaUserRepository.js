@@ -57,6 +57,11 @@ class PrismaUserRepository extends IUserRepository {
             data: updateData,
         });
     }
+     async findByIdWithPassword(id) {
+        return await prisma.user.findUnique({
+            where: { id },
+        });
+    }
 }
 
 module.exports = PrismaUserRepository;

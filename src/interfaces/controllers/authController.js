@@ -1,11 +1,12 @@
 class AuthController {
-    constructor(registerUserUseCase, loginUserUseCase, createUserUseCase, getProfileUseCase, viewAllAccountsUseCase, updateUserProfileUseCase  ) {
+    constructor(registerUserUseCase, loginUserUseCase, createUserUseCase, getProfileUseCase, viewAllAccountsUseCase, updateUserProfileUseCase, changePasswordUseCase) {
         this.registerUserUseCase = registerUserUseCase;
         this.loginUserUseCase = loginUserUseCase;
         this.createUserUseCase = createUserUseCase;
         this.getProfileUseCase = getProfileUseCase;
         this.viewAllAccountsUseCase = viewAllAccountsUseCase;
         this.updateUserProfileUseCase = updateUserProfileUseCase;
+        this.changePasswordUseCase = changePasswordUseCase;
     }
 
     async register(req, res) {
@@ -61,6 +62,7 @@ class AuthController {
                 role, // Vai trò do admin chỉ định
             });
             res.status(201).json(user);
+            console.log("Create account successfully for " + user.fullName + " with role " + user.role );
         } catch (error) {
             res.status(400).json({ message: error.message });
         }
@@ -75,6 +77,18 @@ class AuthController {
             res.status(400).json({ message: error.message });
         }
     }
+    async changePassword(req, res) {
+        const userId = req.user.id;
+        const { oldPassword, newPassword } = req.body;
+        try {
+            const result = await this.changePasswordUseCase.execute({ userId, oldPassword, newPassword });
+            res.status(200).json(result);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
+    
 
 }
 
