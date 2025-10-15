@@ -12,10 +12,27 @@ class PrismaUserRepository extends IUserRepository {
     async findById(id) {
         return await prisma.user.findUnique({
             where: { id },
+            select: {
+                id: true,
+                userCode: true,
+                fullName: true,
+                email: true,
+                phoneNumber: true,
+                role: true,
+                serviceCenterId: true,
+            }
         });
     }
     async findAll() {
-        return await prisma.user.findMany();
+        return await prisma.user.findMany({
+            select: {
+                id: true,
+                userCode: true,
+                fullName: true,
+                email: true,
+                role: true,
+            }
+        });
     }
 
     async count() {
@@ -36,7 +53,7 @@ class PrismaUserRepository extends IUserRepository {
 
     async update(id, updateData) {
         return await prisma.user.update({
-            where: { id: BigInt(id) },
+            where: { id: id },
             data: updateData,
         });
     }

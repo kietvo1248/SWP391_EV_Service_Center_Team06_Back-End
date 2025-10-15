@@ -13,7 +13,7 @@ class ViewAccount {
             throw new Error('User not found.'); // Lỗi không tìm thấy người dùng
         }
         // 2. Trả về đối tượng User an toàn
-        return user.map(user => new User(user.id, user.fullName, user.email, user.role));;
+        return new User(user.id, user.fullName, user.email, user.role);
     }
 }
 

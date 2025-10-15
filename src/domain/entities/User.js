@@ -1,11 +1,10 @@
-const Roles = require('./Role');
 class User {
-    constructor(id, name, email, password, role) {
+    constructor(id, fullName, email, role) {
         this.id = id;
-        this.name = name;
+        this.fullName = fullName;
         this.email = email;
-        this.password = password;
-        this.role = role
+        this.role = role;
     }
 }
-module.exports = User;
+
+module.exports = User
