@@ -15,23 +15,328 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ==============
+// ENUMS
+// ==============
+enum Role {
+  CUSTOMER
+  TECHNICIAN
+  INVENTORY_MANAGER
+  ADMIN
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  OVERDUE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+}
+
+// ==============
+// MODELS
+// ==============
+
+// Bảng Trung tâm dịch vụ
+model ServiceCenter {
+  id          String @id @default(uuid())
+  name        String
+  address     String
+  phoneNumber String? @map("phone_number")
+
+  staff             User[]
+  appointments      ServiceAppointment[]
+  inventoryItems    InventoryItem[]
+
+  @@map("service_centers")
+}
+
+// Bảng User trung tâm
 model User {
-  id            String    @id @default(uuid())
-  userCode      String?   @unique @map("user_code") 
-  fullName      String    @map("full_name")
-  email         String    @unique
-  passwordHash  String    @map("password_hash")
-  phoneNumber   String?   @map("phone_number")
-  address       String?
-  role          Role      @default(CUSTOMER)
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id              String    @id @default(uuid())
+  userCode        String?   @unique @map("user_code")
+  fullName        String    @map("full_name")
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  phoneNumber     String?   @map("phone_number")
+  role            Role      @default(CUSTOMER)
+  serviceCenterId String?   @map("service_center_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  serviceCenter     ServiceCenter?         @relation(fields: [serviceCenterId], references: [id])
+  technicianProfile TechnicianProfile?
+  certifications    StaffCertification[]
+  vehicles          Vehicle[]
+  appointments      ServiceAppointment[]
+  assignedServices  ServiceRecord[]
+  feedbacks         Feedback[]
+  servicePackages   ServicePackage[]
+  sentMessages      Message[]              @relation("Sender")
+  receivedMessages  Message[]              @relation("Receiver")
+  notifications     Notification[]
+  reports           Report[]
 
   @@map("users")
 }
 
-enum Role {
-  CUSTOMER
-  TECHNICIAN
-  ADMIN
+// Bảng hồ sơ kỹ thuật viên
+model TechnicianProfile {
+  id             String @id @default(uuid())
+  specialization String
+  certifications Json?
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("technician_profiles")
+}
+
+// Bảng Chứng chỉ
+model Certification {
+  id                  String @id @default(uuid())
+  name                String
+  issuingOrganization String @map("issuing_organization")
+  
+  staff StaffCertification[]
+
+  @@map("certifications")
+}
+
+// Bảng nối Nhân viên và Chứng chỉ
+model StaffCertification {
+  staffId         String @map("staff_id")
+  certificationId String @map("certification_id")
+
+  staff         User          @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  certification Certification @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+
+  @@id([staffId, certificationId])
+  @@map("staff_certifications")
+}
+
+// Bảng xe
+model Vehicle {
+  id              String  @id @default(uuid())
+  make            String
+  model           String
+  year            Int
+  vin             String  @unique
+  licensePlate    String? @map("license_plate")
+  currentMileage  Int?    @map("current_mileage")
+  lastServiceDate DateTime? @db.Date @map("last_service_date")
+
+  ownerId      String
+  owner        User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  appointments ServiceAppointment[]
+
+  @@map("vehicles")
+}
+
+// Bảng Loại dịch vụ
+model ServiceType {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  @@map("service_types")
+}
+
+// Bảng lịch hẹn dịch vụ
+model ServiceAppointment {
+  id                String            @id @default(uuid())
+  appointmentDate   DateTime          @map("appointment_date")
+  status            AppointmentStatus @default(PENDING)
+  customerNotes     String?           @map("customer_notes")
+  createdAt         DateTime          @default(now()) @map("created_at")
+
+  customerId      String
+  vehicleId       String
+  serviceCenterId String
+
+  customer      User          @relation(fields: [customerId], references: [id])
+  vehicle       Vehicle       @relation(fields: [vehicleId], references: [id])
+  serviceCenter ServiceCenter @relation(fields: [serviceCenterId], references: [id])
+  serviceRecord ServiceRecord?
+
+  @@map("service_appointments")
+}
+
+// Bảng hồ sơ dịch vụ
+model ServiceRecord {
+  id            String     @id @default(uuid())
+  startTime     DateTime?  @map("start_time")
+  endTime       DateTime?  @map("end_time")
+  staffNotes    String?    @map("staff_notes")
+  status        String?
+
+  appointmentId String     @unique
+  technicianId  String
+
+  appointment   ServiceAppointment @relation(fields: [appointmentId], references: [id])
+  technician    User               @relation(fields: [technicianId], references: [id])
+  partsUsed     PartUsage[]
+  quotation     Quotation?
+  invoice       Invoice?
+
+  @@map("service_records")
+}
+
+// Bảng định nghĩa phụ tùng
+model Part {
+  id             String  @id @default(uuid())
+  sku            String  @unique
+  name           String
+  description    String?
+  price          Decimal @db.Decimal(12, 2)
+
+  inventoryItems InventoryItem[]
+  partUsages     PartUsage[]
+
+  @@map("parts")
+}
+
+// Bảng tồn kho phụ tùng
+model InventoryItem {
+  id                String @id @default(uuid())
+  quantityInStock   Int    @default(0) @map("quantity_in_stock")
+  minStockLevel     Int    @default(5) @map("min_stock_level")
+
+  partId          String
+  serviceCenterId String
+
+  part          Part          @relation(fields: [partId], references: [id])
+  serviceCenter ServiceCenter @relation(fields: [serviceCenterId], references: [id])
+
+  @@map("inventory_items")
+}
+
+// Bảng ghi nhận sử dụng phụ tùng
+model PartUsage {
+  id              String  @id @default(uuid())
+  quantity        Int
+  unitPrice       Decimal @db.Decimal(12, 2) @map("unit_price")
+
+  serviceRecordId String
+  partId          String
+
+  serviceRecord ServiceRecord @relation(fields: [serviceRecordId], references: [id])
+  part          Part          @relation(fields: [partId], references: [id])
+
+  @@map("part_usages")
+}
+
+// Bảng Báo giá
+model Quotation {
+  id              String   @id @default(uuid())
+  estimatedCost   Decimal  @db.Decimal(12, 2) @map("estimated_cost")
+  creationDate    DateTime @db.Date @default(now()) @map("creation_date")
+
+  serviceRecordId String  @unique
+  serviceRecord   ServiceRecord @relation(fields: [serviceRecordId], references: [id])
+
+  @@map("quotations")
+}
+
+// Bảng hóa đơn
+model Invoice {
+  id              String        @id @default(uuid())
+  totalAmount     Decimal       @db.Decimal(12, 2) @map("total_amount")
+  issueDate       DateTime      @default(now()) @map("issue_date")
+  dueDate         DateTime      @map("due_date")
+  status          InvoiceStatus @default(UNPAID)
+
+  serviceRecordId String        @unique
+  serviceRecord   ServiceRecord @relation(fields: [serviceRecordId], references: [id])
+  payments        Payment[]
+
+  @@map("invoices")
+}
+
+// Bảng Thanh toán
+model Payment {
+  id             String        @id @default(uuid())
+  paymentDate    DateTime      @default(now()) @map("payment_date")
+  paymentMethod  String        @map("payment_method")
+  status         PaymentStatus @default(PENDING)
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@map("payments")
+}
+
+// Bảng Phản hồi
+model Feedback {
+  id        String  @id @default(uuid())
+  rating    Int?
+  content   String?
+  
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id])
+
+  @@map("feedback")
+}
+
+// Bảng Gói dịch vụ
+model ServicePackage {
+  id          String    @id @default(uuid())
+  name        String
+  expiryDate  DateTime? @db.Date @map("expiry_date")
+
+  customerId  String
+  customer    User      @relation(fields: [customerId], references: [id])
+  
+  @@map("service_packages")
+}
+
+// Bảng Tin nhắn
+model Message {
+  id          String   @id @default(uuid())
+  content     String
+  timestamp   DateTime @default(now())
+  
+  senderId    String
+  receiverId  String
+  
+  sender      User     @relation("Sender", fields: [senderId], references: [id])
+  receiver    User     @relation("Receiver", fields: [receiverId], references: [id])
+  
+  @@map("messages")
+}
+
+// Bảng Thông báo
+model Notification {
+  id          String   @id @default(uuid())
+  message     String
+  sentTime    DateTime @default(now()) @map("sent_time")
+  
+  recipientId String
+  recipient   User     @relation(fields: [recipientId], references: [id])
+  
+  @@map("notifications")
+}
+
+// Bảng Báo cáo
+model Report {
+  id            String   @id @default(uuid())
+  reportType    String   @map("report_type")
+  generatedDate DateTime @db.Date @default(now()) @map("generated_date")
+  
+  adminId       String
+  admin         User     @relation(fields: [adminId], references: [id])
+  
+  @@map("reports")
 }

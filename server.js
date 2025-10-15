@@ -10,6 +10,9 @@ const createAuthRouter = require('./src/interfaces/routes/authRoutes');
 //authentication
 const RegisterUser = require('./src/application/authorization/register');
 const LoginUser = require('./src/application/authorization/login');
+const createUser = require('./src/application/authorization/createAccount');
+const viewUserProfile = require('./src/application/authorization/viewProfile');
+const viewAllAccounts = require('./src/application/authorization/viewAllAccount');
 
 
 
@@ -23,9 +26,12 @@ app.use(express.json());
 // Khởi tạo các dependency từ trong ra ngoài
 const userRepository = new PrismaUserRepository();
 //authentication
-const registerUserUseCase = new RegisterUser(userRepository);
-const loginUserUseCase = new LoginUser(userRepository);
-const authController = new AuthController(registerUserUseCase, loginUserUseCase);
+const registerUseCase = new RegisterUser(userRepository);
+const loginUseCase = new LoginUser(userRepository);
+const createUserUseCase = new createUser(userRepository);
+const viewUserProfileUseCase = new viewUserProfile(userRepository);
+const viewAllAccountsUseCase = new viewAllAccounts(userRepository);
+const authController = new AuthController(registerUseCase, loginUseCase, createUserUseCase, viewUserProfileUseCase, viewAllAccountsUseCase);
 const authRouter = createAuthRouter(authController);
 
 // Sử dụng router

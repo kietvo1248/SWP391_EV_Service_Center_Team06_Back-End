@@ -34,7 +34,6 @@ class PrismaUserRepository extends IUserRepository {
         });
     }
 
-    // --- Triển khai phương thức mới ---
     async update(id, updateData) {
         return await prisma.user.update({
             where: { id: BigInt(id) },
