@@ -1,10 +1,11 @@
 class AuthController {
-    constructor(registerUserUseCase, loginUserUseCase, createUserUseCase, getProfileUseCase, viewAllAccountsUseCase) {
+    constructor(registerUserUseCase, loginUserUseCase, createUserUseCase, getProfileUseCase, viewAllAccountsUseCase, updateUserProfileUseCase  ) {
         this.registerUserUseCase = registerUserUseCase;
         this.loginUserUseCase = loginUserUseCase;
         this.createUserUseCase = createUserUseCase;
         this.getProfileUseCase = getProfileUseCase;
         this.viewAllAccountsUseCase = viewAllAccountsUseCase;
+        this.updateUserProfileUseCase = updateUserProfileUseCase;
     }
 
     async register(req, res) {
@@ -64,6 +65,17 @@ class AuthController {
             res.status(400).json({ message: error.message });
         }
     }
+    async updateProfile(req, res) {
+        const userId = req.user.id;
+        const updateData = req.body;
+        try {
+            const updatedUser = await this.updateUserProfileUseCase.execute(userId, updateData);
+            res.status(200).json(updatedUser);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
 }
 
 
