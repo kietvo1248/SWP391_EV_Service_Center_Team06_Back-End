@@ -23,7 +23,7 @@ class RegisterUser {
                 // Prisma sẽ tự tạo UUID cho trường `id`
                 fullName,
                 email,
-                passwordHash,
+                passwordHash: await bcrypt.hash(password, 10),
                 role: 'CUSTOMER',
                 userCode, // Gán userCode ngay khi tạo
             });

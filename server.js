@@ -11,6 +11,8 @@ const createAuthRouter = require('./src/interfaces/routes/authRoutes');
 const RegisterUser = require('./src/application/authorization/register');
 const LoginUser = require('./src/application/authorization/login');
 const createUser = require('./src/application/authorization/createAccount');
+const viewUserProfile = require('./src/application/authorization/viewProfile');
+const viewAllAccounts = require('./src/application/authorization/viewAllAccount');
 
 
 
@@ -27,7 +29,9 @@ const userRepository = new PrismaUserRepository();
 const registerUseCase = new RegisterUser(userRepository);
 const loginUseCase = new LoginUser(userRepository);
 const createUserUseCase = new createUser(userRepository);
-const authController = new AuthController(registerUseCase, loginUseCase, createUserUseCase);
+const viewUserProfileUseCase = new viewUserProfile(userRepository);
+const viewAllAccountsUseCase = new viewAllAccounts(userRepository);
+const authController = new AuthController(registerUseCase, loginUseCase, createUserUseCase, viewUserProfileUseCase, viewAllAccountsUseCase);
 const authRouter = createAuthRouter(authController);
 
 // Sử dụng router
