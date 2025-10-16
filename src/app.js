@@ -1,5 +1,7 @@
 const express = require('express');
-
+// Swagger
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./config/swaggerConfig');
 // Infrastructure
 const PrismaUserRepository = require('./infrastructure/repositories/PrismaUserRepository');
 const PrismaVehicleRepository = require('./infrastructure/repositories/PrismaVehicleRepository');
@@ -23,8 +25,8 @@ const updateUserProfile = require('./application/profile/updateProfile');
 const ChangePassword = require('./application/profile/changePassword');
 
 //manage vehicle
-const AddVehicle = require('./application/vehicle/addVehicle');
-const ViewVehicles = require('./application/vehicle/viewVehicles');
+const AddVehicle = require('./application/vehicles/addVehicles');
+const ViewVehicles = require('./application/vehicles/viewVehicles');
 
 // --- Khởi tạo ứng dụng Express ---
 const app = express();
@@ -72,6 +74,10 @@ const vehicleRouter = VehicleRouter(vehicleController);
 // --- Gắn Router vào ứng dụng ---
 app.use('/api/auth', authRouter);
 app.use('/api/vehicle', vehicleRouter);
+
+
+// swagger docs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // --- Xử lý lỗi 404 ---
 app.use((req, res, next) => {
