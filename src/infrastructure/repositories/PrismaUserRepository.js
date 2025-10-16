@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const IUserRepository = require('../../domain/repositories/IUserRepositoriy');
+const IUserRepository = require('../../domain/repositories/IUserRepository');
 const prisma = new PrismaClient();
 
 class PrismaUserRepository extends IUserRepository {
