@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticate, authorize } = require('../middlewares/authMiddleware');
 
+
 // Hàm khởi tạo router, nhận controller làm tham số
 // Đây là kỹ thuật Dependency Injection để controller không bị cứng
 const createAuthRouter = (authController) => {
@@ -14,7 +15,13 @@ const createAuthRouter = (authController) => {
     router.post('/update-profile', authenticate, (req, res) => authController.updateProfile(req, res));
     router.post('/change-password', authenticate, (req, res) => authController.changePassword(req, res));
 
+    //quên mật khẩu 
+    router.post('/forgot-password', (req, res) => authController.forgotPassword(req, res));
+    router.post('/verify-reset-code', (req, res) => authController.verifyResetCode(req, res));
+    router.post('/reset-password', (req, res) => authController.resetPassword(req, res));
+
     return router;
 };
+
 
 module.exports = createAuthRouter;

@@ -93,8 +93,13 @@ model User {
   notifications     Notification[]
   reports           Report[]
 
+  resetPasswordCode   String?
+  resetPasswordExpires DateTime?
+
   @@map("users")
 }
+
+
 
 // Bảng hồ sơ kỹ thuật viên
 model TechnicianProfile {

@@ -23,6 +23,9 @@ const viewUserProfile = require('./application/profile/viewProfile');
 const viewAllAccounts = require('./application/admin/viewAllAccount');
 const updateUserProfile = require('./application/profile/updateProfile');
 const ChangePassword = require('./application/profile/changePassword');
+const ForgotPassword = require('../../application/authorization/forgotPassword/forgotPassword');
+const VerifyResetCode = require('../../application/authorization/forgotPassword/verifyToken');
+const ResetPassword = require('../../application/authorization/forgotPassword/resetPassword');
 
 //manage vehicle
 const AddVehicle = require('./application/vehicles/addVehicles');
@@ -47,6 +50,9 @@ const viewUserProfileUseCase = new viewUserProfile(userRepository);
 const viewAllAccountsUseCase = new viewAllAccounts(userRepository);
 const updateUserProfileUseCase = new updateUserProfile(userRepository);
 const changePasswordUseCase = new ChangePassword(userRepository);
+const forgotPasswordUseCase = new ForgotPassword(userRepository);
+const verifyResetCodeUseCase = new VerifyResetCode(userRepository);
+const resetPasswordUseCase = new ResetPassword(userRepository);
 
 // Use Cases for Vehicle Management
 const addVehicleUseCase  = new AddVehicle(vehicleRepository);
@@ -61,6 +67,9 @@ const authController = new AuthController(
     viewAllAccountsUseCase,
     updateUserProfileUseCase,
     changePasswordUseCase
+    , forgotPasswordUseCase,
+    verifyResetCodeUseCase,
+    resetPasswordUseCase
 );
 const vehicleController = new VehicleController(
     addVehicleUseCase,
