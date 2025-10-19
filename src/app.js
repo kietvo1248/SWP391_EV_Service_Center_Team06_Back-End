@@ -2,6 +2,11 @@ const express = require('express');
 // Swagger
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./config/swaggerConfig');
+const dotenv = require('dotenv');
+dotenv.config();
+const passport = require('passport');
+const initializePassport = require('./infrastructure/service/passport');
+initializePassport(passport);
 // Infrastructure
 const PrismaUserRepository = require('./infrastructure/repositories/PrismaUserRepository');
 const PrismaVehicleRepository = require('./infrastructure/repositories/PrismaVehicleRepository');
@@ -23,9 +28,10 @@ const viewUserProfile = require('./application/profile/viewProfile');
 const viewAllAccounts = require('./application/admin/viewAllAccount');
 const updateUserProfile = require('./application/profile/updateProfile');
 const ChangePassword = require('./application/profile/changePassword');
-const ForgotPassword = require('../../application/authorization/forgotPassword/forgotPassword');
-const VerifyResetCode = require('../../application/authorization/forgotPassword/verifyToken');
-const ResetPassword = require('../../application/authorization/forgotPassword/resetPassword');
+const ForgotPassword = require('./application/authorization/forgotPassword/forgotPassword');
+const VerifyResetCode = require('./application/authorization/forgotPassword/verifyToken');
+const ResetPassword = require('./application/authorization/forgotPassword/resetPassword');
+const googleSignIn = require('./application/authorization/googleSignIn');
 
 //manage vehicle
 const AddVehicle = require('./application/vehicles/addVehicles');
@@ -53,7 +59,7 @@ const changePasswordUseCase = new ChangePassword(userRepository);
 const forgotPasswordUseCase = new ForgotPassword(userRepository);
 const verifyResetCodeUseCase = new VerifyResetCode(userRepository);
 const resetPasswordUseCase = new ResetPassword(userRepository);
-
+const googleSignInUseCase = new googleSignIn(userRepository);
 // Use Cases for Vehicle Management
 const addVehicleUseCase  = new AddVehicle(vehicleRepository);
 const viewVehiclesUseCase = new ViewVehicles(vehicleRepository);
@@ -66,10 +72,12 @@ const authController = new AuthController(
     viewUserProfileUseCase,
     viewAllAccountsUseCase,
     updateUserProfileUseCase,
-    changePasswordUseCase
-    , forgotPasswordUseCase,
+    changePasswordUseCase,
+    forgotPasswordUseCase,
     verifyResetCodeUseCase,
-    resetPasswordUseCase
+    resetPasswordUseCase,
+    googleSignInUseCase
+
 );
 const vehicleController = new VehicleController(
     addVehicleUseCase,
@@ -77,7 +85,7 @@ const vehicleController = new VehicleController(
 );
 
 // Router
-const authRouter = createAuthRouter(authController);
+const authRouter = createAuthRouter(authController, passport);
 const vehicleRouter = VehicleRouter(vehicleController);
 
 // --- Gắn Router vào ứng dụng ---

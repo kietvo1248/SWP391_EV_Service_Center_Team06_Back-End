@@ -72,6 +72,7 @@ model User {
   fullName        String    @map("full_name")
   email           String    @unique
   passwordHash    String    @map("password_hash")
+  googleId        String?    @map("google_id")
   phoneNumber     String?   @map("phone_number")
   address         String?
   role            Role      @default(CUSTOMER)

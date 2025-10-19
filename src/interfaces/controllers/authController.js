@@ -1,5 +1,8 @@
 class AuthController {
-    constructor(registerUserUseCase, loginUserUseCase, createUserUseCase, getProfileUseCase, viewAllAccountsUseCase, updateUserProfileUseCase, changePasswordUseCase, forgotPasswordUseCase, verifyResetCodeUseCase, resetPasswordUseCase) {
+    constructor(registerUserUseCase, loginUserUseCase, createUserUseCase, 
+        getProfileUseCase, viewAllAccountsUseCase, updateUserProfileUseCase, 
+        changePasswordUseCase, forgotPasswordUseCase, verifyResetCodeUseCase, 
+        resetPasswordUseCase, googleSignInUseCase) {
         this.registerUserUseCase = registerUserUseCase;
         this.loginUserUseCase = loginUserUseCase;
         this.createUserUseCase = createUserUseCase;
@@ -10,6 +13,7 @@ class AuthController {
         this.forgotPasswordUseCase = forgotPasswordUseCase;
         this.verifyResetCodeUseCase = verifyResetCodeUseCase;
         this.resetPasswordUseCase = resetPasswordUseCase;
+        this.googleSignInUseCase = googleSignInUseCase;
     }
 
     async register(req, res) {
@@ -136,9 +140,17 @@ class AuthController {
             res.status(401).json({ message: error.message });
         }
     }
+    // Xử lý đăng nhập bằng Google
+    async googleSignIn(req, res) {
+        const { profile } = req.body; // Thông tin profile từ client
+        try {
+            const user = await this.googleSignInUseCase.execute(profile);
+            res.status(200).json(user);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
 
 }
-
-
 
 module.exports = AuthController;

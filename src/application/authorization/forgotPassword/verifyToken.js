@@ -18,7 +18,7 @@ class VerifyResetCode {
                 id: user.id,
                 role: user.role.name,
             },
-            purpose: 'password-reset' // Add purpose to distinguish from login token
+            purpose: 'password-reset' 
         };
 
         const resetToken = jwt.sign(resetTokenPayload, process.env.JWT_SECRET, {
