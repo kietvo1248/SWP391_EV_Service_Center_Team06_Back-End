@@ -10,6 +10,7 @@ initializePassport(passport);
 // Infrastructure
 const PrismaUserRepository = require('./infrastructure/repositories/PrismaUserRepository');
 const PrismaVehicleRepository = require('./infrastructure/repositories/PrismaVehicleRepository');
+const PrismaAppointmentRepository = require('./infrastructure/repositories/PrismaAppointmentRepository');
 
 // Interfaces
 //==auth==
@@ -18,6 +19,10 @@ const createAuthRouter = require('./interfaces/routes/authRoutes');
 //==vehicle==
 const VehicleController = require('./interfaces/controllers/vehicleController');
 const VehicleRouter = require('./interfaces/routes/vehicleRoutes');
+//==appointment==
+const AppointmentController = require('./interfaces/controllers/appointmentController');
+const appointmentRouter = require('./interfaces/routes/appointmentRoutes');
+
 
 // Application (Use Cases)
 // authentication
@@ -37,6 +42,11 @@ const googleSignIn = require('./application/authorization/googleSignIn');
 const AddVehicle = require('./application/vehicles/addVehicles');
 const ViewVehicles = require('./application/vehicles/viewVehicles');
 
+//manage appointment
+const CreateAppointment = require('./application/bookings/createAppointment');
+const ListMyVehicles = require('./application/vehicles/listvehicle');
+const GetServiceSuggestions = require('./application/bookings/suggestion');
+
 // --- Khởi tạo ứng dụng Express ---
 const app = express();
 
@@ -47,6 +57,7 @@ app.use(express.json());
 // Đây là trái tim của ứng dụng, nơi các lớp được kết nối với nhau
 const userRepository = new PrismaUserRepository();
 const vehicleRepository = new PrismaVehicleRepository();
+const appointmentRepository = new PrismaAppointmentRepository();
 
 // Use Cases for Authentication
 const registerUseCase = new RegisterUser(userRepository);
@@ -63,6 +74,11 @@ const googleSignInUseCase = new googleSignIn(userRepository);
 // Use Cases for Vehicle Management
 const addVehicleUseCase  = new AddVehicle(vehicleRepository);
 const viewVehiclesUseCase = new ViewVehicles(vehicleRepository);
+
+//Usce Cases for Appointment Management
+const createAppointmentUseCase = new CreateAppointment(appointmentRepository, vehicleRepository, userRepository);
+const listMyVehiclesUseCase = new ListMyVehicles(vehicleRepository);
+const getServiceSuggestionsUseCase = new GetServiceSuggestions();
 
 // Controller
 const authController = new AuthController(
@@ -84,13 +100,21 @@ const vehicleController = new VehicleController(
     viewVehiclesUseCase
 );
 
+const appointmentController = new AppointmentController(
+    createAppointmentUseCase,
+    listMyVehiclesUseCase,
+    getServiceSuggestionsUseCase
+);
+
 // Router
 const authRouter = createAuthRouter(authController, passport);
 const vehicleRouter = VehicleRouter(vehicleController);
+const appointmentRouterInstance = appointmentRouter(appointmentController);
 
 // --- Gắn Router vào ứng dụng ---
 app.use('/api/auth', authRouter);
 app.use('/api/vehicle', vehicleRouter);
+app.use('/api/appointments', appointmentRouterInstance);
 
 
 // swagger docs

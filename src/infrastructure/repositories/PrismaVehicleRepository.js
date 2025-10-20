@@ -19,7 +19,23 @@ class PrismaVehicleRepository extends IVehicleRepository {
         return await prisma.vehicle.findMany({
             where: { ownerId },
         });
-    }       
+    }      
+    async add(vehicle, ownerId) {
+        return this.prisma.vehicle.create({
+            data: {
+                ...vehicle,
+                ownerId: ownerId,
+            },
+        });
+    }
+    async findByIdAndOwner(vehicleId, ownerId) {
+        return this.prisma.vehicle.findFirst({
+            where: {
+                id: vehicleId,
+                ownerId: ownerId,
+            }
+        });
+    } 
 }
 
 module.exports = PrismaVehicleRepository;

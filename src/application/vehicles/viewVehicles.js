@@ -19,5 +19,4 @@ class ViewVehicles {
         ));
     }
 }
-
 module.exports = ViewVehicles;
