@@ -86,7 +86,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResponse'
+                $ref: '#/components/schemas/GoogleOAuthResponse'
         '401':
           description: Xác thực thất bại.
           content:
@@ -184,6 +184,18 @@ components:
           type: string
         token:
           type: string
+        user:
+          $ref: '#/components/schemas/User'
+
+    GoogleOAuthResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Google authentication successful"
+        token:
+          type: string
+          description: JWT token for authentication
         user:
           $ref: '#/components/schemas/User'
 

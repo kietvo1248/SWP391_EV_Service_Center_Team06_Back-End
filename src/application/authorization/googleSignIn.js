@@ -23,7 +23,8 @@ class GoogleOAuthCallbackUseCase {
         user = await this.userRepository.findByEmail(email);
         if (user) {
             // User đã tồn tại (đăng ký bằng form), liên kết tài khoản Google
-            return this.userRepository.update(user.id, { googleId });
+            const updatedUser = await this.userRepository.update(user.id, { googleId });
+            return updatedUser;
         }
 
         // 3. Nếu không có, tạo user mới
