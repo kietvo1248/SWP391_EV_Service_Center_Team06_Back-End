@@ -63,14 +63,14 @@ class PrismaUserRepository extends IUserRepository {
         });
     }
      async findByGoogleId(googleId) {
-        return this.prisma.user.findUnique({
+        return await prisma.user.findUnique({
             where: { googleId },
         });
     }
 
     async add(user) {
         const { id, userCode, fullName, email, passwordHash, role, phoneNumber, address, googleId } = user;
-        return this.prisma.user.create({
+        return await prisma.user.create({
             data: {
                 fullName,
                 email,

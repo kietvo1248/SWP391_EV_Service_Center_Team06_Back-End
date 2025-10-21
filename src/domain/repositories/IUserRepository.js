@@ -22,6 +22,12 @@ class IUserRepository {
     async findByIdWithPassword(id) {
         throw new Error('Method not implemented');
     }
+    async findByGoogleId(googleId) {
+        throw new Error('Method not implemented');
+    }
+    async add(user) {
+        throw new Error('Method not implemented');
+    }
     async delete(id) {
         throw new Error('Method not implemented');
     }

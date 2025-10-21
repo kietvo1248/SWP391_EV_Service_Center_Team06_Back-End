@@ -3,8 +3,8 @@ const User = require('../../domain/entities/User');
 const GoogleOAuthCallbackUseCase = require('../../application/authorization/googleSignIn');
 const jwt = require('jsonwebtoken');
 
-const googleOAuthCallbackUseCase = new GoogleOAuthCallbackUseCase();
 function initializePassport(passport, userRepository) {
+    const googleOAuthCallbackUseCase = new GoogleOAuthCallbackUseCase(userRepository);
     passport.use(new GoogleStrategy({
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,

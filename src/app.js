@@ -6,7 +6,6 @@ const dotenv = require('dotenv');
 dotenv.config();
 const passport = require('passport');
 const initializePassport = require('./infrastructure/service/passport');
-initializePassport(passport);
 // Infrastructure
 const PrismaUserRepository = require('./infrastructure/repositories/PrismaUserRepository');
 const PrismaVehicleRepository = require('./infrastructure/repositories/PrismaVehicleRepository');
@@ -52,12 +51,16 @@ const app = express();
 
 // --- Middlewares ---
 app.use(express.json());
+app.use(passport.initialize());
 
 // --- Dependency Injection (DI Container) ---
 // Đây là trái tim của ứng dụng, nơi các lớp được kết nối với nhau
 const userRepository = new PrismaUserRepository();
 const vehicleRepository = new PrismaVehicleRepository();
 const appointmentRepository = new PrismaAppointmentRepository();
+
+// Initialize Passport with userRepository
+initializePassport(passport, userRepository);
 
 // Use Cases for Authentication
 const registerUseCase = new RegisterUser(userRepository);
