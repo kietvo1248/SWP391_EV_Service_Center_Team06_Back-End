@@ -9,9 +9,11 @@ const appointmentRouter = (appointmentController) => {
 
     // Lấy gợi ý dịch vụ dựa trên model và số km
     router.get('/suggestions', authenticate, appointmentController.getSuggestions.bind(appointmentController));
+    // Lấy danh sách loại dịch vụ
+    router.get('/service-types', authenticate, appointmentController.listServiceTypes.bind(appointmentController));
     
     // Tạo một lịch hẹn mới
-    router.post('/', authenticate, appointmentController.create.bind(appointmentController));
+    router.post('/create-appointment', authenticate, appointmentController.create.bind(appointmentController));
 
     return router;
 };
