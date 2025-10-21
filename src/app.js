@@ -1,7 +1,7 @@
 const express = require('express');
 // Swagger
 const swaggerUi = require('swagger-ui-express');
-const swaggerSpecs = require('./config/swaggerConfig');
+const YAML = require('yamljs');
 const dotenv = require('dotenv');
 dotenv.config();
 const passport = require('passport');
@@ -118,7 +118,8 @@ app.use('/api/appointments', appointmentRouterInstance);
 
 
 // swagger docs
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+const swaggerDocument = YAML.load('./docs/swagger.yaml'); 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // --- Xử lý lỗi 404 ---
 app.use((req, res, next) => {
