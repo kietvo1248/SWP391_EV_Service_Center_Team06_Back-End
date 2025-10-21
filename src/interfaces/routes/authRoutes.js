@@ -29,7 +29,7 @@ const createAuthRouter = (authController, passport) => {
     // 2. Route callback sau khi Google xác thực xong
     router.get('/google/callback', 
         passport.authenticate('google', { 
-            failureRedirect: '/login-failure', // Chuyển hướng nếu thất bại
+            failureRedirect: '/login-failure', // Chuyển hướng nếu thất bại (frontend xử lý))
             session: false // Không tạo session vì chúng ta dùng JWT
         }),
         (req, res) => {
