@@ -12,21 +12,24 @@ tags:
     description: Các endpoint liên quan đến đăng ký, đăng nhập và Google OAuth.
   - name: Profile
     description: Quản lý thông tin cá nhân của người dùng đã đăng nhập.
+  - name: Vehicle
+    description: (Khách hàng) Quản lý phương tiện cá nhân.
+  - name: Service Center
+    description: (Khách hàng) Tra cứu thông tin trung tâm dịch vụ và lịch trống.
+  - name: Appointment
+    description: (Khách hàng) Quản lý và đặt lịch hẹn dịch vụ.
   - name: Admin
     description: Các chức năng chỉ dành cho quản trị viên (Admin).
 
 paths:
+  # --- AUTHENTICATION ---
   /auth/register:
     post:
       tags: [Auth]
       summary: Đăng ký tài khoản mới
       description: Tạo một tài khoản người dùng mới với vai trò mặc định là CUSTOMER.
       requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RegisterInput'
+        $ref: '#/components/requestBodies/RegisterInput'
       responses:
         '201':
           description: Tài khoản được tạo thành công.
@@ -35,11 +38,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
         '400':
-          description: Dữ liệu không hợp lệ hoặc email đã tồn tại.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ErrorResponse'
 
   /auth/login:
     post:
@@ -47,11 +46,7 @@ paths:
       summary: Đăng nhập vào hệ thống
       description: Xác thực người dùng bằng email và mật khẩu, trả về JWT token nếu thành công.
       requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginInput'
+        $ref: '#/components/requestBodies/LoginInput'
       responses:
         '200':
           description: Đăng nhập thành công.
@@ -60,17 +55,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
         '400':
-          description: Email hoặc mật khẩu không chính xác.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ErrorResponse'
   
   /auth/google:
     get:
       tags: [Auth]
       summary: Bắt đầu đăng nhập với Google
-      description: Điều hướng người dùng đến trang xác thực của Google. Người dùng không gọi trực tiếp API này mà thông qua một link trên frontend.
+      description: Điều hướng người dùng đến trang xác thực của Google.
       responses:
         '302':
           description: Chuyển hướng đến trang đăng nhập Google.
@@ -79,7 +70,7 @@ paths:
     get:
       tags: [Auth]
       summary: Callback sau khi Google xác thực
-      description: Google sẽ gọi lại endpoint này sau khi người dùng xác thực thành công. Backend xử lý và trả về JWT token.
+      description: Google gọi lại endpoint này, backend xử lý và trả về JWT token.
       responses:
         '200':
           description: Xác thực thành công.
@@ -88,12 +79,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/GoogleOAuthResponse'
         '401':
-          description: Xác thực thất bại.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ErrorResponse'
 
+  # --- PROFILE ---
   /auth/profile:
     get:
       tags: [Profile]
@@ -109,17 +97,215 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
         '401':
-          description: Chưa xác thực hoặc token không hợp lệ.
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # --- VEHICLE (Customer) ---
+  /vehicle/add-vehicle:
+    post:
+      tags: [Vehicle]
+      summary: (Customer) Thêm phương tiện mới
+      description: Khách hàng thêm thông tin phương tiện (xe) của mình.
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/VehicleInput'
+      responses:
+        '201':
+          description: Thêm xe thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /vehicle/my-vehicles:
+    get:
+      tags: [Vehicle]
+      summary: (Customer) Lấy danh sách xe của tôi
+      description: Lấy danh sách các xe mà khách hàng đang sở hữu.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lấy danh sách xe thành công.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Vehicle'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # --- SERVICE CENTER (Customer) ---
+  /service-centers:
+    get:
+      tags: [Service Center]
+      summary: (Customer) Lấy danh sách trung tâm dịch vụ
+      description: Lấy danh sách tất cả các trung tâm dịch vụ có trong hệ thống.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lấy danh sách trung tâm thành công.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServiceCenter'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /service-centers/{id}/available-slots:
+    get:
+      tags: [Service Center]
+      summary: (Customer) Lấy các khung giờ trống theo ngày
+      description: Lấy danh sách các slot thời gian còn trống của một trung tâm cụ thể vào một ngày được chọn.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID của trung tâm dịch vụ
+          schema:
+            type: string
+            format: uuid
+        - name: date
+          in: query
+          required: true
+          description: Ngày cần kiểm tra (Định dạng YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Lấy danh sách slot thành công.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AvailableSlot'
+        '400':
+          description: Ngày không hợp lệ hoặc thiếu thông tin.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Không tìm thấy trung tâm dịch vụ.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # --- APPOINTMENT (Customer) ---
+  /appointments/my-vehicles:
+    get:
+      tags: [Appointment]
+      summary: (Customer) Lấy danh sách xe của tôi
+      description: (Tương tự /vehicle/my-vehicles) Lấy danh sách xe của khách hàng để chọn khi đặt lịch.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lấy danh sách xe thành công.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Vehicle'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
   
+  /appointments/service-types:
+    get:
+      tags: [Appointment]
+      summary: (Customer) Lấy danh sách loại dịch vụ
+      description: Lấy danh sách tất cả các gói dịch vụ, bảo dưỡng (ví dụ: Bảo dưỡng định kỳ, Kiểm tra pin...).
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lấy danh sách dịch vụ thành công.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServiceType'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /appointments/suggestions:
+    get:
+      tags: [Appointment]
+      summary: (Customer) Lấy gợi ý dịch vụ
+      description: Gợi ý các dịch vụ bảo dưỡng dựa trên model xe và số km (demo).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: vehicleModel
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: mileage
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lấy gợi ý thành công.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /appointments:
+    post:
+      tags: [Appointment]
+      summary: (Customer) Tạo lịch hẹn mới
+      description: Gửi thông tin để xác nhận đặt lịch hẹn sau khi đã chọn xe, trung tâm, dịch vụ và thời gian.
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/AppointmentInput'
+      responses:
+        '201':
+          description: Tạo lịch hẹn thành công.
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                  appointment:
+                    $ref: '#/components/schemas/Appointment'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # --- ADMIN ---
   /admin/users:
     get:
       tags: [Admin]
-      summary: Lấy danh sách tất cả tài khoản
-      description: (Chỉ Admin) Lấy danh sách tất cả tài khoản người dùng trong hệ thống. Yêu cầu JWT token của Admin.
+      summary: (Admin) Lấy danh sách tất cả tài khoản
+      description: (Chỉ Admin) Lấy danh sách tất cả tài khoản người dùng trong hệ thống.
       security:
         - bearerAuth: []
       responses:
@@ -132,11 +318,12 @@ paths:
                 items:
                   $ref: '#/components/schemas/User'
         '401':
-          description: Chưa xác thực.
+          $ref: '#/components/responses/UnauthorizedError'
         '403':
-          description: Không có quyền truy cập (không phải Admin).
+          $ref: '#/components/responses/ForbiddenError'
 
 components:
+  # --- SCHEMAS (Mô hình dữ liệu) ---
   schemas:
     User:
       type: object
@@ -153,29 +340,89 @@ components:
           type: string
           enum: [CUSTOMER, STAFF, TECHNICIAN, INVENTORY_MANAGER, ADMIN, STATION_ADMIN]
 
-    RegisterInput:
+    Vehicle:
       type: object
-      required: [fullName, email, password]
       properties:
-        fullName:
+        id:
           type: string
-        email:
+          format: uuid
+        make:
           type: string
-          format: email
-        password:
+        model:
           type: string
-          format: password
+        year:
+          type: integer
+        vin:
+          type: string
+        licensePlate:
+          type: string
+        currentMileage:
+          type: integer
+    
+    ServiceType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+    
+    ServiceCenter:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        address:
+          type: string
+        phoneNumber:
+          type: string
+        openingTime:
+          type: string
+          example: "08:00"
+        closingTime:
+          type: string
+          example: "17:00"
 
-    LoginInput:
+    AvailableSlot:
       type: object
-      required: [email, password]
       properties:
-        email:
+        time:
           type: string
-          format: email
-        password:
+          format: date-time
+          description: Khung giờ (ISO 8601 UTC)
+        available:
+          type: boolean
+          description: true nếu còn trống, false nếu đã đầy
+    
+    Appointment:
+      type: object
+      properties:
+        id:
           type: string
-          format: password
+          format: uuid
+        appointmentDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED]
+        customerNotes:
+          type: string
+        customerId:
+          type: string
+          format: uuid
+        vehicleId:
+          type: string
+          format: uuid
+        serviceCenterId:
+          type: string
+          format: uuid
 
     LoginResponse:
       type: object
@@ -204,6 +451,125 @@ components:
       properties:
         message:
           type: string
+          example: "Dữ liệu không hợp lệ."
+  
+  # --- REQUEST BODIES (Dữ liệu đầu vào) ---
+  requestBodies:
+    RegisterInput:
+      description: Dữ liệu để đăng ký tài khoản mới
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [fullName, email, password]
+            properties:
+              fullName:
+                type: string
+              email:
+                type: string
+                format: email
+              password:
+                type: string
+                format: password
+    
+    LoginInput:
+      description: Dữ liệu để đăng nhập
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [email, password]
+            properties:
+              email:
+                type: string
+                format: email
+              password:
+                type: string
+                format: password
+    
+    VehicleInput:
+      description: Dữ liệu để thêm xe mới
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [make, model, year, vin]
+            properties:
+              make:
+                type: string
+                example: "VinFast"
+              model:
+                type: string
+                example: "VF8"
+              year:
+                type: integer
+                example: 2024
+              vin:
+                type: string
+                example: "VFA123456789XYZ"
+              licencePlate:
+                type: string
+                example: "69A-696.96"
+
+    AppointmentInput:
+      description: Dữ liệu để xác nhận đặt lịch hẹn
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [vehicleId, serviceCenterId, appointmentDate, requestedServices]
+            properties:
+              vehicleId:
+                type: string
+                format: uuid
+              serviceCenterId:
+                type: string
+                format: uuid
+              appointmentDate:
+                type: string
+                format: date-time
+                description: "Slot thời gian (ISO String) mà người dùng đã chọn"
+              customerNotes:
+                type: string
+              requestedServices:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+                description: "Mảng các ID của ServiceType mà người dùng đã chọn"
+
+  # --- RESPONSES (Phản hồi chung) ---
+  responses:
+    ErrorResponse:
+      description: Dữ liệu không hợp lệ hoặc lỗi server.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnauthorizedError:
+      description: Lỗi xác thực (Chưa đăng nhập hoặc token không hợp lệ).
+      content:
+        application/json:
+          schema:
+            properties:
+              message:
+                type: string
+                example: "Access token is missing."
+    ForbiddenError:
+      description: Lỗi phân quyền (Không có quyền truy cập).
+      content:
+        application/json:
+          schema:
+            properties:
+              message:
+                type: string
+                example: "You do not have permission to access this resource."
+
+  # --- SECURITY ---
   securitySchemes:
     bearerAuth:
       type: http
