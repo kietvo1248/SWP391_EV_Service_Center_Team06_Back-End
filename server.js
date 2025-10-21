@@ -1,44 +1,10 @@
 require('dotenv').config();
-const express = require('express');
 
-// Import các lớp đã tạo
-const PrismaUserRepository = require('./src/infrastructure/repositories/PrismaUserRepository');
-const AuthController = require('./src/interfaces/controllers/authController');
-const createAuthRouter = require('./src/interfaces/routes/authRoutes');
+// Import ứng dụng đã được cấu hình từ app.js
+const app = require('./src/app');
+const port = process.env.PORT || 3000;
 
-//import các usecase
-//authentication
-const RegisterUser = require('./src/application/authorization/register');
-const LoginUser = require('./src/application/authorization/login');
-const createUser = require('./src/application/authorization/createAccount');
-const viewUserProfile = require('./src/application/authorization/viewProfile');
-const viewAllAccounts = require('./src/application/authorization/viewAllAccount');
-const updateUserProfile = require('./src/application/authorization/updateprofile');
-
-
-
-const app = express();
-const port = process.env.PORT;
-
-// Middlewares
-app.use(express.json());
-
-// --- Dependency Injection ---
-// Khởi tạo các dependency từ trong ra ngoài
-const userRepository = new PrismaUserRepository();
-//authentication
-const registerUseCase = new RegisterUser(userRepository);
-const loginUseCase = new LoginUser(userRepository);
-const createUserUseCase = new createUser(userRepository);
-const viewUserProfileUseCase = new viewUserProfile(userRepository);
-const viewAllAccountsUseCase = new viewAllAccounts(userRepository);
-const updateUserProfileUseCase = new updateUserProfile(userRepository);
-const authController = new AuthController(registerUseCase, loginUseCase, createUserUseCase, viewUserProfileUseCase, viewAllAccountsUseCase, updateUserProfileUseCase);
-const authRouter = createAuthRouter(authController);
-
-// Sử dụng router
-app.use('/api/auth', authRouter);
-
+// Khởi động server và lắng nghe trên cổng đã chỉ định
 app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+    console.log(`🚀 Server is running on http://localhost:${port}`);
 });

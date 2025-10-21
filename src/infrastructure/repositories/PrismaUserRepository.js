@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const IUserRepository = require('../../domain/repositories/IUserRepositoriy');
+const IUserRepository = require('../../domain/repositories/IUserRepository');
 const prisma = new PrismaClient();
 
 class PrismaUserRepository extends IUserRepository {
@@ -55,6 +55,31 @@ class PrismaUserRepository extends IUserRepository {
         return await prisma.user.update({
             where: { id: id },
             data: updateData,
+        });
+    }
+     async findByIdWithPassword(id) {
+        return await prisma.user.findUnique({
+            where: { id },
+        });
+    }
+     async findByGoogleId(googleId) {
+        return this.prisma.user.findUnique({
+            where: { googleId },
+        });
+    }
+
+    async add(user) {
+        const { id, userCode, fullName, email, passwordHash, role, phoneNumber, address, googleId } = user;
+        return this.prisma.user.create({
+            data: {
+                fullName,
+                email,
+                passwordHash,
+                role,
+                phoneNumber,
+                address,
+                googleId,
+            },
         });
     }
 }

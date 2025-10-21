@@ -19,6 +19,9 @@ class IUserRepository {
     async findAll() {
         throw new Error('Method not implemented');
     }
+    async findByIdWithPassword(id) {
+        throw new Error('Method not implemented');
+    }
     async delete(id) {
         throw new Error('Method not implemented');
     }
