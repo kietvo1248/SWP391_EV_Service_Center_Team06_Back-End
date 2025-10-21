@@ -17,16 +17,19 @@ class AuthController {
     }
 
     async register(req, res) {
-        const { fullName, email, password } = req.body;
+        // Lấy tất cả các trường cần thiết từ body của request
+        const { fullName, email, password, confirmPassword, phoneNumber } = req.body;
+        
         try {
             const user = await this.registerUserUseCase.execute({
                 fullName,
                 email,
                 password,
-                role: 'CUSTOMER', // Mặc định là khách hàng khi tự đăng ký
+                confirmPassword,
+                phoneNumber,
             });
-            res.status(201).json(user);
-            console.log("Register successfully, Welcome " + user.fullName);
+            
+            res.status(201).json({ message: "Đăng ký thành công!", user });
         } catch (error) {
             res.status(400).json({ message: error.message });
         }
