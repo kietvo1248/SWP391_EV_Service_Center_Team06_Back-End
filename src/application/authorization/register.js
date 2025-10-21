@@ -1,5 +1,5 @@
 const User = require('../../domain/entities/User');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 class RegisterUserUseCase {
     constructor(userRepository) {
@@ -48,7 +48,6 @@ class RegisterUserUseCase {
             null            // googleId
         );
 
-        // 5. Lưu người dùng vào CSDL thông qua repository
         return this.userRepository.add(newUser);
     }
 }

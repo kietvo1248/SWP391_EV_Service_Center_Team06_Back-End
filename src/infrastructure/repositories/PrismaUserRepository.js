@@ -1,8 +1,13 @@
-const { PrismaClient } = require('@prisma/client');
+
 const IUserRepository = require('../../domain/repositories/IUserRepository');
-const prisma = new PrismaClient();
+// const { PrismaClient } = require('@prisma/client');
+// const prisma = new PrismaClient();
 
 class PrismaUserRepository extends IUserRepository {
+    constructor(PrismaClient) {
+        super();
+        this.prisma = PrismaClient;
+    }
     async findByEmail(email) {
         return await prisma.user.findUnique({
             where: { email },
@@ -10,7 +15,7 @@ class PrismaUserRepository extends IUserRepository {
     }
 
     async findById(id) {
-        return await prisma.user.findUnique({
+        return await this.prisma.user.findUnique({
             where: { id },
             select: {
                 id: true,
@@ -24,7 +29,7 @@ class PrismaUserRepository extends IUserRepository {
         });
     }
     async findAll() {
-        return await prisma.user.findMany({
+        return await this.prisma.user.findMany({
             select: {
                 id: true,
                 userCode: true,
@@ -36,35 +41,35 @@ class PrismaUserRepository extends IUserRepository {
     }
 
     async count() {
-        return await prisma.user.count();
+        return await this.prisma.user.count();
     }
 
     async delete(id) {
-        return await prisma.user.delete({
+        return await this.prisma.user.delete({
             where: { id },
         });
     }
 
     async create(userData) {
-        return await prisma.user.create({
+        return await this.prisma.user.create({
             data: userData,
         });
     }
 
     async update(id, updateData) {
-        return await prisma.user.update({
+        return await this.prisma.user.update({
             where: { id: id },
             data: updateData,
         });
     }
      async findByIdWithPassword(id) {
-        return await prisma.user.findUnique({
+        return await this.prisma.user.findUnique({
             where: { id },
         });
     }
      async findByGoogleId(googleId) {
         try {
-            return await prisma.user.findUnique({
+            return await this.prisma.user.findUnique({
                 where: { googleId },
             });
         } catch (error) {
@@ -76,7 +81,7 @@ class PrismaUserRepository extends IUserRepository {
     async add(user) {
         try {
             const { id, userCode, fullName, email, passwordHash, role, phoneNumber, address, googleId } = user;
-            return await prisma.user.create({
+            return await this.prisma.user.create({
                 data: {
                     fullName,
                     email,

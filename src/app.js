@@ -5,6 +5,8 @@ const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const dotenv = require('dotenv');
 dotenv.config();
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const passport = require('passport');
 const initializePassport = require('./infrastructure/service/passport');
 // Infrastructure
@@ -62,9 +64,9 @@ app.use(passport.initialize());
 
 // --- Dependency Injection (DI Container) ---
 // Đây là trái tim của ứng dụng, nơi các lớp được kết nối với nhau
-const userRepository = new PrismaUserRepository();
-const vehicleRepository = new PrismaVehicleRepository();
-const appointmentRepository = new PrismaAppointmentRepository();
+const userRepository = new PrismaUserRepository(prisma);
+const vehicleRepository = new PrismaVehicleRepository(prisma);
+const appointmentRepository = new PrismaAppointmentRepository(prisma);
 
 // Initialize Passport with userRepository
 
