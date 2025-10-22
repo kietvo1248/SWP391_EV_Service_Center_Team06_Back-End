@@ -6,7 +6,7 @@ info:
 servers:
   - url: http://localhost:6969/api
     description: Development server
-  - url: https://swp391-restapi-ev-service-center-back.onrender.com/api
+  - url: https://swp391-restapi-ev-service-center-back-ckkz.onrender.com/api
     description: Production server
 
 tags:
