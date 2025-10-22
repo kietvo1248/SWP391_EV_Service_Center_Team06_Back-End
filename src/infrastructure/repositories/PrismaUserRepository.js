@@ -97,6 +97,22 @@ class PrismaUserRepository extends IUserRepository {
             throw error;
         }
     }
+
+    async findTechniciansByCenter(serviceCenterId) {
+        return this.prisma.user.findMany({
+            where: {
+                serviceCenterId: serviceCenterId,
+                role: 'TECHNICIAN',
+                isActive: true,
+            },
+            select: {
+                id: true,
+                fullName: true,
+                userCode: true,
+                email: true,
+            }
+        });
+    }
 }
 
 module.exports = PrismaUserRepository;

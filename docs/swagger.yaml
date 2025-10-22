@@ -18,6 +18,8 @@ tags:
     description: (Khách hàng) Tra cứu thông tin trung tâm dịch vụ và lịch trống.
   - name: Appointment
     description: (Khách hàng) Quản lý và đặt lịch hẹn dịch vụ.
+  - name: Staff
+    description: (Staff/Station Admin) Quản lý nghiệp vụ tại trung tâm.
   - name: Admin
     description: Các chức năng chỉ dành cho quản trị viên (Admin).
 
@@ -275,7 +277,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /appointments/create-appointment:
+  /appointments:
     post:
       tags: [Appointment]
       summary: (Customer) Tạo lịch hẹn mới
@@ -299,6 +301,129 @@ paths:
           $ref: '#/components/responses/ErrorResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+
+  # --- STAFF ---
+  /staff/technicians:
+    get:
+      tags: [Staff]
+      summary: (Staff) Lấy danh sách kỹ thuật viên
+      description: Lấy danh sách kỹ thuật viên (TECHNICIAN) tại trung tâm của nhân viên đang đăng nhập.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lấy danh sách kỹ thuật viên thành công.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TechnicianInfo'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /staff/appointments:
+    get:
+      tags: [Staff]
+      summary: (Staff) Lấy danh sách lịch hẹn tại trung tâm
+      description: Lấy danh sách lịch hẹn tại trung tâm của nhân viên, có thể lọc theo trạng thái (PENDING, CONFIRMED...).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Lọc theo trạng thái (PENDING, CONFIRMED, COMPLETED...)
+          schema:
+            type: string
+            enum: [PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED]
+      responses:
+        '200':
+          description: Lấy danh sách lịch hẹn thành công.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AppointmentSummary'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /staff/appointments/{id}:
+    get:
+      tags: [Staff]
+      summary: (Staff) Lấy chi tiết lịch hẹn
+      description: Lấy thông tin chi tiết của một lịch hẹn cụ thể, bao gồm thông tin khách hàng, xe, và các dịch vụ yêu cầu.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID của lịch hẹn
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lấy chi tiết thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentDetail'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /staff/appointments/{id}/confirm:
+    put:
+      tags: [Staff]
+      summary: (Staff) Xác nhận và phân công lịch hẹn
+      description: Xác nhận một lịch hẹn (chuyển từ PENDING sang CONFIRMED) và phân công cho một kỹ thuật viên.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID của lịch hẹn
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        $ref: '#/components/requestBodies/ConfirmAppointmentInput'
+      responses:
+        '200':
+          description: Xác nhận và phân công thành công.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      updatedAppointment:
+                        $ref: '#/components/schemas/Appointment'
+                      newServiceRecord:
+                        $ref: '#/components/schemas/ServiceRecord'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
 
   # --- ADMIN ---
   /admin/users:
@@ -452,6 +577,98 @@ components:
         message:
           type: string
           example: "Dữ liệu không hợp lệ."
+
+    TechnicianInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        userCode:
+          type: string
+        email:
+          type: string
+          format: email
+    
+    CustomerInfo:
+      type: object
+      properties:
+        fullName:
+          type: string
+        phoneNumber:
+          type: string
+          
+    VehicleInfo:
+      type: object
+      properties:
+        make:
+          type: string
+        model:
+          type: string
+        licensePlate:
+          type: string
+
+    AppointmentSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        appointmentDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED]
+        customer:
+          $ref: '#/components/schemas/CustomerInfo'
+        vehicle:
+          $ref: '#/components/schemas/VehicleInfo'
+          
+    AppointmentDetail:
+      allOf:
+        - $ref: '#/components/schemas/Appointment'
+        - type: object
+          properties:
+            customer:
+              $ref: '#/components/schemas/User' 
+            vehicle:
+              $ref: '#/components/schemas/Vehicle'
+            serviceCenter:
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                address:
+                  type: string
+            requestedServices:
+              type: array
+              items:
+                type: object
+                properties:
+                  serviceType:
+                    $ref: '#/components/schemas/ServiceType'
+
+    ServiceRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        appointmentId:
+          type: string
+          format: uuid
+        technicianId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        startTime:
+          type: string
+          format: date-time
   
   # --- REQUEST BODIES (Dữ liệu đầu vào) ---
   requestBodies:
@@ -541,6 +758,20 @@ components:
                   type: string
                   format: uuid
                 description: "Mảng các ID của ServiceType mà người dùng đã chọn"
+    
+    ConfirmAppointmentInput:
+      description: Dữ liệu để xác nhận và phân công lịch hẹn
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [technicianId]
+            properties:
+              technicianId:
+                type: string
+                format: uuid
+                description: ID của kỹ thuật viên được phân công
 
   # --- RESPONSES (Phản hồi chung) ---
   responses:

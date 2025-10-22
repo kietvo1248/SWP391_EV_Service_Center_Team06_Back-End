@@ -45,6 +45,61 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
             return newAppointment;
         });
     }
+    async findByCenterId(serviceCenterId, status) {
+        const whereClause = {
+            serviceCenterId: serviceCenterId,
+        };
+
+        if (status) {
+            whereClause.status = status;
+        }
+
+        return this.prisma.serviceAppointment.findMany({
+            where: whereClause,
+            select: {
+                id: true,
+                appointmentDate: true,
+                status: true,
+                customer: { // Lấy thông tin khách hàng
+                    select: { fullName: true, phoneNumber: true }
+                },
+                vehicle: { // Lấy thông tin xe
+                    select: { make: true, model: true, licensePlate: true }
+                }
+            },
+            orderBy: {
+                appointmentDate: 'asc', // Sắp xếp theo ngày hẹn
+            }
+        });
+    }
+
+    async findById(appointmentId) {
+        return this.prisma.serviceAppointment.findUnique({
+            where: { id: appointmentId },
+            include: {
+                customer: { // Thông tin khách hàng
+                    select: { id: true, fullName: true, email: true, phoneNumber: true }
+                },
+                vehicle: true, // Lấy tất cả thông tin xe
+                serviceCenter: { // Thông tin trung tâm
+                    select: { id: true, name: true, address: true }
+                },
+                requestedServices: { // Dịch vụ đã yêu cầu
+                    include: {
+                        serviceType: true // Lấy chi tiết của loại dịch vụ
+                    }
+                }
+            }
+        });
+    }
+
+    async updateStatus(appointmentId, status, tx) {
+        const db = tx || this.prisma; // Sử dụng transaction nếu được cung cấp
+        return db.serviceAppointment.update({
+            where: { id: appointmentId },
+            data: { status: status },
+        });
+    }
 }
 
 module.exports = PrismaAppointmentRepository;

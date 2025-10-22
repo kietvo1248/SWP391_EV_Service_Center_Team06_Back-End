@@ -15,6 +15,7 @@ const PrismaVehicleRepository = require('./infrastructure/repositories/PrismaVeh
 const PrismaAppointmentRepository = require('./infrastructure/repositories/PrismaAppointmentRepository');
 const PrismaServiceCenterRepository = require('./infrastructure/repositories/PrismaServiceCenterRepository');
 const PrismaServiceTypeRepository = require('./infrastructure/repositories/PrismaServiceTypeRepository');
+const PrismaServiceRecordRepository = require('./infrastructure/repositories/PrismaServiceRecordRepository');
 
 // Interfaces
 //==auth==
@@ -29,6 +30,10 @@ const appointmentRouter = require('./interfaces/routes/appointmentRoutes');
 //==service center==
 const ServiceCenterController = require('./interfaces/controllers/serviceCenterController');
 const serviceCenterRouter = require('./interfaces/routes/serviceCenterRoutes');
+
+//staff
+const StaffController = require('./interfaces/controllers/staffController');
+const staffRouter = require('./interfaces/routes/staffRoutes');
 
 
 // Application (Use Cases)
@@ -59,6 +64,12 @@ const ListServiceTypes = require('./application/bookings/listAllServiceType');
 const ListAllServiceCenters = require('./application/service_centers/listAllServiceCenter');
 const getAvailableSlots = require('./application/service_centers/getAvailableSlot');
 
+//staff use cases
+const ListCenterAppointments = require('./application/staff/listAppointment');
+const GetAppointmentDetails = require('./application/staff/getAppointmentDetails');
+const ListCenterTechnicians = require('./application/staff/listCenterTechnician');
+const AssignAndConfirmAppointment = require('./application/staff/confirmAppointment');
+
 // --- Khởi tạo ứng dụng Express ---
 const app = express();
 
@@ -79,6 +90,7 @@ const vehicleRepository = new PrismaVehicleRepository(prisma);
 const appointmentRepository = new PrismaAppointmentRepository(prisma);
 const serviceCenterRepository = new PrismaServiceCenterRepository(prisma);
 const serviceTypeRepository = new PrismaServiceTypeRepository(prisma);
+const serviceRecordRepository = new PrismaServiceRecordRepository(prisma);
 
 // Initialize Passport with userRepository
 
@@ -108,6 +120,17 @@ const listServiceTypesUseCase = new ListServiceTypes(serviceTypeRepository);
 // Use Cases for Service Center Management
 const listAllServiceCentersUseCase = new ListAllServiceCenters(serviceCenterRepository);
 const getAvailableSlotsUseCase = new getAvailableSlots(serviceCenterRepository);
+
+// Use Cases for Staff Management   
+const listCenterAppointmentsUseCase = new ListCenterAppointments(appointmentRepository);
+const getAppointmentDetailsUseCase = new GetAppointmentDetails(appointmentRepository);
+const listCenterTechniciansUseCase = new ListCenterTechnicians(userRepository);
+const assignAndConfirmAppointmentUseCase = new AssignAndConfirmAppointment(
+    appointmentRepository,
+    serviceRecordRepository,
+    userRepository,
+    prisma // Truyền prisma client cho transaction
+);
 
 
 // Controller
@@ -141,6 +164,12 @@ const serviceCenterController = new ServiceCenterController(
     listAllServiceCentersUseCase,
     getAvailableSlotsUseCase
 );
+const staffController = new StaffController(
+    listCenterAppointmentsUseCase,
+    getAppointmentDetailsUseCase,
+    listCenterTechniciansUseCase,
+    assignAndConfirmAppointmentUseCase
+);
 
 initializePassport(passport, userRepository);
 
@@ -149,12 +178,14 @@ const authRouter = createAuthRouter(authController, passport);
 const vehicleRouter = VehicleRouter(vehicleController);
 const appointmentRouterInstance = appointmentRouter(appointmentController);
 const serviceCenterRouterInstance = serviceCenterRouter(serviceCenterController);
+const staffRouterInstance = staffRouter(staffController);
 
 // --- Gắn Router vào ứng dụng ---
 app.use('/api/auth', authRouter);
 app.use('/api/vehicle', vehicleRouter);
 app.use('/api/appointments', appointmentRouterInstance);
 app.use('/api/service-centers', serviceCenterRouterInstance);
+app.use('/api/staff', staffRouterInstance);
 
 
 // swagger docs

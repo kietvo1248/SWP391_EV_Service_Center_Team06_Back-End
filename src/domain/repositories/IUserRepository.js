@@ -31,6 +31,13 @@ class IUserRepository {
     async delete(id) {
         throw new Error('Method not implemented');
     }
+    /**
+     * Tìm tất cả kỹ thuật viên (TECHNICIAN) thuộc một trung tâm dịch vụ
+     * @param {string} serviceCenterId
+     */
+    async findTechniciansByCenter(serviceCenterId) {
+        throw new Error('Method not implemented');
+    }
 }
 
 module.exports = IUserRepository;
