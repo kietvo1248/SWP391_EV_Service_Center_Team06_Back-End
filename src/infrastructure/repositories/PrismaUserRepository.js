@@ -9,7 +9,7 @@ class PrismaUserRepository extends IUserRepository {
         this.prisma = PrismaClient;
     }
     async findByEmail(email) {
-        return await prisma.user.findUnique({
+        return await this.prisma.user.findUnique({
             where: { email },
         });
     }
