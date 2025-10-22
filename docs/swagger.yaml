@@ -275,7 +275,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /appointments:
+  /appointments/create-appointment:
     post:
       tags: [Appointment]
       summary: (Customer) Tạo lịch hẹn mới
