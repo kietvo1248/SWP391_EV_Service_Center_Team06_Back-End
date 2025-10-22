@@ -1,9 +1,8 @@
 // Tệp: src/interfaces/controllers/serviceCenterController.js
 
 class ServiceCenterController {
-    constructor(listAllServiceCentersUseCase, getAvailableSlotsUseCase) {
+    constructor(listAllServiceCentersUseCase) {
         this.listAllServiceCentersUseCase = listAllServiceCentersUseCase;
-        this.getAvailableSlotsUseCase = getAvailableSlotsUseCase;
     }
 
     /**
