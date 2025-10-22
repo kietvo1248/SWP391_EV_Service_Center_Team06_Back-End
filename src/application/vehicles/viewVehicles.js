@@ -1,4 +1,4 @@
-const Vehicle = require('../../domain/entities/Vehicle');
+// const Vehicle = require('../../domain/entities/Vehicle'); // No longer needed
 
 class ViewVehicles {
     constructor(vehicleRepository) {
@@ -7,16 +7,8 @@ class ViewVehicles {
     async execute(ownerId) {
         // 1. Tìm tất cả xe của chủ sở hữu
         const vehicles = await this.vehicleRepository.findByOwnerId(ownerId);
-        // 2. Trả về danh sách các entity Vehicle
-        return vehicles.map(vehicle => new Vehicle(
-            vehicle.id,
-            vehicle.make,
-            vehicle.model,
-            vehicle.year,
-            vehicle.vin,
-            vehicle.licensePlate,
-            vehicle.ownerId
-        ));
+        // 2. Trả về danh sách các plain object (DTO) thay vì các instance của class Vehicle
+        return vehicles;
     }
 }
 module.exports = ViewVehicles;
