@@ -6,6 +6,8 @@ info:
 servers:
   - url: http://localhost:6969/api
     description: Development server
+  - url: https://swp391-restapi-ev-service-center-back.onrender.com/api
+    description: Production server
 
 tags:
   - name: Auth
@@ -275,7 +277,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /appointments/create-appointment:
+  /appointments:
     post:
       tags: [Appointment]
       summary: (Customer) Tạo lịch hẹn mới

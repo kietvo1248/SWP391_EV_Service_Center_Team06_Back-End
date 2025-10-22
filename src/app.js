@@ -96,7 +96,7 @@ const verifyResetCodeUseCase = new VerifyResetCode(userRepository);
 const resetPasswordUseCase = new ResetPassword(userRepository);
 const googleSignInUseCase = new googleSignIn(userRepository);
 // Use Cases for Vehicle Management
-const addVehicleUseCase  = new AddVehicle(vehicleRepository);
+const addVehicleUseCase = new AddVehicle(vehicleRepository);
 const viewVehiclesUseCase = new ViewVehicles(vehicleRepository);
 
 //Usce Cases for Appointment Management
@@ -157,8 +157,13 @@ app.use('/api/appointments', appointmentRouterInstance);
 app.use('/api/service-centers', serviceCenterRouterInstance);
 
 
+// Health check endpoints
+const { healthCheck, databaseHealthCheck } = require('../health');
+app.get('/health', healthCheck);
+app.get('/api/health/db', databaseHealthCheck);
+
 // swagger docs
-const swaggerDocument = YAML.load('./docs/swagger.yaml'); 
+const swaggerDocument = YAML.load('./docs/swagger.yaml');
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // --- Xử lý lỗi 404 ---
