@@ -1,41 +1,55 @@
-const bcrypt = require('bcryptjs');
-const uuid = require('uuid');
 const User = require('../../domain/entities/User');
+const bcrypt = require('bcryptjs');
 
-class RegisterUser {
+class RegisterUserUseCase {
     constructor(userRepository) {
         this.userRepository = userRepository;
     }
 
-    async execute({ fullName, email, password, role }) {
-        // 1. Kiểm tra email đã tồn tại chưa
+    /**
+     * Thực thi nghiệp vụ đăng ký người dùng mới.
+     * @param {object} userData - Dữ liệu người dùng từ form.
+     * @param {string} userData.fullName - Họ và tên.
+     * @param {string} userData.email - Email.
+     * @param {string} userData.password - Mật khẩu.
+     * @param {string} userData.confirmPassword - Mật khẩu xác nhận.
+     * @param {string} userData.phoneNumber - Số điện thoại.
+     * @returns {Promise<User>} Đối tượng người dùng đã được tạo.
+     */
+    async execute({ fullName, email, password, confirmPassword, phoneNumber }) {
+        // 1. Validation: Kiểm tra các trường bắt buộc và mật khẩu khớp nhau
+        if (!fullName || !email || !password || !confirmPassword) {
+            throw new Error('Vui lòng điền đầy đủ các trường bắt buộc.');
+        }
+        if (password !== confirmPassword) {
+            throw new Error('Mật khẩu và mật khẩu xác nhận không khớp.');
+        }
+
+        // 2. Kiểm tra email đã tồn tại hay chưa
         const existingUser = await this.userRepository.findByEmail(email);
         if (existingUser) {
-            throw new Error('Email already in use.');
-        }
-        try {
-            const userCount = await this.userRepository.count();
-            const newUserNumber = userCount + 1;
-            const userCode = `USER${newUserNumber.toString().padStart(2, '0')}`;
-
-            // 4. Tạo người dùng mới với đầy đủ thông tin
-            const newUser = await this.userRepository.create({
-                // Prisma sẽ tự tạo UUID cho trường `id`
-                fullName,
-                email,
-                passwordHash: await bcrypt.hash(password, 10),
-                role: 'CUSTOMER',
-                userCode, // Gán userCode ngay khi tạo
-            });
-
-            // 5. Trả về đối tượng User an toàn
-            return new User(newUser.id, newUser.fullName, newUser.email, newUser.role);
-
-        } catch (error) {
-            console.log(error);
+            throw new Error('Email này đã được sử dụng.');
         }
 
+        // 3. Mã hóa mật khẩu
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 4. Tạo một đối tượng User entity mới
+        const newUser = new User(
+            null,           // id - sẽ được CSDL tự tạo
+            null,           // userCode
+            fullName,
+            email,
+            hashedPassword,
+            'CUSTOMER',     // Vai trò mặc định khi tự đăng ký
+            phoneNumber,    // Thêm số điện thoại
+            null,           // address
+            null,           // serviceCenterId
+            null            // googleId
+        );
+
+        return this.userRepository.add(newUser);
     }
 }
 
-module.exports = RegisterUser;
+module.exports = RegisterUserUseCase;

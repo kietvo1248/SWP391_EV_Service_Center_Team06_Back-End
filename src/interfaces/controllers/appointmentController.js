@@ -1,8 +1,9 @@
 class AppointmentController {
-    constructor(createAppointmentUseCase, listMyVehiclesUseCase, getServiceSuggestionsUseCase) {
+    constructor(createAppointmentUseCase, listMyVehiclesUseCase, getServiceSuggestionsUseCase, listServiceTypesUseCase) {
         this.createAppointmentUseCase = createAppointmentUseCase;
         this.listMyVehiclesUseCase = listMyVehiclesUseCase;
         this.getServiceSuggestionsUseCase = getServiceSuggestionsUseCase;
+        this.listServiceTypesUseCase = listServiceTypesUseCase;
     }
 
     async getMyVehicles(req, res) {
@@ -36,6 +37,15 @@ class AppointmentController {
             res.status(201).json({ message: "Appointment created successfully.", appointment: newAppointment });
         } catch (error) {
             res.status(400).json({ message: error.message });
+        }
+    }
+    async listServiceTypes(req, res) { // xem dịch vụ khi tạo appointment
+        try {
+            const serviceTypes = await this.listServiceTypesUseCase.execute();
+            res.status(200).json(serviceTypes);
+        } catch (error) {
+            console.error('Error listing service types:', error);
+            res.status(500).json({ message: 'Internal server error' });
         }
     }
 }

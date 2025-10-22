@@ -5,12 +5,16 @@ const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const dotenv = require('dotenv');
 dotenv.config();
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const passport = require('passport');
 const initializePassport = require('./infrastructure/service/passport');
 // Infrastructure
 const PrismaUserRepository = require('./infrastructure/repositories/PrismaUserRepository');
 const PrismaVehicleRepository = require('./infrastructure/repositories/PrismaVehicleRepository');
 const PrismaAppointmentRepository = require('./infrastructure/repositories/PrismaAppointmentRepository');
+const PrismaServiceCenterRepository = require('./infrastructure/repositories/PrismaServiceCenterRepository');
+const PrismaServiceTypeRepository = require('./infrastructure/repositories/PrismaServiceTypeRepository');
 
 // Interfaces
 //==auth==
@@ -22,6 +26,9 @@ const VehicleRouter = require('./interfaces/routes/vehicleRoutes');
 //==appointment==
 const AppointmentController = require('./interfaces/controllers/appointmentController');
 const appointmentRouter = require('./interfaces/routes/appointmentRoutes');
+//==service center==
+const ServiceCenterController = require('./interfaces/controllers/serviceCenterController');
+const serviceCenterRouter = require('./interfaces/routes/serviceCenterRoutes');
 
 
 // Application (Use Cases)
@@ -46,6 +53,11 @@ const ViewVehicles = require('./application/vehicles/viewVehicles');
 const CreateAppointment = require('./application/bookings/createAppointment');
 const ListMyVehicles = require('./application/vehicles/listvehicle');
 const GetServiceSuggestions = require('./application/bookings/suggestion');
+const ListServiceTypes = require('./application/bookings/listAllServiceType');
+
+//service center
+const ListAllServiceCenters = require('./application/service_centers/listAllServiceCenter');
+const getAvailableSlots = require('./application/service_centers/getAvailableSlot');
 
 // --- Khởi tạo ứng dụng Express ---
 const app = express();
@@ -62,9 +74,11 @@ app.use(passport.initialize());
 
 // --- Dependency Injection (DI Container) ---
 // Đây là trái tim của ứng dụng, nơi các lớp được kết nối với nhau
-const userRepository = new PrismaUserRepository();
-const vehicleRepository = new PrismaVehicleRepository();
-const appointmentRepository = new PrismaAppointmentRepository();
+const userRepository = new PrismaUserRepository(prisma);
+const vehicleRepository = new PrismaVehicleRepository(prisma);
+const appointmentRepository = new PrismaAppointmentRepository(prisma);
+const serviceCenterRepository = new PrismaServiceCenterRepository(prisma);
+const serviceTypeRepository = new PrismaServiceTypeRepository(prisma);
 
 // Initialize Passport with userRepository
 
@@ -89,6 +103,12 @@ const viewVehiclesUseCase = new ViewVehicles(vehicleRepository);
 const createAppointmentUseCase = new CreateAppointment(appointmentRepository, vehicleRepository, userRepository);
 const listMyVehiclesUseCase = new ListMyVehicles(vehicleRepository);
 const getServiceSuggestionsUseCase = new GetServiceSuggestions();
+const listServiceTypesUseCase = new ListServiceTypes(serviceTypeRepository);
+
+// Use Cases for Service Center Management
+const listAllServiceCentersUseCase = new ListAllServiceCenters(serviceCenterRepository);
+const getAvailableSlotsUseCase = new getAvailableSlots(serviceCenterRepository);
+
 
 // Controller
 const authController = new AuthController(
@@ -113,19 +133,28 @@ const vehicleController = new VehicleController(
 const appointmentController = new AppointmentController(
     createAppointmentUseCase,
     listMyVehiclesUseCase,
-    getServiceSuggestionsUseCase
+    getServiceSuggestionsUseCase,
+    listServiceTypesUseCase
 );
+
+const serviceCenterController = new ServiceCenterController(
+    listAllServiceCentersUseCase,
+    getAvailableSlotsUseCase
+);
+
 initializePassport(passport, userRepository);
 
 // Router
 const authRouter = createAuthRouter(authController, passport);
 const vehicleRouter = VehicleRouter(vehicleController);
 const appointmentRouterInstance = appointmentRouter(appointmentController);
+const serviceCenterRouterInstance = serviceCenterRouter(serviceCenterController);
 
 // --- Gắn Router vào ứng dụng ---
 app.use('/api/auth', authRouter);
 app.use('/api/vehicle', vehicleRouter);
 app.use('/api/appointments', appointmentRouterInstance);
+app.use('/api/service-centers', serviceCenterRouterInstance);
 
 
 // swagger docs

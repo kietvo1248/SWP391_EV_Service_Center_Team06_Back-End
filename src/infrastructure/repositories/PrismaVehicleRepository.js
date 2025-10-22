@@ -1,22 +1,26 @@
-const { PrismaClient } = require('@prisma/client');
 const IVehicleRepository = require('../../domain/repositories/IVehicleRepository');
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
+// const { PrismaClient } = require('@prisma/client');
 
 class PrismaVehicleRepository extends IVehicleRepository {
+    constructor(PrismaClient) {
+        super();
+        this.prisma = PrismaClient;
+    }
     async create(vehicleData) {
-        return await prisma.vehicle.create({
+        return await this.prisma.vehicle.create({
             data: vehicleData,
         });
     }
 
     async findByVin(vin) {
-        return await prisma.vehicle.findUnique({
+        return await this.prisma.vehicle.findUnique({
             where: { vin },
         }); 
     }
 
     async findByOwnerId(ownerId) {
-        return await prisma.vehicle.findMany({
+        return await this.prisma.vehicle.findMany({
             where: { ownerId },
         });
     }      
