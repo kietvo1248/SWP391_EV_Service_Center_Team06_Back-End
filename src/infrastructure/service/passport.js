@@ -31,7 +31,10 @@ function initializePassport(passport, userRepository) {
             const payload = {
                 user: {
                     id: user.id,
-                    role: user.role
+                fullName: user.fullName,
+                email: user.email,
+                role: user.role,
+                serviceCenterId: user.serviceCenterId || null
                 }
             };
             const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
