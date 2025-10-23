@@ -13,10 +13,10 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
      * @param {string[]} requestedServices - Mảng các ID của ServiceType
      */
     async add(appointmentData, requestedServices = []) {
-        
+
         // Dùng $transaction để đảm bảo cả hai thao tác cùng thành công hoặc thất bại
         return this.prisma.$transaction(async (tx) => {
-            
+
             // 1. Tạo lịch hẹn chính
             const newAppointment = await tx.serviceAppointment.create({
                 data: {
@@ -98,6 +98,47 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
         return db.serviceAppointment.update({
             where: { id: appointmentId },
             data: { status: status },
+        });
+    }
+
+    //tìm kiếm cho khách cho nhân viên
+    async findConfirmedByCustomerPhone(serviceCenterId, phone) {
+        return this.prisma.serviceAppointment.findMany({
+            where: {
+                serviceCenterId: serviceCenterId,
+                status: 'CONFIRMED', // Chỉ tìm lịch đã xác nhận
+                customer: {
+                    phoneNumber: {
+                        contains: phone, // Tìm kiếm SĐT
+                    }
+                }
+            },
+            include: {
+                customer: { select: { fullName: true, email: true, phoneNumber: true } },
+                vehicle: { select: { make: true, model: true, licensePlate: true } }
+            },
+            orderBy: {
+                appointmentDate: 'asc'
+            }
+        });
+    }
+
+    async findByIdAndCustomer(appointmentId, customerId) {
+        return this.prisma.serviceAppointment.findFirst({
+            where: {
+                id: appointmentId,
+                customerId: customerId,
+            },
+            include: {
+                vehicle: true,
+                serviceCenter: { select: { name: true } },
+                requestedServices: { include: { serviceType: true } },
+                serviceRecord: { // Lấy báo giá liên quan
+                    include: {
+                        quotation: true
+                    }
+                }
+            }
         });
     }
 }

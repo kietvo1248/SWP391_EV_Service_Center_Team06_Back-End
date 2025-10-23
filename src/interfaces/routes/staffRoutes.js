@@ -11,10 +11,14 @@ const staffRouter = (controller) => {
 
     router.get('/appointments', controller.listAppointments.bind(controller));
     
+    router.get('/appointments/search', controller.findAppointmentsByPhone.bind(controller));
+
     // Lấy chi tiết một lịch hẹn
     router.get('/appointments/:id', controller.getAppointmentDetails.bind(controller));
 
     router.put('/appointments/:id/confirm', controller.assignAndConfirm.bind(controller));
+
+    router.post('/service-records/:id/create-invoice', controller.createInvoice.bind(controller));
 
     return router;
 };

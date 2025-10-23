@@ -15,6 +15,9 @@ const appointmentRouter = (appointmentController) => {
     // Tạo một lịch hẹn mới
     router.post('/create-appointment', authenticate, appointmentController.create.bind(appointmentController));
 
+    // Lấy chi tiết một lịch hẹn
+    router.get('/:id/details', authenticate, appointmentController.getAppointmentDetails.bind(appointmentController));
+
     return router;
 };
 

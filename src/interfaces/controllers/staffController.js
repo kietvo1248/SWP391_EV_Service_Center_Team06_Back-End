@@ -4,12 +4,20 @@ class StaffController {
         listCenterAppointmentsUseCase,
         getAppointmentDetailsUseCase,
         listCenterTechniciansUseCase,
-        assignAndConfirmAppointmentUseCase
+        assignAndConfirmAppointmentUseCase,
+        findAppointmentsByPhoneUseCase,
+        startAppointmentProgressUseCase,
+        createInvoiceUseCase,
+        recordCashPaymentUseCase
     ) {
         this.listCenterAppointmentsUseCase = listCenterAppointmentsUseCase;
         this.getAppointmentDetailsUseCase = getAppointmentDetailsUseCase;
         this.listCenterTechniciansUseCase = listCenterTechniciansUseCase;
         this.assignAndConfirmAppointmentUseCase = assignAndConfirmAppointmentUseCase;
+        this.findAppointmentsByPhoneUseCase = findAppointmentsByPhoneUseCase;
+        this.startAppointmentProgressUseCase = startAppointmentProgressUseCase;
+        this.createInvoiceUseCase = createInvoiceUseCase;
+        this.recordCashPaymentUseCase = recordCashPaymentUseCase;
     }
 
     // GET /api/staff/appointments
@@ -25,13 +33,13 @@ class StaffController {
         }
     }
 
-    // GET /api/staff/appointments/:id
+    // // GET /api/staff/appointments/:id
     async getAppointmentDetails(req, res) {
         try {
-            const serviceCenterId = req.user.serviceCenterId;
+            const actor = req.user; // Pass the whole user object (actor)
             const { id } = req.params;
 
-            const appointment = await this.getAppointmentDetailsUseCase.execute(id, serviceCenterId);
+            const appointment = await this.getAppointmentDetailsUseCase.execute(id, actor);
             res.status(200).json(appointment);
         } catch (error) {
             if (error.message.includes('Forbidden')) {
@@ -73,6 +81,53 @@ class StaffController {
             res.status(400).json({ message: error.message });
         }
     }
+
+    async findAppointmentsByPhone(req, res) {
+        try {
+            const serviceCenterId = req.user.serviceCenterId;
+            const { phone } = req.query;
+            const appointments = await this.findAppointmentsByPhoneUseCase.execute(serviceCenterId, phone);
+            res.status(200).json(appointments);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
+    // PUT /api/staff/appointments/:id/start
+    async startAppointment(req, res) {
+        try {
+            const serviceCenterId = req.user.serviceCenterId;
+            const { id } = req.params;
+            const result = await this.startAppointmentProgressUseCase.execute(id, serviceCenterId);
+            res.status(200).json({ message: 'Appointment started.', data: result });
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
+    // POST /api/staff/service-records/:id/create-invoice
+    async createInvoice(req, res) {
+        try {
+            const serviceCenterId = req.user.serviceCenterId;
+            const { id } = req.params; // Đây là ServiceRecord ID
+            const invoice = await this.createInvoiceUseCase.execute(id, serviceCenterId);
+            res.status(201).json(invoice);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
+    // POST /api/staff/invoices/:id/pay-cash
+    async recordCashPayment(req, res) {
+        try {
+            const { id } = req.params; // Đây là Invoice ID
+            const updatedInvoice = await this.recordCashPaymentUseCase.execute(id);
+            res.status(200).json({ message: 'Payment recorded successfully.', invoice: updatedInvoice });
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
 }
 
 module.exports = StaffController;

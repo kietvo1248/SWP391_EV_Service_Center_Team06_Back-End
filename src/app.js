@@ -16,6 +16,10 @@ const PrismaAppointmentRepository = require('./infrastructure/repositories/Prism
 const PrismaServiceCenterRepository = require('./infrastructure/repositories/PrismaServiceCenterRepository');
 const PrismaServiceTypeRepository = require('./infrastructure/repositories/PrismaServiceTypeRepository');
 const PrismaServiceRecordRepository = require('./infrastructure/repositories/PrismaServiceRecordRepository');
+const PrismaInvoiceRepository = require('./infrastructure/repositories/PrismaInvoiceRepository');
+const PrismaQuotationRepository = require('./infrastructure/repositories/PrismaQuotationRepository');
+const PrismaPaymentRepository = require('./infrastructure/repositories/PrismaPaymentRepository');
+
 
 // Interfaces
 //==auth==
@@ -34,6 +38,9 @@ const serviceCenterRouter = require('./interfaces/routes/serviceCenterRoutes');
 //staff
 const StaffController = require('./interfaces/controllers/staffController');
 const staffRouter = require('./interfaces/routes/staffRoutes');
+//technician
+const TechnicianController = require('./interfaces/controllers/technicianController');
+const technicianRouter = require('./interfaces/routes/technicianRoutes');
 
 
 // Application (Use Cases)
@@ -64,11 +71,18 @@ const ListServiceTypes = require('./application/bookings/listAllServiceType');
 const ListAllServiceCenters = require('./application/service_centers/listAllServiceCenter');
 const getAvailableSlots = require('./application/service_centers/getAvailableSlot');
 
-//staff use cases
+//staff flow
+const FindAppointmentsByPhone = require('./application/staff/findAppointmentByPhone');
+const StartAppointmentProgress = require('./application/staff/startAppointment');
 const ListCenterAppointments = require('./application/staff/listAppointment');
-const GetAppointmentDetails = require('./application/staff/getAppointmentDetails');
+const GetAppointmentDetails = require('./application/staff/getAppointmentDetails'); // xem chi tiết cuộc hẹn, có thể tái sử dụng
 const ListCenterTechnicians = require('./application/staff/listCenterTechnician');
 const AssignAndConfirmAppointment = require('./application/staff/confirmAppointment');
+const CreateInvoice = require('./application/staff/createInvoice');
+const RecordCashPayment = require('./application/staff/recordCashPayment');
+// Technician Workflow
+const ListTechnicianTasks = require('./application/technician/listTechnicianTask'); 
+const SubmitDiagnosis = require('./application/technician/submitDiagnosis');
 
 // --- Khởi tạo ứng dụng Express ---
 const app = express();
@@ -91,6 +105,9 @@ const appointmentRepository = new PrismaAppointmentRepository(prisma);
 const serviceCenterRepository = new PrismaServiceCenterRepository(prisma);
 const serviceTypeRepository = new PrismaServiceTypeRepository(prisma);
 const serviceRecordRepository = new PrismaServiceRecordRepository(prisma);
+const invoiceRepository = new PrismaInvoiceRepository(prisma);
+const quotationRepository = new PrismaQuotationRepository(prisma);
+const paymentRepository = new PrismaPaymentRepository(prisma);  
 
 // Initialize Passport with userRepository
 
@@ -131,6 +148,36 @@ const assignAndConfirmAppointmentUseCase = new AssignAndConfirmAppointment(
     userRepository,
     prisma // Truyền prisma client cho transaction
 );
+const findAppointmentsByPhoneUseCase = new FindAppointmentsByPhone(appointmentRepository);
+const startAppointmentProgressUseCase = new StartAppointmentProgress(
+    appointmentRepository,
+    serviceRecordRepository,
+    prisma // Truyền prisma client cho transaction
+);
+const createInvoiceUseCase = new CreateInvoice(
+    appointmentRepository,
+    serviceRecordRepository,
+    quotationRepository,
+    invoiceRepository,
+    prisma // Truyền prisma client cho transaction
+);
+const recordCashPaymentUseCase = new RecordCashPayment(
+    appointmentRepository,
+    serviceRecordRepository,
+    invoiceRepository,
+    paymentRepository,
+    prisma // Truyền prisma client cho transaction
+);   
+  
+// Use Cases for Technician Management
+const listTechnicianTasksUseCase = new ListTechnicianTasks(serviceRecordRepository);
+const submitDiagnosisUseCase = new SubmitDiagnosis(
+    serviceRecordRepository,
+    quotationRepository,
+    appointmentRepository,
+    prisma
+);
+
 
 
 // Controller
@@ -157,18 +204,28 @@ const appointmentController = new AppointmentController(
     createAppointmentUseCase,
     listMyVehiclesUseCase,
     getServiceSuggestionsUseCase,
-    listServiceTypesUseCase
+    listServiceTypesUseCase,
+    getAppointmentDetailsUseCase
 );
 
 const serviceCenterController = new ServiceCenterController(
     listAllServiceCentersUseCase,
-    getAvailableSlotsUseCase
+    getAvailableSlotsUseCase,
 );
 const staffController = new StaffController(
     listCenterAppointmentsUseCase,
-    getAppointmentDetailsUseCase,
+    getAppointmentDetailsUseCase, // This was missing
     listCenterTechniciansUseCase,
-    assignAndConfirmAppointmentUseCase
+    assignAndConfirmAppointmentUseCase,
+    findAppointmentsByPhoneUseCase,
+    startAppointmentProgressUseCase,
+    createInvoiceUseCase,
+    recordCashPaymentUseCase,
+    
+);
+const technicianController = new TechnicianController(
+    listTechnicianTasksUseCase,
+    submitDiagnosisUseCase
 );
 
 initializePassport(passport, userRepository);
@@ -179,6 +236,7 @@ const vehicleRouter = VehicleRouter(vehicleController);
 const appointmentRouterInstance = appointmentRouter(appointmentController);
 const serviceCenterRouterInstance = serviceCenterRouter(serviceCenterController);
 const staffRouterInstance = staffRouter(staffController);
+const technicianRouterInstance = technicianRouter(technicianController);
 
 // --- Gắn Router vào ứng dụng ---
 app.use('/api/auth', authRouter);
@@ -186,6 +244,7 @@ app.use('/api/vehicle', vehicleRouter);
 app.use('/api/appointments', appointmentRouterInstance);
 app.use('/api/service-centers', serviceCenterRouterInstance);
 app.use('/api/staff', staffRouterInstance);
+app.use('/api/technician', technicianRouterInstance);
 
 
 // swagger docs
