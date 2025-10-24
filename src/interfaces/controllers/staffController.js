@@ -1,0 +1,134 @@
+// Tệp: src/interfaces/controllers/staffController.js
+class StaffController {
+    constructor(
+        listCenterAppointmentsUseCase,
+        getAppointmentDetailsUseCase, // Re-add this
+        listCenterTechniciansUseCase,
+        assignAndConfirmAppointmentUseCase,
+        findAppointmentsByPhoneUseCase,
+        startAppointmentProgressUseCase,
+        createInvoiceUseCase,
+        recordCashPaymentUseCase
+    ) {
+        this.listCenterAppointmentsUseCase = listCenterAppointmentsUseCase;
+        this.getAppointmentDetailsUseCase = getAppointmentDetailsUseCase; // Assign it
+        this.listCenterTechniciansUseCase = listCenterTechniciansUseCase; // Assign it
+        this.assignAndConfirmAppointmentUseCase = assignAndConfirmAppointmentUseCase;
+        this.findAppointmentsByPhoneUseCase = findAppointmentsByPhoneUseCase;
+        this.startAppointmentProgressUseCase = startAppointmentProgressUseCase;
+        this.createInvoiceUseCase = createInvoiceUseCase;
+        this.recordCashPaymentUseCase = recordCashPaymentUseCase;
+    }
+
+    // GET /api/staff/appointments
+    async listAppointments(req, res) {
+        try {
+            const serviceCenterId = req.user.serviceCenterId; // Từ auth middleware
+            const { status } = req.query; // Lọc theo ?status=PENDING
+            
+            const appointments = await this.listCenterAppointmentsUseCase.execute(serviceCenterId, status);
+            res.status(200).json(appointments);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+    // GET /api/staff/appointments/:id
+    async getAppointmentDetails(req, res) {
+        try {
+            const actor = req.user; // Pass the whole user object (actor)
+            const { id } = req.params;
+
+            const appointment = await this.getAppointmentDetailsUseCase.execute(id, actor);
+            res.status(200).json(appointment);
+        } catch (error) {
+            if (error.message.includes('Forbidden')) {
+                return res.status(403).json({ message: error.message });
+            }
+            if (error.message.includes('not found')) {
+                return res.status(404).json({ message: error.message });
+            }
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+
+    // GET /api/staff/technicians
+    async listTechnicians(req, res) {
+        try {
+            const serviceCenterId = req.user.serviceCenterId;
+            const technicians = await this.listCenterTechniciansUseCase.execute(serviceCenterId);
+            res.status(200).json(technicians);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+    // PUT /api/staff/appointments/:id/confirm
+    async assignAndConfirm(req, res) {
+        try {
+            const serviceCenterId = req.user.serviceCenterId;
+            const { id } = req.params;
+            const { technicianId } = req.body;
+
+            if (!technicianId) {
+                return res.status(400).json({ message: 'Technician ID is required.' });
+            }
+
+            const result = await this.assignAndConfirmAppointmentUseCase.execute(id, technicianId, serviceCenterId);
+            res.status(200).json({ message: 'Appointment confirmed and assigned successfully.', data: result });
+        } catch (error) {
+            // Lỗi đã được xử lý trong use case
+            res.status(400).json({ message: error.message });
+        }
+    }
+
+    async findAppointmentsByPhone(req, res) {
+        try {
+            const serviceCenterId = req.user.serviceCenterId;
+            const { phone } = req.query;
+            const appointments = await this.findAppointmentsByPhoneUseCase.execute(serviceCenterId, phone);
+            res.status(200).json(appointments);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
+    // PUT /api/staff/appointments/:id/start
+    async startAppointment(req, res) {
+        try {
+            const serviceCenterId = req.user.serviceCenterId;
+            const { id } = req.params;
+            const result = await this.startAppointmentProgressUseCase.execute(id, serviceCenterId);
+            res.status(200).json({ message: 'Appointment started.', data: result });
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
+    // POST /api/staff/service-records/:id/create-invoice
+    async createInvoice(req, res) {
+        try {
+            const serviceCenterId = req.user.serviceCenterId;
+            const { id } = req.params; // Đây là ServiceRecord ID
+            const invoice = await this.createInvoiceUseCase.execute(id, serviceCenterId);
+            res.status(201).json(invoice);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
+    // POST /api/staff/invoices/:id/pay-cash
+    async recordCashPayment(req, res) {
+        try {
+            const { id } = req.params; // Đây là Invoice ID
+            const updatedInvoice = await this.recordCashPaymentUseCase.execute(id);
+            res.status(200).json({ message: 'Payment recorded successfully.', invoice: updatedInvoice });
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
+}
+
+module.exports = StaffController;

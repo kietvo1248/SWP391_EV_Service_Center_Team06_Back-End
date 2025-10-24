@@ -21,9 +21,10 @@ class LoginUser {
         // 3. Tạo payload cho JWT (user cần gì thì chứa nó)
         const payload = {
             id: user.id,
-            fullName: user.fullName,
-            email: user.email,
-            role: user.role,
+                fullName: user.fullName,
+                email: user.email,
+                role: user.role,
+                serviceCenterId: user.serviceCenterId || null
         };
 
         // 4. Ký và tạo token với khóa bí mật và thời gian hết hạn
