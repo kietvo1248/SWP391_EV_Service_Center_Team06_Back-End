@@ -1,71 +1,78 @@
-const { PrismaClient, Prisma } = require('@prisma/client');
-const { faker } = require('@faker-js/faker');
-const bcrypt = require('bcryptjs'); // Sử dụng bcryptjs
+// Tệp: prisma/seed.js
+
+const { PrismaClient, Prisma, Role, AppointmentStatus, ServiceRecordStatus, InvoiceStatus, PaymentStatus } = require('@prisma/client'); // Import Enums
+const { faker } = require('@faker-js/faker/locale/vi'); // Sử dụng locale vi
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
+const SALT_ROUNDS = 10;
 
 // --- HÀM TẠO DỮ LIỆU PHỤ TRỢ ---
 
-// Tạo các loại dịch vụ
+// Tạo các loại dịch vụ (tương tự production-seed)
 async function seedServiceTypes() {
     console.log('Đang tạo các loại dịch vụ...');
     const serviceTypesData = [
-        { name: 'Bảo dưỡng định kỳ', description: 'Kiểm tra tổng quát và bảo dưỡng theo khuyến nghị.' },
-        { name: 'Kiểm tra Pin Cao Áp', description: 'Đo dung lượng, kiểm tra hệ thống làm mát.' },
-        { name: 'Dịch vụ Lốp Xe', description: 'Thay lốp, cân bằng động, đảo lốp.' },
-        { name: 'Hệ thống Phanh', description: 'Kiểm tra má phanh, đĩa phanh, dầu phanh.' },
-        { name: 'Hệ thống Điều hòa', description: 'Kiểm tra gas, thay lọc gió cabin.' },
-        { name: 'Cập nhật Phần mềm', description: 'Cập nhật phiên bản phần mềm mới nhất cho xe.' },
+        { id: 'svt-bdk', name: 'Bảo dưỡng định kỳ', description: 'Kiểm tra tổng quát và bảo dưỡng theo khuyến nghị.' },
+        { id: 'svt-pin', name: 'Kiểm tra Pin Cao Áp', description: 'Đo dung lượng, kiểm tra hệ thống làm mát.' },
+        { id: 'svt-lop', name: 'Dịch vụ Lốp Xe', description: 'Thay lốp, cân bằng động, đảo lốp.' },
+        { id: 'svt-phanh', name: 'Hệ thống Phanh', description: 'Kiểm tra má phanh, đĩa phanh, dầu phanh.' },
+        { id: 'svt-dhoa', name: 'Hệ thống Điều hòa', description: 'Kiểm tra gas, thay lọc gió cabin.' },
+        { id: 'svt-sw', name: 'Cập nhật Phần mềm', description: 'Cập nhật phiên bản phần mềm mới nhất cho xe.' },
     ];
-    await prisma.serviceType.createMany({
-        data: serviceTypesData,
-        skipDuplicates: true,
-    });
+    // Dùng upsert để đảm bảo ID cố định nếu chạy lại seed
+    for (const data of serviceTypesData) {
+        await prisma.serviceType.upsert({
+            where: { id: data.id },
+            update: { name: data.name, description: data.description },
+            create: data,
+        });
+    }
     console.log(' -> Đã tạo xong các loại dịch vụ.');
     return prisma.serviceType.findMany();
 }
 
-// Tạo Phụ tùng và Kho hàng
+// Tạo Phụ tùng và Kho hàng (tương tự production-seed)
 async function seedPartsAndInventory(serviceCenters) {
     console.log('Đang tạo phụ tùng và kho hàng...');
     const partsData = [
-        { sku: 'VIN-TYRE-001', name: 'Lốp Michelin Pilot Sport EV 235/55 R19', price: 5500000, description: 'Lốp hiệu suất cao cho xe điện.' },
-        { sku: 'VIN-BAT-COOL-1L', name: 'Nước làm mát pin (1L)', price: 350000, description: 'Dung dịch làm mát chuyên dụng.' },
-        { sku: 'VIN-FILTER-AC-HEPA', name: 'Lọc gió điều hòa HEPA PM2.5', price: 780000, description: 'Lọc bụi mịn và tác nhân gây dị ứng.' },
-        { sku: 'VIN-BRAKE-PAD-F', name: 'Má phanh trước (Bộ)', price: 2100000, description: 'Bộ má phanh chính hãng.' },
-        { sku: 'VIN-WIPER-BLADE', name: 'Lưỡi gạt mưa (Cặp)', price: 450000, description: 'Lưỡi gạt mưa silicone cao cấp.' },
+        { id: 'part-lop', sku: 'VIN-TYRE-001', name: 'Lốp Michelin Pilot Sport EV 235/55 R19', price: 5500000, description: 'Lốp hiệu suất cao cho xe điện.' },
+        { id: 'part-cool', sku: 'VIN-BAT-COOL-1L', name: 'Nước làm mát pin (1L)', price: 350000, description: 'Dung dịch làm mát chuyên dụng.' },
+        { id: 'part-filter', sku: 'VIN-FILTER-AC-HEPA', name: 'Lọc gió điều hòa HEPA PM2.5', price: 780000, description: 'Lọc bụi mịn và tác nhân gây dị ứng.' },
+        { id: 'part-brake', sku: 'VIN-BRAKE-PAD-F', name: 'Má phanh trước (Bộ)', price: 2100000, description: 'Bộ má phanh chính hãng.' },
+        { id: 'part-wiper', sku: 'VIN-WIPER-BLADE', name: 'Lưỡi gạt mưa (Cặp)', price: 450000, description: 'Lưỡi gạt mưa silicone cao cấp.' },
     ];
 
     const createdParts = [];
     for (const part of partsData) {
         const newPart = await prisma.part.upsert({
-            where: { sku: part.sku },
-            update: { name: part.name, price: new Prisma.Decimal(part.price), description: part.description }, // Cập nhật cả price và description
-            create: { ...part, price: new Prisma.Decimal(part.price) }, // Đảm bảo price là Decimal
+            where: { id: part.id },
+            update: { sku: part.sku, name: part.name, price: new Prisma.Decimal(part.price), description: part.description },
+            create: { ...part, price: new Prisma.Decimal(part.price) },
         });
         createdParts.push(newPart);
-        console.log(` -> Đã tạo/cập nhật phụ tùng: ${newPart.name}`);
     }
+    console.log(` -> Đã tạo/cập nhật ${createdParts.length} phụ tùng.`);
 
     // Tạo kho hàng cho mỗi trung tâm
     for (const center of serviceCenters) {
         for (const part of createdParts) {
-            // --- THAY ĐỔI: Sử dụng create thay vì upsert ---
+            // Dùng create để tránh lỗi unique constraint nếu chạy lại mà không clear
             await prisma.inventoryItem.create({
                 data: {
                     partId: part.id,
                     serviceCenterId: center.id,
-                    quantityInStock: faker.number.int({ min: 10, max: 100 }),
+                    quantityInStock: faker.number.int({ min: 5, max: 50 }),
                     minStockLevel: 5,
                 },
             });
         }
-        console.log(` -> Đã tạo kho hàng cho trung tâm ${center.name}`);
     }
+    console.log(` -> Đã tạo kho hàng cho ${serviceCenters.length} trung tâm.`);
     return createdParts;
 }
 
-// Tạo lịch hẹn và các dữ liệu liên quan
+// Tạo lịch hẹn và các dữ liệu liên quan (cập nhật status và feedback)
 async function seedAppointmentsForCustomer(customer, serviceCenters, serviceTypes, parts, techniciansByCenter) {
     console.log(`Đang tạo lịch hẹn cho khách hàng: ${customer.email}`);
     const vehicles = await prisma.vehicle.findMany({ where: { ownerId: customer.id } });
@@ -74,29 +81,34 @@ async function seedAppointmentsForCustomer(customer, serviceCenters, serviceType
         return;
     }
 
+    const createdAppointments = []; // Lưu lại để tạo feedback
+
     for (let i = 0; i < 2; i++) { // Tạo 2 lịch hẹn/khách
         const randomVehicle = faker.helpers.arrayElement(vehicles);
         const randomCenter = faker.helpers.arrayElement(serviceCenters);
         const servicesToBook = faker.helpers.arrayElements(serviceTypes, { min: 1, max: 3 });
-        const status = faker.helpers.arrayElement(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']);
+        const appointmentStatus = faker.helpers.arrayElement([
+            AppointmentStatus.PENDING,
+            AppointmentStatus.CONFIRMED,
+            AppointmentStatus.COMPLETED,
+            AppointmentStatus.CANCELLED
+        ]);
 
         let appointmentDate;
-        if (status === 'PENDING' || status === 'CONFIRMED') {
-            appointmentDate = faker.date.soon({ days: 30 }); // Lịch hẹn tương lai
+        if ([AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED].includes(appointmentStatus)) {
+            appointmentDate = faker.date.soon({ days: 30, refDate: new Date() }); // Chỉ định refDate
         } else {
-            appointmentDate = faker.date.recent({ days: 60 }); // Lịch hẹn quá khứ
+            appointmentDate = faker.date.recent({ days: 60, refDate: new Date() });
         }
-        // Đảm bảo giờ hẹn nằm trong giờ làm việc (ví dụ: 9h-11h, 14h-16h)
         appointmentDate.setHours(faker.helpers.arrayElement([9, 10, 11, 14, 15, 16]), 0, 0, 0);
 
         const appointmentInput = {
             appointmentDate: appointmentDate,
-            status: status,
+            status: appointmentStatus,
             customerNotes: faker.lorem.sentence(),
             customerId: customer.id,
             vehicleId: randomVehicle.id,
             serviceCenterId: randomCenter.id,
-            // Kết nối các ServiceType yêu cầu
             requestedServices: {
                 create: servicesToBook.map(service => ({
                     serviceTypeId: service.id,
@@ -104,157 +116,154 @@ async function seedAppointmentsForCustomer(customer, serviceCenters, serviceType
             },
         };
 
-        // Nếu lịch hẹn đã hoàn thành hoặc đang thực hiện, tạo ServiceRecord và các dữ liệu liên quan
-        if (status === 'COMPLETED' || status === 'IN_PROGRESS') {
-            const centerTechnicians = techniciansByCenter[randomCenter.id];
-            if (centerTechnicians && centerTechnicians.length > 0) {
-                const randomTechnician = faker.helpers.arrayElement(centerTechnicians);
-                const startTime = appointmentDate;
-                const endTime = status === 'COMPLETED' ? new Date(startTime.getTime() + faker.number.int({ min: 1, max: 4 }) * 60 * 60 * 1000) : null; // Giả sử làm 1-4 tiếng
+        // Nếu lịch hẹn được xác nhận, đã hoàn thành hoặc đang thực hiện -> Tạo ServiceRecord
+        if ([AppointmentStatus.CONFIRMED, AppointmentStatus.COMPLETED, AppointmentStatus.IN_PROGRESS].includes(appointmentStatus)) {
+             const centerTechnicians = techniciansByCenter[randomCenter.id];
+             if (centerTechnicians?.length > 0) {
+                 const randomTechnician = faker.helpers.arrayElement(centerTechnicians);
+                 const startTime = appointmentDate;
+                 const endTime = appointmentStatus === AppointmentStatus.COMPLETED ? new Date(startTime.getTime() + faker.number.int({ min: 1, max: 4 }) * 60 * 60 * 1000) : null;
 
-                const serviceRecordInput = {
-                    technicianId: randomTechnician.id,
-                    status: status,
-                    startTime: startTime,
-                    endTime: endTime,
-                    staffNotes: status === 'COMPLETED' ? 'Đã hoàn thành bảo dưỡng.' : 'Đang tiến hành kiểm tra.',
-                };
+                 // Map AppointmentStatus sang ServiceRecordStatus
+                 let recordStatus;
+                 switch(appointmentStatus) {
+                     case AppointmentStatus.CONFIRMED: recordStatus = ServiceRecordStatus.PENDING; break; // Chờ KTV bắt đầu
+                     case AppointmentStatus.IN_PROGRESS: recordStatus = ServiceRecordStatus.REPAIRING; break; // Giả sử đang sửa
+                     case AppointmentStatus.COMPLETED: recordStatus = ServiceRecordStatus.COMPLETED; break;
+                     default: recordStatus = ServiceRecordStatus.PENDING; // Mặc định
+                 }
 
-                // Tạo dữ liệu sử dụng phụ tùng (chỉ cho COMPLETED)
-                if (status === 'COMPLETED') {
-                    const partsToUse = faker.helpers.arrayElements(parts, { min: 0, max: 2 });
-                    if (partsToUse.length > 0) {
-                        serviceRecordInput.partsUsed = {
-                            create: partsToUse.map(part => ({
-                                partId: part.id,
-                                quantity: faker.number.int({ min: 1, max: 2 }),
-                                unitPrice: part.price, // Prisma tự xử lý Decimal
-                            })),
-                        };
-                    }
+                 const serviceRecordInput = {
+                     technicianId: randomTechnician.id,
+                     status: recordStatus, // Sử dụng Enum
+                     startTime: startTime,
+                     endTime: endTime,
+                     staffNotes: recordStatus === ServiceRecordStatus.COMPLETED ? 'Đã hoàn thành bảo dưỡng.' : 'Chờ xử lý.',
+                 };
 
-                    // Tạo báo giá (Quotation)
-                    // Chuyển đổi giá sang số trước khi tính toán
-                    const estimatedCost = servicesToBook.length * 500000 + partsToUse.reduce((sum, p) => sum + Number(p.price), 0);
-                    serviceRecordInput.quotation = {
-                        create: {
-                            estimatedCost: new Prisma.Decimal(estimatedCost), // Chuyển thành Decimal
-                        }
-                    };
+                 // Tạo dữ liệu chi tiết hơn cho lịch hẹn COMPLETED
+                 if (appointmentStatus === AppointmentStatus.COMPLETED && recordStatus === ServiceRecordStatus.COMPLETED) {
+                     const partsToUse = faker.helpers.arrayElements(parts, { min: 0, max: 2 });
+                     if (partsToUse.length > 0) {
+                         serviceRecordInput.partsUsed = {
+                             create: partsToUse.map(part => ({
+                                 partId: part.id,
+                                 quantity: faker.number.int({ min: 1, max: 2 }),
+                                 unitPrice: part.price,
+                             })),
+                         };
+                     }
 
-                    // Tạo hóa đơn (Invoice)
-                    const totalAmount = estimatedCost * 1.1; // Giả lập thêm VAT
-                    const invoiceInput = {
-                        totalAmount: new Prisma.Decimal(totalAmount), // Chuyển thành Decimal
-                        dueDate: faker.date.future({ refDate: endTime ?? new Date() }), // Handle endTime potentially null
-                        status: faker.helpers.arrayElement(['PAID', 'UNPAID']),
-                    };
+                     const estimatedCost = servicesToBook.length * 500000 + partsToUse.reduce((sum, p) => sum + Number(p.price) * (serviceRecordInput.partsUsed?.create.find(pu => pu.partId === p.id)?.quantity || 1), 0); // Tính tiền phụ tùng
+                     serviceRecordInput.quotation = {
+                         create: { estimatedCost: new Prisma.Decimal(estimatedCost) }
+                     };
 
-                    // Tạo thanh toán (Payment) nếu hóa đơn đã PAID
-                    if (invoiceInput.status === 'PAID') {
-                        invoiceInput.payments = {
-                            create: {
-                                paymentMethod: faker.helpers.arrayElement(['CASH', 'CREDIT_CARD', 'BANK_TRANSFER']),
-                                status: 'SUCCESSFUL',
-                                paymentDate: endTime ?? new Date(), // Handle endTime potentially null
-                            }
-                        };
-                    }
-                    serviceRecordInput.invoice = { create: invoiceInput };
-                }
+                     const totalAmount = estimatedCost * 1.08; // Giả lập VAT 8%
+                     const invoiceStatus = faker.helpers.arrayElement([InvoiceStatus.PAID, InvoiceStatus.UNPAID]);
+                     const invoiceInput = {
+                         totalAmount: new Prisma.Decimal(totalAmount),
+                         dueDate: faker.date.future({ years: 1, refDate: endTime ?? new Date() }), // Dùng endTime làm gốc
+                         status: invoiceStatus,
+                     };
 
-                appointmentInput.serviceRecord = { create: serviceRecordInput };
-            } else {
-                console.warn(` -> Không tìm thấy kỹ thuật viên cho trung tâm ${randomCenter.name} để tạo ServiceRecord.`);
-            }
+                     if (invoiceStatus === InvoiceStatus.PAID) {
+                         invoiceInput.payments = {
+                             create: {
+                                 paymentMethod: faker.helpers.arrayElement(['CASH', 'CREDIT_CARD', 'BANK_TRANSFER']),
+                                 status: PaymentStatus.SUCCESSFUL,
+                                 paymentDate: endTime ?? new Date(),
+                             }
+                         };
+                     }
+                     serviceRecordInput.invoice = { create: invoiceInput };
+                 }
+
+                 appointmentInput.serviceRecord = { create: serviceRecordInput };
+             } else {
+                 console.warn(` -> Không tìm thấy KTV cho trung tâm ${randomCenter.name}.`);
+             }
         }
 
-        await prisma.serviceAppointment.create({ data: appointmentInput });
+        const createdAppt = await prisma.serviceAppointment.create({ data: appointmentInput });
+        createdAppointments.push(createdAppt); // Lưu lại để tạo feedback
     }
-    console.log(` -> Đã tạo 2 lịch hẹn cho ${customer.email}`);
+    console.log(` -> Đã tạo ${createdAppointments.length} lịch hẹn cho ${customer.email}`);
+    return createdAppointments; // Trả về danh sách lịch hẹn đã tạo
 }
 
 // --- HÀM CHÍNH ĐỂ SEED ---
 async function main() {
     console.log('Bắt đầu quá trình seeding...');
-    const SALT_ROUNDS = 10;
-    const password = await bcrypt.hash('123456', SALT_ROUNDS);
+    const password = await bcrypt.hash('123456', SALT_ROUNDS); // Dùng mật khẩu cố định cho dev
 
-    // --- DỌN DẸP DỮ LIỆU CŨ (Thứ tự rất quan trọng) ---
+    // --- DỌN DẸP DỮ LIỆU CŨ ---
     console.log('Xóa dữ liệu cũ...');
-    // Xóa theo thứ tự ngược lại của sự phụ thuộc
     await prisma.payment.deleteMany();
     await prisma.invoice.deleteMany();
     await prisma.quotation.deleteMany();
     await prisma.partUsage.deleteMany();
-    await prisma.feedback.deleteMany(); // Phụ thuộc appointmentId
-    await prisma.serviceRecord.deleteMany(); // Phụ thuộc appointmentId, technicianId
-    await prisma.appointmentService.deleteMany(); // Phụ thuộc appointmentId, serviceTypeId
-    await prisma.serviceAppointment.deleteMany(); // Phụ thuộc customerId, vehicleId, serviceCenterId
-    await prisma.inventoryItem.deleteMany(); // Phụ thuộc partId, serviceCenterId
+    await prisma.feedback.deleteMany();
+    await prisma.serviceRecord.deleteMany();
+    await prisma.appointmentService.deleteMany();
+    await prisma.serviceAppointment.deleteMany();
+    await prisma.inventoryItem.deleteMany();
     await prisma.part.deleteMany();
     await prisma.serviceType.deleteMany();
-    await prisma.vehicle.deleteMany(); // Phụ thuộc ownerId
-    await prisma.technicianProfile.deleteMany(); // Phụ thuộc userId
-    await prisma.staffCertification.deleteMany(); // Phụ thuộc userId, certificationId
+    await prisma.vehicle.deleteMany();
+    await prisma.technicianProfile.deleteMany();
+    await prisma.staffCertification.deleteMany();
     await prisma.certification.deleteMany();
-    await prisma.message.deleteMany(); // Phụ thuộc userId
-    await prisma.notification.deleteMany(); // Phụ thuộc userId
-    await prisma.report.deleteMany(); // Phụ thuộc userId
-    await prisma.servicePackage.deleteMany(); // Phụ thuộc userId
-    await prisma.user.deleteMany(); // Phụ thuộc serviceCenterId
+    await prisma.message.deleteMany();
+    await prisma.notification.deleteMany();
+    await prisma.report.deleteMany();
+    await prisma.servicePackage.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.serviceCenter.deleteMany();
     console.log('Đã xóa dữ liệu cũ.');
 
     // --- TẠO CÁC LOẠI DỊCH VỤ ---
     const serviceTypes = await seedServiceTypes();
 
-    // --- TẠO TÀI KHOẢN ADMIN TỔNG ---
-    const admin = await prisma.user.create({
-        data: {
-            fullName: 'Admin Master', email: 'admin@ev.com', passwordHash: password, role: 'ADMIN', phoneNumber: faker.phone.number(),
-        },
-    });
-    console.log(`Đã tạo tài khoản Admin tổng: ${admin.email}`);
-
-    // --- TẠO DỮ LIỆU TRUNG TÂM VÀ NHÂN VIÊN ---
+    // --- TẠO TRUNG TÂM & NHÂN VIÊN ---
     const serviceCenters = [];
-    const techniciansByCenter = {}; // { centerId: [tech1, tech2,...] }
+    const techniciansByCenter = {};
 
     for (let i = 0; i < 3; i++) {
         const center = await prisma.serviceCenter.create({
             data: {
-                name: `VinFast Service Quận ${i + 1}`, address: faker.location.streetAddress({ city: 'Hồ Chí Minh' }), phoneNumber: faker.phone.number(), openingTime: '08:00', closingTime: '17:00', slotDurationMinutes: 60, capacityPerSlot: faker.number.int({ min: 2, max: 4 }), // Năng suất ngẫu nhiên
+                name: `VinFast Service Quận ${i + 1}`,
+                address: faker.location.streetAddress({ city: 'Hồ Chí Minh' }),
+                phoneNumber: faker.phone.number('028#######'),
+                openingTime: '08:00', closingTime: '17:00', slotDurationMinutes: 60, capacityPerSlot: faker.number.int({ min: 2, max: 4 }),
             },
         });
         serviceCenters.push(center);
         console.log(`Đã tạo trung tâm: ${center.name}`);
+        techniciansByCenter[center.id] = [];
 
-        techniciansByCenter[center.id] = []; // Khởi tạo mảng KTV cho trung tâm
-
-        // Tạo Station Admin cho mỗi trung tâm
+        // Tạo Station Admin
         await prisma.user.create({
             data: {
-                fullName: `Quản lý Trạm ${i + 1}`, email: `stationadmin${i + 1}@ev.com`, passwordHash: password, role: 'STATION_ADMIN', serviceCenterId: center.id, // Liên kết Station Admin với trạm
-                phoneNumber: faker.phone.number(), isActive: true,
+                fullName: `Quản lý Trạm ${i + 1}`, email: `stationadmin${i + 1}@ev.com`, passwordHash: password, role: Role.STATION_ADMIN, serviceCenterId: center.id, phoneNumber: faker.phone.number('09########'), isActive: true,
             }
         });
 
-        // Tạo Staff (nhân viên lễ tân/cố vấn)
+        // Tạo Staff
         await prisma.user.create({
             data: {
-                fullName: `Nhân viên ${faker.person.firstName()} (Q.${i + 1})`, email: `staff${i + 1}@ev.com`, passwordHash: password, role: 'STAFF', serviceCenterId: center.id, phoneNumber: faker.phone.number(), isActive: true,
+                fullName: `Nhân viên ${faker.person.firstName()} (Q.${i + 1})`, email: `staff${i + 1}@ev.com`, passwordHash: password, role: Role.STAFF, serviceCenterId: center.id, phoneNumber: faker.phone.number('09########'), isActive: true,
             }
         });
 
         // Tạo Technicians
-        for (let j = 0; j < 3; j++) { // Tạo 3 KTV/trung tâm
+        for (let j = 0; j < 3; j++) {
             const tech = await prisma.user.create({
                 data: {
-                    fullName: `Kỹ thuật viên ${faker.person.firstName()} (Q.${i + 1})`, email: `tech${i + 1}_${j + 1}@ev.com`, passwordHash: password, role: 'TECHNICIAN', serviceCenterId: center.id, phoneNumber: faker.phone.number(), isActive: true,
+                    fullName: `Kỹ thuật viên ${faker.person.firstName()} (Q.${i + 1})`, email: `tech${i + 1}_${j + 1}@ev.com`, passwordHash: password, role: Role.TECHNICIAN, serviceCenterId: center.id, phoneNumber: faker.phone.number('09########'), isActive: true,
                 },
             });
-            techniciansByCenter[center.id].push(tech); // Thêm KTV vào danh sách của trung tâm
+            techniciansByCenter[center.id].push(tech);
         }
         console.log(` -> Đã tạo nhân sự cho ${center.name}`);
     }
@@ -262,40 +271,52 @@ async function main() {
     // --- TẠO PHỤ TÙNG VÀ KHO HÀNG ---
     const parts = await seedPartsAndInventory(serviceCenters);
 
-    // --- TẠO CÁC TÀI KHOẢN CỐ ĐỊNH ĐỂ TEST ---
+    // --- TẠO TÀI KHOẢN CỐ ĐỊNH (GIỐNG PRODUCTION SEED) ---
     console.log('Đang tạo các tài khoản test cố định...');
-    const center1Id = serviceCenters[0].id;
+    const center1Id = serviceCenters[0].id; // Lấy ID trung tâm đầu tiên
 
-    // 1. Customer Test
-    const customerTest = await prisma.user.create({
-        data: {
-            fullName: 'Khách Hàng Test', email: 'customer@ev.com', passwordHash: password, role: 'CUSTOMER', phoneNumber: '0909123456', address: '123 Đường Test, Quận 1',
-        },
+    // 1. Admin Test
+    await prisma.user.upsert({
+         where: { email: 'admin@evservice.com' }, update: {},
+         create: { fullName: 'System Administrator', email: 'admin@evservice.com', passwordHash: await bcrypt.hash('admin123', SALT_ROUNDS), role: Role.ADMIN, phoneNumber: '0901112220' },
     });
-    // Tạo xe cho Customer Test
-    await prisma.vehicle.createMany({
-        data: [
-            { make: 'VinFast', model: 'VF8', year: 2023, vin: faker.vehicle.vin(), licensePlate: '51K-TEST1', ownerId: customerTest.id, currentMileage: 15000 },
-            { make: 'VinFast', model: 'VF e34', year: 2022, vin: faker.vehicle.vin(), licensePlate: '51K-TEST2', ownerId: customerTest.id, currentMileage: 42000 },
-        ]
+    // 2. Station Admin Test (Q1)
+    await prisma.user.upsert({
+         where: { email: 'station@evservice.com' }, update: {},
+         create: { fullName: 'Station Manager Q1', email: 'station@evservice.com', passwordHash: await bcrypt.hash('station123', SALT_ROUNDS), role: Role.STATION_ADMIN, serviceCenterId: center1Id, phoneNumber: '0901112221' },
     });
-
-    // 2. Technician Test (Quận 1) - Lấy KTV đầu tiên của trung tâm 1 làm tài khoản test
-    // Đảm bảo techniciansByCenter[center1Id] không rỗng
-    if (techniciansByCenter[center1Id] && techniciansByCenter[center1Id].length > 0) {
-       const techTest = techniciansByCenter[center1Id][0];
-       console.log(` -> Sử dụng KTV ${techTest.email} làm tài khoản test.`);
-    } else {
-       console.warn(` -> Không có KTV nào được tạo cho Trung tâm 1 để làm tài khoản test.`);
+    // 3. Staff Test (Q1)
+    await prisma.user.upsert({
+         where: { email: 'staff@evservice.com' }, update: {},
+         create: { fullName: 'Staff Test Q1', email: 'staff@evservice.com', passwordHash: await bcrypt.hash('staff123', SALT_ROUNDS), role: Role.STAFF, serviceCenterId: center1Id, phoneNumber: '0901112222' },
+    });
+    // 4. Technician Test (Q1)
+    const techTest = await prisma.user.upsert({
+         where: { email: 'tech@evservice.com' }, update: {},
+         create: { fullName: 'Technician Test Q1', email: 'tech@evservice.com', passwordHash: await bcrypt.hash('tech123', SALT_ROUNDS), role: Role.TECHNICIAN, serviceCenterId: center1Id, phoneNumber: '0901112223' },
+    });
+     // Thêm KTV test vào danh sách KTV của trung tâm 1 nếu chưa có
+    if (!techniciansByCenter[center1Id].find(t => t.email === techTest.email)) {
+        techniciansByCenter[center1Id].push(techTest);
     }
 
+    // 5. Customer Test
+    const customerTest = await prisma.user.upsert({
+         where: { email: 'customer@example.com' }, update: {},
+         create: { fullName: 'Customer Example', email: 'customer@example.com', passwordHash: await bcrypt.hash('customer123', SALT_ROUNDS), role: Role.CUSTOMER, phoneNumber: '0901112224', address: '123 Example St, Q1' },
+    });
+    // Tạo xe cho Customer Test
+    await prisma.vehicle.upsert({ where: { vin: 'VF8TESTVIN00001' }, update: {}, create: { make: 'VinFast', model: 'VF8', year: 2023, vin: 'VF8TESTVIN00001', licensePlate: '51K-TEST1', ownerId: customerTest.id, currentMileage: 15000 } });
+    await prisma.vehicle.upsert({ where: { vin: 'VFE34TESTVIN002' }, update: {}, create: { make: 'VinFast', model: 'VF e34', year: 2022, vin: 'VFE34TESTVIN002', licensePlate: '51K-TEST2', ownerId: customerTest.id, currentMileage: 42000 } });
 
-    // --- TẠO KHÁCH HÀNG FAKE VÀ XE CỦA HỌ ---
-    const customers = [customerTest]; // Bắt đầu với tài khoản test
-    for (let i = 0; i < 10; i++) {
+    console.log(' -> Đã tạo/cập nhật xong tài khoản test.');
+
+    // --- TẠO KHÁCH HÀNG FAKE KHÁC & XE ---
+    const customers = [customerTest]; // Bắt đầu với customer test
+    for (let i = 0; i < 5; i++) { // Tạo thêm 5 khách fake
         const customer = await prisma.user.create({
             data: {
-                fullName: faker.person.fullName(), email: faker.internet.email().toLowerCase(), passwordHash: password, role: 'CUSTOMER', phoneNumber: faker.phone.number(), address: faker.location.streetAddress({ city: 'Hồ Chí Minh' }),
+                fullName: faker.person.fullName(), email: faker.internet.email().toLowerCase(), passwordHash: password, role: Role.CUSTOMER, phoneNumber: faker.phone.number('09########'), address: faker.location.streetAddress({ city: 'Hồ Chí Minh' }),
             },
         });
         customers.push(customer);
@@ -309,50 +330,42 @@ async function main() {
             });
         }
     }
-    console.log(`Đã tạo tổng cộng ${customers.length} khách hàng và xe của họ.`);
+    console.log(`Đã tạo tổng cộng ${customers.length} khách hàng và xe.`);
 
-    // --- TẠO LỊCH HẸN VÀ CÁC DỮ LIỆU LIÊN QUAN ---
+    // --- TẠO LỊCH HẸN & FEEDBACK ---
+    let allCreatedAppointments = [];
     for (const customer of customers) {
-        await seedAppointmentsForCustomer(customer, serviceCenters, serviceTypes, parts, techniciansByCenter);
+        const created = await seedAppointmentsForCustomer(customer, serviceCenters, serviceTypes, parts, techniciansByCenter);
+        allCreatedAppointments = allCreatedAppointments.concat(created);
     }
 
-    // --- (Tùy chọn) TẠO THÊM DỮ LIỆU KHÁC ---
-    // Ví dụ: Tạo Feedback ngẫu nhiên cho các lịch hẹn đã hoàn thành
-    const completedAppointments = await prisma.serviceAppointment.findMany({
-        where: { status: 'COMPLETED' },
-        select: { id: true, customerId: true }
-    });
-    for(const app of completedAppointments) {
-        // Kiểm tra xem schema Feedback có trường appointmentId không
-        // Nếu có, thực hiện tạo feedback
-        // if (prisma.feedback.fields.appointmentId) { // Cách kiểm tra không chính xác
-        try {
-            if (faker.datatype.boolean(0.7)) { // 70% cơ hội có feedback
-                await prisma.feedback.create({
-                    data: {
-                        customerId: app.customerId,
-                        appointmentId: app.id, // Giả định trường này tồn tại
-                        rating: faker.number.int({ min: 3, max: 5 }),
-                        content: faker.lorem.paragraph()
-                    }
-                });
-            }
-        } catch (error) {
-             // Bắt lỗi nếu trường appointmentId không tồn tại hoặc có lỗi khác
-             if (error instanceof Prisma.PrismaClientValidationError && error.message.includes('Unknown arg')) {
-                 console.warn(` -> Lược đồ Feedback chưa có trường 'appointmentId'. Bỏ qua tạo Feedback cho lịch hẹn ${app.id}.`);
-             } else {
-                 console.error(` -> Lỗi khi tạo Feedback cho lịch hẹn ${app.id}:`, error);
-             }
+    // Tạo Feedback ngẫu nhiên cho các lịch hẹn COMPLETED
+    console.log('Đang tạo feedback ngẫu nhiên...');
+    const completedAppointments = allCreatedAppointments.filter(a => a.status === AppointmentStatus.COMPLETED);
+    let feedbackCount = 0;
+    for (const app of completedAppointments) {
+        if (faker.datatype.boolean(0.6)) { // 60% cơ hội có feedback
+            await prisma.feedback.create({
+                data: {
+                    customerId: app.customerId,
+                    appointmentId: app.id, // Sử dụng ID lịch hẹn đã tạo
+                    rating: faker.number.int({ min: 3, max: 5 }),
+                    content: faker.lorem.paragraph(2), // Feedback ngắn gọn hơn
+                }
+            });
+            feedbackCount++;
         }
-        // } else {
-        //     console.warn(" -> Schema Feedback không có trường appointmentId. Bỏ qua tạo Feedback.");
-        //     break; // Chỉ cảnh báo một lần
-        // }
     }
-    console.log(`Đã tạo Feedback ngẫu nhiên (nếu có thể).`);
+    console.log(` -> Đã tạo ${feedbackCount} feedback.`);
 
-    console.log('Hoàn tất quá trình seeding!');
+    console.log('\n🎉 Hoàn tất quá trình seeding!');
+    console.log('\n📋 Thông tin đăng nhập test: (Mật khẩu: 123456 hoặc mật khẩu riêng nếu có)');
+    console.log('👤 Admin: admin@evservice.com / admin123');
+    console.log('👨‍💼 Station Admin: station@evservice.com / station123');
+    console.log('👨‍🔧 Staff: staff@evservice.com / staff123');
+    console.log('🔧 Technician: tech@evservice.com / tech123');
+    console.log('👤 Customer: customer@example.com / customer123');
+
 }
 
 main()
