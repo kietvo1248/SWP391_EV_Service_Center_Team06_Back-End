@@ -47,7 +47,7 @@ const technicianRouter = require('./interfaces/routes/technicianRoutes');
 // authentication
 const RegisterUser = require('./application/authorization/register');
 const LoginUser = require('./application/authorization/login');
-const createUser = require('./application/authorization/createAccount');
+const createUser = require('./application/admin/createAccount');
 const viewUserProfile = require('./application/profile/viewProfile');
 const viewAllAccounts = require('./application/admin/viewAllAccount');
 const updateUserProfile = require('./application/profile/updateProfile');
@@ -75,7 +75,7 @@ const getAvailableSlots = require('./application/service_centers/getAvailableSlo
 const FindAppointmentsByPhone = require('./application/staff/findAppointmentByPhone');
 const StartAppointmentProgress = require('./application/staff/startAppointment');
 const ListCenterAppointments = require('./application/staff/listAppointment');
-const GetAppointmentDetails = require('./application/staff/getAppointmentDetails'); // xem chi tiết cuộc hẹn, có thể tái sử dụng
+const GetAppointmentDetails = require('./application/bookings/getAppointmentDetails'); // xem chi tiết cuộc hẹn, có thể tái sử dụng
 const ListCenterTechnicians = require('./application/staff/listCenterTechnician');
 const AssignAndConfirmAppointment = require('./application/staff/confirmAppointment');
 const CreateInvoice = require('./application/staff/createInvoice');
@@ -116,7 +116,7 @@ const paymentRepository = new PrismaPaymentRepository(prisma);
 const registerUseCase = new RegisterUser(userRepository);
 const loginUseCase = new LoginUser(userRepository);
 const createUserUseCase = new createUser(userRepository);
-const viewUserProfileUseCase = new viewUserProfile(userRepository);
+const getProfileUseCase = new viewUserProfile(userRepository, serviceCenterRepository);
 const viewAllAccountsUseCase = new viewAllAccounts(userRepository);
 const updateUserProfileUseCase = new updateUserProfile(userRepository);
 const changePasswordUseCase = new ChangePassword(userRepository);
@@ -185,7 +185,7 @@ const authController = new AuthController(
     registerUseCase,
     loginUseCase,
     createUserUseCase,
-    viewUserProfileUseCase,
+    getProfileUseCase,
     viewAllAccountsUseCase,
     updateUserProfileUseCase,
     changePasswordUseCase,
@@ -214,7 +214,6 @@ const serviceCenterController = new ServiceCenterController(
 );
 const staffController = new StaffController(
     listCenterAppointmentsUseCase,
-    getAppointmentDetailsUseCase, // This was missing
     listCenterTechniciansUseCase,
     assignAndConfirmAppointmentUseCase,
     findAppointmentsByPhoneUseCase,
