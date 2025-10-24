@@ -709,6 +709,38 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  /technician/service-records/{id}/complete:
+    put:
+      tags: [Technician]
+      summary: (Technician) Hoàn thành công việc
+      description: Kỹ thuật viên đánh dấu một công việc (Service Record) đã hoàn thành.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ServiceRecordIdPath'
+      requestBody:
+        $ref: '#/components/requestBodies/CompleteTaskInput'
+      responses:
+        '200':
+          description: Công việc đã hoàn thành thành công.
+          content:
+            application/json:
+              schema:
+                properties:
+                  message: { type: string }
+                  data:
+                    properties:
+                      serviceRecord: { $ref: '#/components/schemas/ServiceRecord' }
+                      appointment: { $ref: '#/components/schemas/Appointment' }
+        '400':
+          $ref: '#/components/responses/BadRequestError' # Invalid state
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError' # Not assigned technician
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
   # --- ADMIN ---
   /admin/users:
     get:
@@ -1088,6 +1120,16 @@ components:
             required: [accept]
             properties:
               accept: { type: boolean, description: "true = chấp nhận, false = từ chối" }
+
+    CompleteTaskInput:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              completionNotes: { type: string, description: "Ghi chú khi hoàn thành công việc", nullable: true }
+
 
   # --- RESPONSES (Common Error Responses) ---
   responses:

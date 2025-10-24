@@ -83,6 +83,7 @@ const RecordCashPayment = require('./application/staff/recordCashPayment');
 // Technician Workflow
 const ListTechnicianTasks = require('./application/technician/listTechnicianTask'); 
 const SubmitDiagnosis = require('./application/technician/submitDiagnosis');
+const CompleteTechnicianTask = require('./application/technician/completeTechnicianTask');
 
 // --- Khởi tạo ứng dụng Express ---
 const app = express();
@@ -175,8 +176,15 @@ const submitDiagnosisUseCase = new SubmitDiagnosis(
     appointmentRepository,
     prisma
 );
+const completeTechnicianTaskUseCase = new CompleteTechnicianTask(
+    serviceRecordRepository,
+    appointmentRepository,
+    prisma
+);
 
 
+
+// --- Khởi tạo Controllers và Routers ---
 
 // Controller
 const authController = new AuthController(
@@ -223,7 +231,8 @@ const staffController = new StaffController(
 );
 const technicianController = new TechnicianController(
     listTechnicianTasksUseCase,
-    submitDiagnosisUseCase
+    submitDiagnosisUseCase,
+    completeTechnicianTaskUseCase
 );
 
 initializePassport(passport, userRepository);

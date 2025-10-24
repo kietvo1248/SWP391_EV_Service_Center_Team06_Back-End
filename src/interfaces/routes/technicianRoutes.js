@@ -14,7 +14,7 @@ const technicianRouter = (controller) => {
     router.post('/service-records/:id/diagnose', controller.submitDiagnosis.bind(controller));
 
     // (TODO: Endpoint để hoàn thành công việc)
-    // router.put('/service-records/:id/complete', controller.completeTask.bind(controller));
+    router.put('/service-records/:id/complete', controller.completeTask.bind(controller));
 
     return router;
 };
