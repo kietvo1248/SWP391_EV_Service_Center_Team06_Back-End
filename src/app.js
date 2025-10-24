@@ -155,17 +155,15 @@ const startAppointmentProgressUseCase = new StartAppointmentProgress(
     prisma // Truyền prisma client cho transaction
 );
 const createInvoiceUseCase = new CreateInvoice(
-    appointmentRepository,
     serviceRecordRepository,
     quotationRepository,
     invoiceRepository,
+    appointmentRepository, // appointmentRepository phải ở cuối
     prisma // Truyền prisma client cho transaction
 );
 const recordCashPaymentUseCase = new RecordCashPayment(
-    appointmentRepository,
-    serviceRecordRepository,
     invoiceRepository,
-    paymentRepository,
+    paymentRepository, // Chỉ cần 2 repo này
     prisma // Truyền prisma client cho transaction
 );   
   
