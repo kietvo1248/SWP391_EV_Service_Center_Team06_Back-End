@@ -2,6 +2,7 @@
 class StaffController {
     constructor(
         listCenterAppointmentsUseCase,
+        getAppointmentDetailsUseCase, // Re-add this
         listCenterTechniciansUseCase,
         assignAndConfirmAppointmentUseCase,
         findAppointmentsByPhoneUseCase,
@@ -10,7 +11,8 @@ class StaffController {
         recordCashPaymentUseCase
     ) {
         this.listCenterAppointmentsUseCase = listCenterAppointmentsUseCase;
-        this.listCenterTechniciansUseCase = listCenterTechniciansUseCase;
+        this.getAppointmentDetailsUseCase = getAppointmentDetailsUseCase; // Assign it
+        this.listCenterTechniciansUseCase = listCenterTechniciansUseCase; // Assign it
         this.assignAndConfirmAppointmentUseCase = assignAndConfirmAppointmentUseCase;
         this.findAppointmentsByPhoneUseCase = findAppointmentsByPhoneUseCase;
         this.startAppointmentProgressUseCase = startAppointmentProgressUseCase;
@@ -30,6 +32,26 @@ class StaffController {
             res.status(500).json({ message: error.message });
         }
     }
+
+    // GET /api/staff/appointments/:id
+    async getAppointmentDetails(req, res) {
+        try {
+            const actor = req.user; // Pass the whole user object (actor)
+            const { id } = req.params;
+
+            const appointment = await this.getAppointmentDetailsUseCase.execute(id, actor);
+            res.status(200).json(appointment);
+        } catch (error) {
+            if (error.message.includes('Forbidden')) {
+                return res.status(403).json({ message: error.message });
+            }
+            if (error.message.includes('not found')) {
+                return res.status(404).json({ message: error.message });
+            }
+            res.status(500).json({ message: error.message });
+        }
+    }
+
 
     // GET /api/staff/technicians
     async listTechnicians(req, res) {

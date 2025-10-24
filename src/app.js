@@ -214,6 +214,7 @@ const serviceCenterController = new ServiceCenterController(
 );
 const staffController = new StaffController(
     listCenterAppointmentsUseCase,
+    getAppointmentDetailsUseCase, // Re-added as second argument
     listCenterTechniciansUseCase,
     assignAndConfirmAppointmentUseCase,
     findAppointmentsByPhoneUseCase,
