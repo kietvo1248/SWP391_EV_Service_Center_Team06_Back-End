@@ -12,7 +12,7 @@ const createAuthRouter = (authController, passport) => {
     router.get('/profile', authenticate, (req, res) => authController.getProfile(req, res));
     router.post('/create-account', authenticate, authorize(['ADMIN', 'STATION_ADMIN']), (req, res) => authController.createAccount(req, res));
     router.get('/all-profile', authenticate, authorize(['ADMIN']), (req, res) => authController.viewAllAccounts(req, res));
-    router.post('/update-profile', authenticate, (req, res) => authController.updateProfile(req, res));
+    router.put('/update-profile', authenticate, (req, res) => authController.updateProfile(req, res));
     router.post('/change-password', authenticate, (req, res) => authController.changePassword(req, res));
 
     //quên mật khẩu 

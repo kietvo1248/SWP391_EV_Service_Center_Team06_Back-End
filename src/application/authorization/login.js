@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const User = require('../../domain/entities/User');
 
 class LoginUser {
     constructor(userRepository) {
@@ -10,12 +11,12 @@ class LoginUser {
         // 1. Tìm người dùng bằng email
         const user = await this.userRepository.findByEmail(email);
         if (!user) {
-            throw new Error('Invalid email.'); // Lỗi không tìm thấy email
+            throw new Error('Invalid email or password.'); // Lỗi không tìm thấy email
         }
 
         const isPasswordMatch = await bcrypt.compare(password, user.passwordHash);
         if (!isPasswordMatch) {
-            throw new Error('Invalid password.');
+            throw new Error('Invalid email or password.');
         }
 
         // 3. Tạo payload cho JWT (user cần gì thì chứa nó)
@@ -32,7 +33,21 @@ class LoginUser {
             expiresIn: '1h',
         });
 
-        return { token };
+        // 5. Trả về đối tượng User an toàn và token
+        const safeUser = new User(
+            user.id,
+            user.userCode,
+            user.fullName,
+            user.email,
+            null, // passwordHash
+            user.role,
+            user.phoneNumber,
+            user.address,
+            user.serviceCenterId,
+            null, // googleId
+            user.isActive
+        );
+        return { message: "Login successful", token, user: safeUser };
     }
 }
 

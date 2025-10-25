@@ -1,7 +1,8 @@
 class TechnicianController {
-    constructor(listTechnicianTasksUseCase, submitDiagnosisUseCase) {
+    constructor(listTechnicianTasksUseCase, submitDiagnosisUseCase, completeTechnicianTaskUseCase) {
         this.listTechnicianTasksUseCase = listTechnicianTasksUseCase;
         this.submitDiagnosisUseCase = submitDiagnosisUseCase;
+        this.completeTechnicianTaskUseCase = completeTechnicianTaskUseCase;
     }
 
     // GET /api/technician/my-tasks
@@ -35,7 +36,24 @@ class TechnicianController {
         }
     }
     
-    // TODO: Cần thêm 1 endpoint để KTV hoàn thành công việc
     // PUT /api/technician/service-records/:id/complete
+    async completeTask(req, res) {
+        try {
+            const technicianId = req.user.id;
+            const { id } = req.params; // ServiceRecord ID
+            const { completionNotes } = req.body;
+
+            const result = await this.completeTechnicianTaskUseCase.execute(id, technicianId, completionNotes);
+            res.status(200).json({ message: 'Task completed successfully.', data: result });
+        } catch (error) {
+            if (error.message.includes('Forbidden')) {
+                return res.status(403).json({ message: error.message });
+            }
+            if (error.message.includes('not found')) {
+                return res.status(404).json({ message: error.message });
+            }
+            res.status(400).json({ message: error.message });
+        }
+    }
 }
 module.exports = TechnicianController;

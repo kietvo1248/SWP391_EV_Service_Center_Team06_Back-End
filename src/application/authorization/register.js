@@ -48,7 +48,22 @@ class RegisterUserUseCase {
             null            // googleId
         );
 
-        return this.userRepository.add(newUser);
+        const createdUser = await this.userRepository.add(newUser);
+
+        // 5. Trả về một đối tượng User an toàn, không chứa mật khẩu
+        return new User(
+            createdUser.id,
+            createdUser.userCode,
+            createdUser.fullName,
+            createdUser.email,
+            null, // Quan trọng: Không trả về password hash
+            createdUser.role,
+            createdUser.phoneNumber,
+            createdUser.address,
+            null, // serviceCenterId
+            null, // googleId
+            createdUser.isActive
+        );
     }
 }
 

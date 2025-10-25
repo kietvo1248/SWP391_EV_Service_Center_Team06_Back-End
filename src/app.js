@@ -83,6 +83,7 @@ const RecordCashPayment = require('./application/staff/recordCashPayment');
 // Technician Workflow
 const ListTechnicianTasks = require('./application/technician/listTechnicianTask'); 
 const SubmitDiagnosis = require('./application/technician/submitDiagnosis');
+const CompleteTechnicianTask = require('./application/technician/completeTechnicianTask');
 
 // --- Khởi tạo ứng dụng Express ---
 const app = express();
@@ -129,7 +130,11 @@ const addVehicleUseCase = new AddVehicle(vehicleRepository);
 const viewVehiclesUseCase = new ViewVehicles(vehicleRepository);
 
 //Usce Cases for Appointment Management
-const createAppointmentUseCase = new CreateAppointment(appointmentRepository, vehicleRepository, userRepository);
+const createAppointmentUseCase = new CreateAppointment(
+    appointmentRepository, 
+    vehicleRepository, 
+    serviceCenterRepository, // Corrected: Pass serviceCenterRepository here
+    prisma);
 const listMyVehiclesUseCase = new ListMyVehicles(vehicleRepository);
 const getServiceSuggestionsUseCase = new GetServiceSuggestions();
 const listServiceTypesUseCase = new ListServiceTypes(serviceTypeRepository);
@@ -175,8 +180,15 @@ const submitDiagnosisUseCase = new SubmitDiagnosis(
     appointmentRepository,
     prisma
 );
+const completeTechnicianTaskUseCase = new CompleteTechnicianTask(
+    serviceRecordRepository,
+    appointmentRepository,
+    prisma
+);
 
 
+
+// --- Khởi tạo Controllers và Routers ---
 
 // Controller
 const authController = new AuthController(
@@ -223,7 +235,8 @@ const staffController = new StaffController(
 );
 const technicianController = new TechnicianController(
     listTechnicianTasksUseCase,
-    submitDiagnosisUseCase
+    submitDiagnosisUseCase,
+    completeTechnicianTaskUseCase
 );
 
 initializePassport(passport, userRepository);
