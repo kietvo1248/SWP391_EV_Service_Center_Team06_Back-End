@@ -1,6 +1,6 @@
 class User {
     // Added passwordHash (and set to null), address, and googleId for consistency
-    constructor(id, userCode, fullName, email, passwordHash, role, phoneNumber, address, serviceCenterId, googleId) {
+    constructor(id, userCode, fullName, email, passwordHash, role, phoneNumber, address, serviceCenterId, googleId, isActive) {
         this.id = id;
         this.userCode = userCode;
         this.fullName = fullName;
@@ -11,6 +11,7 @@ class User {
         this.phoneNumber = phoneNumber;
         this.address = address;
         this.serviceCenterId = serviceCenterId;
+        this.isActive = isActive;
         // googleId is also part of the model for auth purposes
         // This will hold the full service center object for employees
         this.serviceCenter = null; 

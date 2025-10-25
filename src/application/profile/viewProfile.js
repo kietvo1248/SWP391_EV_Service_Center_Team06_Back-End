@@ -24,7 +24,9 @@ class ViewAccount {
             user.role,
             user.phoneNumber,
             user.address,
-            user.serviceCenterId
+            user.serviceCenterId,
+            null, // googleId
+            user.isActive
         );
 
         // 3. If the user is an employee (has a serviceCenterId), fetch and attach the service center details.

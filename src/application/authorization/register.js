@@ -57,7 +57,12 @@ class RegisterUserUseCase {
             createdUser.fullName,
             createdUser.email,
             null, // Quan trọng: Không trả về password hash
-            createdUser.role
+            createdUser.role,
+            createdUser.phoneNumber,
+            createdUser.address,
+            null, // serviceCenterId
+            null, // googleId
+            createdUser.isActive
         );
     }
 }

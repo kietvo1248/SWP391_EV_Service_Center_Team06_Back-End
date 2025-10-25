@@ -130,7 +130,11 @@ const addVehicleUseCase  = new AddVehicle(vehicleRepository);
 const viewVehiclesUseCase = new ViewVehicles(vehicleRepository);
 
 //Usce Cases for Appointment Management
-const createAppointmentUseCase = new CreateAppointment(appointmentRepository, vehicleRepository, userRepository);
+const createAppointmentUseCase = new CreateAppointment(
+    appointmentRepository, 
+    vehicleRepository, 
+    serviceCenterRepository, // Corrected: Pass serviceCenterRepository here
+    prisma);
 const listMyVehiclesUseCase = new ListMyVehicles(vehicleRepository);
 const getServiceSuggestionsUseCase = new GetServiceSuggestions();
 const listServiceTypesUseCase = new ListServiceTypes(serviceTypeRepository);
