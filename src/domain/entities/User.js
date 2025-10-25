@@ -6,6 +6,7 @@ class User {
         this.fullName = fullName;
         this.email = email;
         // passwordHash is not returned in responses, but is part of the domain model
+        this.passwordHash = passwordHash;
         this.role = role;
         this.phoneNumber = phoneNumber;
         this.address = address;

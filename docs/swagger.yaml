@@ -39,7 +39,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                properties:
+                  message: { type: string, example: "Đăng ký thành công!" }
+                  user: { $ref: '#/components/schemas/User' }
         '400':
           $ref: '#/components/responses/BadRequestError'
 
@@ -987,11 +989,13 @@ components:
         application/json:
           schema:
             type: object
-            required: [fullName, email, password]
+            required: [fullName, email, password, confirmPassword]
             properties:
               fullName: { type: string, example: "Nguyen Van A" }
               email: { type: string, format: email, example: "a@example.com" }
               password: { type: string, format: password, example: "password123" }
+              confirmPassword: { type: string, format: password, example: "password123" }
+              phoneNumber: { type: string, example: "0987654321", nullable: true }
 
     LoginInput:
       required: true
