@@ -48,11 +48,86 @@ Việc áp dụng kiến trúc này đảm bảo rằng "bộ não" của ứng 
 
 ## 4. Hướng dẫn cài đặt (Installation Guide)
 
-*(Bổ sung hướng dẫn cài đặt tại đây)*
+### Cài đặt local development
+
+1. **Clone repository:**
+   ```bash
+   git clone <repository-url>
+   cd SWP391_restApi_EV_Service_Center_Back-End_nodejs_postgre
+   ```
+
+2. **Cài đặt dependencies:**
+   ```bash
+   npm install
+   # hoặc
+   pnpm install
+   ```
+
+3. **Cấu hình environment variables:**
+   ```bash
+   cp env.example .env
+   # Chỉnh sửa file .env với thông tin database và các biến môi trường khác
+   ```
+
+4. **Thiết lập database:**
+   ```bash
+   # Cài đặt PostgreSQL và tạo database
+   # Xem hướng dẫn chi tiết: docs/DatabaseSetup.md
+   
+   # Generate Prisma client
+   npx prisma generate
+   
+   # Push schema to database
+   npx prisma db push
+   
+   # Setup sample data
+   npm run db:setup
+   ```
+
+5. **Khởi động server:**
+   ```bash
+   npm run dev
+   ```
+
+### Deploy lên Render
+
+1. **Chuẩn bị repository:**
+   - Đảm bảo code đã được push lên GitHub
+   - Kiểm tra file `render.yaml` đã được cấu hình đúng
+
+2. **Tạo tài khoản Render:**
+   - Truy cập [render.com](https://render.com)
+   - Đăng ký tài khoản và kết nối với GitHub
+
+3. **Deploy database:**
+   - Tạo PostgreSQL service từ dashboard Render
+   - Lưu lại connection string
+
+4. **Deploy web service:**
+   - Tạo Web Service mới
+   - Connect với GitHub repository
+   - Cấu hình environment variables:
+     - `DATABASE_URL`: Connection string từ PostgreSQL service
+     - `JWT_SECRET`: Generate random string
+     - `GOOGLE_CLIENT_ID`: Từ Google Cloud Console
+     - `GOOGLE_CLIENT_SECRET`: Từ Google Cloud Console
+     - `GOOGLE_CALLBACK_URL`: `https://your-app-name.onrender.com/api/auth/google/callback`
+
+5. **Cấu hình Google OAuth:**
+   - Vào Google Cloud Console
+   - Thêm authorized redirect URI: `https://your-app-name.onrender.com/api/auth/google/callback`
 
 ## 5. Cách sử dụng API (API Usage)
 
-*(Bổ sung tài liệu API tại đây, ví dụ: link tới Postman hoặc Swagger)*
+### API Documentation
+- **Swagger UI:** `http://localhost:3000/api-docs` (local)
+- **Production:** `https://your-app-name.onrender.com/api-docs`
+
+### Endpoints chính:
+- **Authentication:** `/api/auth/*`
+- **Vehicles:** `/api/vehicles/*`
+- **Appointments:** `/api/appointments/*`
+- **Service Centers:** `/api/service-centers/*`
 
 ---
 
