@@ -2,25 +2,25 @@ const InvoiceEntity = require('../../domain/entities/Invoice');
 const { Decimal } = require('@prisma/client/runtime/library');
 
 class CreateInvoice {
-    constructor(invoiceRepo, quotationRepo, serviceRecordRepo, appointmentRepo) {
-        this.invoiceRepo = invoiceRepo;
-        this.quotationRepo = quotationRepo;
-        this.serviceRecordRepo = serviceRecordRepo;
-        this.appointmentRepo = appointmentRepo;
+    constructor(invoiceRepository, quotationRepository, serviceRecordRepository, appointmentRepository) {
+        this.invoiceRepository = invoiceRepository; // Assign to this.invoiceRepository
+        this.quotationRepository = quotationRepository;
+        this.serviceRecordRepository = serviceRecordRepository;
+        this.appointmentRepository = appointmentRepository;
     }
 
     async execute(serviceRecordId, staffServiceCenterId) {
         // ... (Logic kiểm tra record, appointment, quotation giữ nguyên) ...
-        const record = await this.serviceRecordRepo.findById(serviceRecordId);
+        const record = await this.serviceRecordRepository.findById(serviceRecordId);
         if (!record) { throw new Error('Service record not found.'); }
-        const appointment = await this.appointmentRepo.findById(record.appointmentId);
+        const appointment = await this.appointmentRepository.findById(record.appointmentId);
         if (!appointment || appointment.serviceCenterId !== staffServiceCenterId) { throw new Error('Record not found or not in your center.'); }
-        const quotation = await this.quotationRepo.findByServiceRecordId(record.id);
+        const quotation = await this.quotationRepository.findByServiceRecordId(record.id);
         if (!quotation) { throw new Error('Quotation not found. Cannot create invoice.'); }
         
         const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-        const createdInvoicePrisma = await this.invoiceRepo.create({
+        const createdInvoicePrisma = await this.invoiceRepository.create({
             serviceRecordId: record.id,
             totalAmount: quotation.estimatedCost,
             status: 'UNPAID',

@@ -1,7 +1,8 @@
 class IServiceTypeRepository {
-    async getAllServiceTypes() {
-        throw new Error('Method not implemented');
+    async findAll() {
+        throw new Error("Method 'findAll()' must be implemented.");
     }
+
 }
 
 module.exports = IServiceTypeRepository;

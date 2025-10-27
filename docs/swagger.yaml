@@ -24,7 +24,6 @@ tags:
     description: (Staff/Station Admin/Admin) Tiếp nhận xe, quản lý lịch hẹn, tạo hóa đơn, thu tiền mặt.
   - name: Technician
     description: (Kỹ thuật viên) Xem công việc, gửi chẩn đoán, hoàn thành công việc.
-  # - name: Admin # Có thể gộp vào Auth hoặc giữ riêng nếu có thêm API Admin khác
 
 paths:
   # --- AUTHENTICATION ---
@@ -112,7 +111,7 @@ paths:
   # --- ADMIN / ACCOUNT CREATION ---
   /auth/create-account:
     post:
-      tags: [Auth] # Giữ trong Auth vì liên quan tài khoản
+      tags: [Auth] 
       summary: (Admin/Station Admin) Tạo tài khoản mới
       description: Admin/Station Admin tạo tài khoản nhân viên hoặc vai trò khác. Station Admin chỉ tạo được cho trạm của mình.
       security: [ { bearerAuth: [] } ] # Roles: ADMIN, STATION_ADMIN
@@ -127,7 +126,7 @@ paths:
 
   /auth/all-profile:
     get:
-      tags: [Auth] # Giữ trong Auth
+      tags: [Auth] 
       summary: (Admin) Lấy danh sách tất cả tài khoản
       security: [ { bearerAuth: [] } ] # Roles: ADMIN
       responses:
@@ -138,7 +137,7 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
   # --- PROFILE ---
-  /auth/profile: # Đổi tên từ /profile thành /auth/profile cho nhất quán
+  /auth/profile: 
     get:
       tags: [Profile]
       summary: Lấy thông tin cá nhân (My Profile)
@@ -147,8 +146,9 @@ paths:
         '200': { description: Thành công., content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
-  /auth/update-profile:
-    put: # Đổi từ POST sang PUT cho cập nhật
+
+  /auth/update-profile: # Cập nhật theo authRoutes.js
+    put: 
       tags: [Profile]
       summary: Cập nhật thông tin cá nhân
       security: [ { bearerAuth: [] } ]
@@ -250,7 +250,7 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
-  /appointments/create-appointment: # Sửa lại đường dẫn này
+  /appointments/create-appointment: # Cập nhật theo appointmentRoutes.js
     post:
       tags: [Appointment]
       summary: (Customer) Tạo lịch hẹn mới
@@ -264,7 +264,7 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
-  /appointments/{id}: # Sửa lại đường dẫn này
+  /appointments/{id}: # Cập nhật theo appointmentRoutes.js
     get:
       tags: [Appointment]
       summary: (Customer/Staff/Admin) Lấy chi tiết lịch hẹn
@@ -278,7 +278,7 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
 
-  /appointments/{id}/respond:
+  /appointments/{id}/respond-quotation: # Cập nhật theo appointmentRoutes.js
     put:
       tags: [Appointment]
       summary: (Customer) Phản hồi báo giá (Duyệt/Từ chối)
@@ -327,7 +327,19 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
-  # Staff Get Appointment Details uses /appointments/{id}
+  /staff/appointments/{id}: # Cập nhật theo staffRoutes.js
+    get:
+      tags: [Staff]
+      summary: (Staff) Lấy chi tiết lịch hẹn
+      security: [ { bearerAuth: [] } ] # Roles: STAFF, ADMIN, STATION_ADMIN
+      parameters: [ { $ref: '#/components/parameters/AppointmentIdPath' } ]
+      responses:
+        '200':
+          description: Thành công. (Sử dụng chung logic với /appointments/{id})
+          content: { application/json: { schema: { $ref: '#/components/schemas/AppointmentDetailSharedView' } } }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
 
   /staff/appointments/{id}/confirm:
     put:
@@ -434,7 +446,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
 
 # ===============================================
-# COMPONENTS (Giữ nguyên định nghĩa ở đây)
+# COMPONENTS
 # ===============================================
 components:
   # --- SCHEMAS ---
@@ -571,7 +583,6 @@ components:
          user: { $ref: '#/components/schemas/UserSummary' }
          temporaryPassword: { type: string, description: "Mật khẩu tạm thời cho tài khoản mới" }
 
-
     TechnicianInfo:
       type: object
       properties:
@@ -614,8 +625,6 @@ components:
               type: array
               items: { $ref: '#/components/schemas/ServiceType' } # List of service types
             quotation: { $ref: '#/components/schemas/Quotation', nullable: true } # Quotation if exists
-
-    # Các schema AppointmentDetailCustomerView và AppointmentDetailStaffView có thể loại bỏ nếu schema chung đủ dùng
 
     TechnicianTaskSummary:
       type: object
@@ -832,7 +841,3 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: "Nhập JWT token. Ví dụ: 'Bearer {token}'"
-
-# --- GLOBAL SECURITY ---
-# security:
-#   - bearerAuth: [] # Bật nếu hầu hết API cần xác thực
