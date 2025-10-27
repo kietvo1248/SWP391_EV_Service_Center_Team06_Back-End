@@ -31,7 +31,7 @@ class IAppointmentRepository {
     async findConfirmedByCustomerPhone(serviceCenterId, phone) {
         throw new Error("Method 'findConfirmedByCustomerPhone()' must be implemented.");
     }
-    async findByIdAndCustomer(aappointmentId, customerId) {
+    async findByIdAndCustomer(appointmentId, customerId) {
         throw new Error("Method 'findByIdAndCustomer()' must be implemented.");
     }
 }

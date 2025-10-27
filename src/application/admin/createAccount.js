@@ -53,7 +53,7 @@ class CreateAccount {
         console.log(`Create account successfully for ${newUser.fullName} with temporary password: ${temporaryPassword}`);
         
         // 4. Trả về đối tượng User an toàn cùng với mật khẩu tạm thời
-        const safeUser = new User(newUser.id, newUser.userCode, newUser.fullName, newUser.email, null, newUser.role, newUser.phoneNumber, newUser.address, newUser.serviceCenterId);
+        const safeUser = new User(newUser.id, newUser.userCode, newUser.fullName, newUser.email, null, newUser.role, newUser.phoneNumber, newUser.address, newUser.serviceCenterId, null, newUser.isActive);
         return {
             user: safeUser,
             temporaryPassword: temporaryPassword
