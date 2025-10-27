@@ -16,8 +16,6 @@ const staffRouter = (controller) => {
     // Lấy chi tiết một lịch hẹn cho Staff
     router.get('/appointments/:id', controller.getAppointmentDetails.bind(controller));
 
-    //router.post('/appointments/:id/assign', controller.assignTechnician.bind(controller));
-    
     router.put('/appointments/:id/start', controller.startAppointment.bind(controller));
     //router.put('/appointments/:id/complete', controller.completeAppointment.bind(controller));
 

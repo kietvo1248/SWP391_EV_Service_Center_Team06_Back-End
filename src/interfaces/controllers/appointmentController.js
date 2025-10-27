@@ -1,11 +1,11 @@
 class AppointmentController {
-    constructor(createAppointmentUseCase, listMyVehiclesUseCase, getServiceSuggestionsUseCase, listServiceTypesUseCase, getAppointmentDetailsUseCase, responseToQuotationUseCase) {
+    constructor(createAppointmentUseCase, listMyVehiclesUseCase, getServiceSuggestionsUseCase, listServiceTypesUseCase, getAppointmentDetailsUseCase, respondToQuotationUseCase) {
         this.createAppointmentUseCase = createAppointmentUseCase;
         this.listMyVehiclesUseCase = listMyVehiclesUseCase;
         this.getServiceSuggestionsUseCase = getServiceSuggestionsUseCase;
         this.listServiceTypesUseCase = listServiceTypesUseCase;
         this.getAppointmentDetailsUseCase = getAppointmentDetailsUseCase;
-        this.responseToQuotationUseCase = responseToQuotationUseCase;
+        this.respondToQuotationUseCase = respondToQuotationUseCase;
     }
 
     async getMyVehicles(req, res) {
@@ -73,7 +73,7 @@ class AppointmentController {
             const customerId = req.user.id;
             const { id } = req.params;
             const { didAccept } = req.body;
-            const result = await this.responseToQuotationUseCase.execute(id, customerId, didAccept);
+            const result = await this.respondToQuotationUseCase.execute(id, customerId, didAccept);
             res.status(200).json(result);
         } catch (error) {
             res.status(400).json({ message: error.message });

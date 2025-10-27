@@ -28,10 +28,10 @@ class IAppointmentRepository {
     async updateStatus(appointmentId, status, tx) {
         throw new Error("Method 'updateStatus()' must be implemented.");
     }
-    async findConfirmedByCustomerPhone(customerPhone) {
+    async findConfirmedByCustomerPhone(serviceCenterId, phone) {
         throw new Error("Method 'findConfirmedByCustomerPhone()' must be implemented.");
     }
-    async findByIdAndCustomer(appointmentId, customerId) {
+    async findByIdAndCustomer(aappointmentId, customerId) {
         throw new Error("Method 'findByIdAndCustomer()' must be implemented.");
     }
 }
