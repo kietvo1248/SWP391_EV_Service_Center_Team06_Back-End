@@ -81,6 +81,12 @@ const ListCenterTechnicians = require('./application/staff/listCenterTechnician'
 const AssignAndConfirmAppointment = require('./application/staff/confirmAppointment');
 const CreateInvoice = require('./application/staff/createInvoice');
 const RecordCashPayment = require('./application/staff/recordCashPayment');
+//staff - đặt lịch tại quầy
+const SearchCustomer = require('./application/staff/searchCustomer');
+const ListVehiclesForCustomer = require('./application/staff/listVehicleForCustomer');
+const CreateCustomerByStaff = require('./application/staff/createCustomerByStaff');
+const AddVehicleForCustomer = require('./application/staff/addVehicleForCustomer');
+const CreateAndStartWalkInAppointment = require('./application/staff/createAppointmentAndStartWalkInAppointment');
 // Technician Workflow
 const ListTechnicianTasks = require('./application/technician/listTechnicianTask'); 
 const SubmitDiagnosis = require('./application/technician/submitDiagnosis');
@@ -134,7 +140,7 @@ const viewVehiclesUseCase = new ViewVehicles(vehicleRepository);
 const createAppointmentUseCase = new CreateAppointment(
     appointmentRepository, 
     vehicleRepository, 
-    serviceCenterRepository, // Corrected: Pass serviceCenterRepository here
+    serviceCenterRepository, 
     prisma);
 const listMyVehiclesUseCase = new ListMyVehicles(vehicleRepository);
 const getServiceSuggestionsUseCase = new GetServiceSuggestions();
@@ -142,6 +148,19 @@ const listServiceTypesUseCase = new ListServiceTypes(serviceTypeRepository);
 const responseToQuotationUseCase = new RespondToQuotation(
     appointmentRepository,
     serviceRecordRepository,
+    prisma
+);
+// luồng 2 đặt lịch tại quầy
+const searchCustomerUseCase = new SearchCustomer(userRepository);
+const listVehiclesForCustomerUseCase = new ListVehiclesForCustomer(vehicleRepository);
+const createCustomerByStaffUseCase = new CreateCustomerByStaff(userRepository);
+const addVehicleForCustomerUseCase = new AddVehicleForCustomer(vehicleRepository, userRepository);
+const createAndStartWalkInAppointmentUseCase = new CreateAndStartWalkInAppointment(
+    appointmentRepository,
+    serviceRecordRepository,
+    userRepository,
+    serviceCenterRepository,
+    vehicleRepository,
     prisma
 );
 
@@ -227,7 +246,7 @@ const appointmentController = new AppointmentController(
 
 const serviceCenterController = new ServiceCenterController(
     listAllServiceCentersUseCase,
-    getAvailableSlotsUseCase,
+    getAvailableSlotsUseCase
 );
 const staffController = new StaffController(
     listCenterAppointmentsUseCase,
@@ -238,7 +257,12 @@ const staffController = new StaffController(
     startAppointmentProgressUseCase,
     createInvoiceUseCase,
     recordCashPaymentUseCase,
-    
+    //đặt lịch tại quầy
+    searchCustomerUseCase,
+    listVehiclesForCustomerUseCase,
+    createCustomerByStaffUseCase,
+    addVehicleForCustomerUseCase,
+    createAndStartWalkInAppointmentUseCase
 );
 const technicianController = new TechnicianController(
     listTechnicianTasksUseCase,

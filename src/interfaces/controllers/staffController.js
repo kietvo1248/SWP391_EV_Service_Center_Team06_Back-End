@@ -8,7 +8,13 @@ class StaffController {
         findAppointmentsByPhoneUseCase,
         startAppointmentProgressUseCase,
         createInvoiceUseCase,
-        recordCashPaymentUseCase
+        recordCashPaymentUseCase,
+        //đặt lịch tại quầy
+        searchCustomerUseCase,
+        listVehiclesForCustomerUseCase,
+        createCustomerByStaffUseCase,
+        addVehicleForCustomerUseCase,
+        createAndStartWalkInAppointmentUseCase
     ) {
         this.listCenterAppointmentsUseCase = listCenterAppointmentsUseCase;
         this.getAppointmentDetailsUseCase = getAppointmentDetailsUseCase; // Assign it
@@ -18,6 +24,11 @@ class StaffController {
         this.startAppointmentProgressUseCase = startAppointmentProgressUseCase;
         this.createInvoiceUseCase = createInvoiceUseCase;
         this.recordCashPaymentUseCase = recordCashPaymentUseCase;
+        this.searchCustomerUseCase = searchCustomerUseCase;
+        this.listVehiclesForCustomerUseCase = listVehiclesForCustomerUseCase;
+        this.createCustomerByStaffUseCase = createCustomerByStaffUseCase;
+        this.addVehicleForCustomerUseCase = addVehicleForCustomerUseCase;
+        this.createAndStartWalkInAppointmentUseCase = createAndStartWalkInAppointmentUseCase;
     }
 
     // GET /api/staff/appointments
@@ -124,6 +135,67 @@ class StaffController {
             const { id } = req.params; // Đây là Invoice ID
             const updatedInvoice = await this.recordCashPaymentUseCase.execute(id);
             res.status(200).json({ message: 'Payment recorded successfully.', invoice: updatedInvoice });
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+    // --- phương thức thứ 2, đặt lịch tại quầy ---
+
+    // GET /api/staff/customers/search?phone=...
+    async searchCustomer(req, res) {
+        try {
+            const { phone } = req.query;
+            const customers = await this.searchCustomerUseCase.execute(phone);
+            res.status(200).json(customers);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
+    // POST /api/staff/customers
+    async createCustomer(req, res) {
+        try {
+            const { fullName, phoneNumber, email } = req.body;
+            const result = await this.createCustomerByStaffUseCase.execute({ fullName, phoneNumber, email });
+            res.status(201).json(result);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
+    // GET /api/staff/customers/{customerId}/vehicles
+    async listVehiclesForCustomer(req, res) {
+        try {
+            const { customerId } = req.params;
+            const vehicles = await this.listVehiclesForCustomerUseCase.execute(customerId);
+            res.status(200).json(vehicles);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
+    // POST /api/staff/customers/{customerId}/vehicles
+    async addVehicleForCustomer(req, res) {
+        try {
+            const { customerId } = req.params;
+            const vehicleData = req.body;
+            const actor = req.user; // Nhân viên đang thực hiện
+            
+            const newVehicle = await this.addVehicleForCustomerUseCase.execute(customerId, vehicleData, actor);
+            res.status(201).json(newVehicle);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
+    // POST /api/staff/appointments/create-walk-in
+    async createAndStartWalkInAppointment(req, res) {
+        try {
+            const data = req.body; // customerId, vehicleId, technicianId, v.v.
+            const actor = req.user;
+            
+            const result = await this.createAndStartWalkInAppointmentUseCase.execute(data, actor);
+            res.status(201).json({ message: 'Walk-in appointment created and started successfully.', data: result });
         } catch (error) {
             res.status(400).json({ message: error.message });
         }

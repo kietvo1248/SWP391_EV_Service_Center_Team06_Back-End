@@ -113,6 +113,23 @@ class PrismaUserRepository extends IUserRepository {
             }
         });
     }
+    async findCustomerByPhone(phone) {
+        return this.prisma.user.findMany({
+            where: {
+                role: 'CUSTOMER',
+                phoneNumber: {
+                    contains: phone, 
+                }
+            },
+            select: { // trả về những gì cần thiết
+                id: true,
+                fullName: true,
+                email: true,
+                phoneNumber: true,
+                address: true
+            }
+        });
+    }
 }
 
 module.exports = PrismaUserRepository;

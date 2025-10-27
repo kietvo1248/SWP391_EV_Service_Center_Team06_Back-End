@@ -27,6 +27,18 @@ const staffRouter = (controller) => {
     
     router.post('/invoices/:id/pay-cash', controller.recordCashPayment.bind(controller));
 
+    // --- LUỒNG 2 (Mới: Walk-in) ---
+    // (Bước 1) Tìm khách hàng
+    router.get('/customers/search', controller.searchCustomer.bind(controller));
+    // (Bước 2.2) Tạo khách hàng mới
+    router.post('/customers', controller.createCustomer.bind(controller));
+    // (Bước 2.1a) Lấy xe của khách
+    router.get('/customers/:customerId/vehicles', controller.listVehiclesForCustomer.bind(controller));
+    // (Bước 2.1b) Thêm xe cho khách
+    router.post('/customers/:customerId/vehicles', controller.addVehicleForCustomer.bind(controller));
+    // (Bước 5 & 6) Tạo và bắt đầu lịch hẹn walk-in
+    router.post('/appointments/create-walk-in', controller.createAndStartWalkInAppointment.bind(controller));
+
 
     return router;
 };

@@ -19,8 +19,6 @@ class Vehicle {
                            ? parseInt(mileageInput, 10)
                            : 0;
         this.currentMileage = isNaN(parsedMileage) ? 0 : parsedMileage;
-        // --- KẾT THÚC SỬA ĐỔI ---
-
         this.lastServiceDate = data.lastServiceDate ?? null;
         this.ownerId = data.ownerId;
 
