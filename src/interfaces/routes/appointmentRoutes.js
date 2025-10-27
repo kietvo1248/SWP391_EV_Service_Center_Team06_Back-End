@@ -17,6 +17,8 @@ const appointmentRouter = (appointmentController) => {
 
     // Lấy chi tiết một lịch hẹn (Dùng chung cho Customer, Staff, Admin,...)
     router.get('/:id', authenticate, appointmentController.getAppointmentDetails.bind(appointmentController));
+    // Phản hồi báo giá (chấp nhận hoặc từ chối)
+    router.post('/:id/respond-quotation', authenticate, appointmentController.respondToQuotation.bind(appointmentController));
 
     return router;
 };

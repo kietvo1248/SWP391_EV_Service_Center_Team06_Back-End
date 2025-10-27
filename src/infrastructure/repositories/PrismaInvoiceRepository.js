@@ -18,5 +18,10 @@ class PrismaInvoiceRepository extends IInvoiceRepository {
             data: { status: status },
         });
     }
+    async findByServiceRecordId(serviceRecordId) {
+        return this.prisma.invoice.findFirst({
+            where: { serviceRecordId: serviceRecordId },
+        });
+    }
 }
 module.exports = PrismaInvoiceRepository;

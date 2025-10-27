@@ -21,15 +21,15 @@ class PrismaServiceTypeRepository extends IServiceTypeRepository {
         });
     }
 
-    async getAllServiceTypes() {
-        return this.prisma.serviceType.findMany({
-            select: {
-                id: true,
-                name: true,
-                description: true
-            }
-        });
-    }
+    // async getAllServiceTypes() {
+    //     return this.prisma.serviceType.findMany({
+    //         select: {
+    //             id: true,
+    //             name: true,
+    //             description: true
+    //         }
+    //     });
+    // }
     async createServiceType(serviceTypeData) {
         throw new Error('Method not implemented');
     }

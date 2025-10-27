@@ -66,6 +66,7 @@ const CreateAppointment = require('./application/bookings/createAppointment');
 const ListMyVehicles = require('./application/vehicles/listvehicle');
 const GetServiceSuggestions = require('./application/bookings/suggestion');
 const ListServiceTypes = require('./application/bookings/listAllServiceType');
+const RespondToQuotation = require('./application/bookings/respondToQuotation');
 
 //service center
 const ListAllServiceCenters = require('./application/service_centers/listAllServiceCenter');
@@ -138,6 +139,12 @@ const createAppointmentUseCase = new CreateAppointment(
 const listMyVehiclesUseCase = new ListMyVehicles(vehicleRepository);
 const getServiceSuggestionsUseCase = new GetServiceSuggestions();
 const listServiceTypesUseCase = new ListServiceTypes(serviceTypeRepository);
+const responseToQuotationUseCase = new RespondToQuotation(
+    appointmentRepository,
+    serviceRecordRepository,
+    prisma
+);
+
 
 // Use Cases for Service Center Management
 const listAllServiceCentersUseCase = new ListAllServiceCenters(serviceCenterRepository);
@@ -160,11 +167,11 @@ const startAppointmentProgressUseCase = new StartAppointmentProgress(
     prisma // Truyền prisma client cho transaction
 );
 const createInvoiceUseCase = new CreateInvoice(
-    serviceRecordRepository,
-    quotationRepository,
     invoiceRepository,
+    quotationRepository,
+    serviceRecordRepository,
     appointmentRepository, // appointmentRepository phải ở cuối
-    prisma // Truyền prisma client cho transaction
+    //prisma // Truyền prisma client cho transaction
 );
 const recordCashPaymentUseCase = new RecordCashPayment(
     invoiceRepository,
@@ -215,7 +222,8 @@ const appointmentController = new AppointmentController(
     listMyVehiclesUseCase,
     getServiceSuggestionsUseCase,
     listServiceTypesUseCase,
-    getAppointmentDetailsUseCase
+    getAppointmentDetailsUseCase,
+    responseToQuotationUseCase
 );
 
 const serviceCenterController = new ServiceCenterController(
