@@ -14,6 +14,9 @@ class LoginUser {
             throw new Error('Invalid email or password.'); // Lỗi không tìm thấy email
         }
 
+        if (!user.passwordHash){
+            throw new Error('This account does not have a password set. Please use Google login.');
+        }
         const isPasswordMatch = await bcrypt.compare(password, user.passwordHash);
         if (!isPasswordMatch) {
             throw new Error('Invalid email or password.');

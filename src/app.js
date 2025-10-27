@@ -170,8 +170,7 @@ const createInvoiceUseCase = new CreateInvoice(
     invoiceRepository,
     quotationRepository,
     serviceRecordRepository,
-    appointmentRepository, // appointmentRepository phải ở cuối
-    //prisma // Truyền prisma client cho transaction
+    appointmentRepository // giấu 'prisma'
 );
 const recordCashPaymentUseCase = new RecordCashPayment(
     invoiceRepository,
@@ -222,7 +221,7 @@ const appointmentController = new AppointmentController(
     listMyVehiclesUseCase,
     getServiceSuggestionsUseCase,
     listServiceTypesUseCase,
-    getAppointmentDetailsUseCase,
+    getAppointmentDetailsUseCase, // Đây là use case chung
     responseToQuotationUseCase
 );
 

@@ -60,7 +60,7 @@ class GetAppointmentDetailsUseCase {
         }
 
         if (appointmentPrisma.customer) { // <-- Thêm kiểm tra này
-            appointmentEntity.customerId = new UserEntity(
+            appointmentEntity.customer = new UserEntity(
                 appointmentPrisma.customer.id,
                 appointmentPrisma.customer.userCode,
                 appointmentPrisma.customer.fullName,
