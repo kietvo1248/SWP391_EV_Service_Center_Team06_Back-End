@@ -67,6 +67,7 @@ const ListMyVehicles = require('./application/vehicles/listvehicle');
 const GetServiceSuggestions = require('./application/bookings/suggestion');
 const ListServiceTypes = require('./application/bookings/listAllServiceType');
 const RespondToQuotation = require('./application/bookings/respondToQuotation');
+const ListAppointmentHistory = require('./application/bookings/appointmentHistory');
 
 //service center
 const ListAllServiceCenters = require('./application/service_centers/listAllServiceCenter');
