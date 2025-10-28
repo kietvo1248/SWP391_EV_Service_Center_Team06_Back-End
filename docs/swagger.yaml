@@ -10,27 +10,21 @@ servers:
     description: Production server
 
 tags:
-  - name: Auth
-    description: Đăng ký, đăng nhập (thường & Google), quên mật khẩu, tạo tài khoản (Admin).
-  - name: Profile
-    description: Quản lý thông tin cá nhân (Xem, cập nhật, đổi mật khẩu).
-  - name: Vehicle
-    description: (Khách hàng/Staff) Quản lý phương tiện.
-  - name: Service Center
-    description: Tra cứu thông tin trung tâm dịch vụ và lịch trống.
-  - name: Appointment
-    description: (Khách hàng) Đặt lịch hẹn, xem chi tiết, duyệt báo giá.
-  - name: Staff
-    description: (Staff/Station Admin/Admin) Tiếp nhận xe, quản lý lịch hẹn, tạo hóa đơn, thu tiền mặt.
-  - name: Technician
-    description: (Kỹ thuật viên) Xem công việc, gửi chẩn đoán, hoàn thành công việc.
+  - name: Auth & Profile
+    description: Đăng ký, đăng nhập, quản lý hồ sơ, quên mật khẩu.
+  - name: '[Luồng 1] Khách hàng Online'
+    description: Các API cho kịch bản khách hàng tự đặt lịch hẹn trực tuyến.
+  - name: '[Luồng 2] Nhân viên tại quầy'
+    description: Các API nghiệp vụ cho kịch bản nhân viên (Staff, KTV) xử lý tại trung tâm.
 
 paths:
-  # --- AUTHENTICATION ---
+  # ===============================================
+  # === AUTH & PROFILE (Chung cho cả hai luồng)
+  # ===============================================
   /auth/register:
     post:
-      tags: [Auth]
-      summary: Đăng ký tài khoản mới (Customer)
+      tags: [Auth & Profile]
+      summary: (Auth) Đăng ký tài khoản Customer
       requestBody:
         $ref: '#/components/requestBodies/RegisterInput'
       responses:
@@ -42,8 +36,8 @@ paths:
 
   /auth/login:
     post:
-      tags: [Auth]
-      summary: Đăng nhập (Email/Password)
+      tags: [Auth & Profile]
+      summary: (Auth) Đăng nhập (Email/Password)
       requestBody:
         $ref: '#/components/requestBodies/LoginInput'
       responses:
@@ -51,30 +45,30 @@ paths:
           description: Đăng nhập thành công.
           content: { application/json: { schema: { $ref: '#/components/schemas/LoginResponse' } } }
         '400':
-          $ref: '#/components/responses/BadRequestError' # Invalid credentials
+          $ref: '#/components/responses/BadRequestError'
 
   /auth/google:
     get:
-      tags: [Auth]
-      summary: Bắt đầu đăng nhập với Google
+      tags: [Auth & Profile]
+      summary: (Auth) Bắt đầu đăng nhập với Google
       responses:
         '302': { description: Redirect đến Google. }
 
   /auth/google/callback:
     get:
-      tags: [Auth]
-      summary: Callback sau khi Google xác thực
+      tags: [Auth & Profile]
+      summary: (Auth) Callback sau khi Google xác thực
       responses:
         '200':
           description: Xác thực Google thành công.
           content: { application/json: { schema: { $ref: '#/components/schemas/GoogleOAuthResponse' } } }
         '401':
-          $ref: '#/components/responses/UnauthorizedError' # Google auth fails
+          $ref: '#/components/responses/UnauthorizedError'
 
   /auth/forgot-password:
     post:
-      tags: [Auth]
-      summary: Yêu cầu mã đặt lại mật khẩu
+      tags: [Auth & Profile]
+      summary: (Auth) Yêu cầu mã đặt lại mật khẩu
       requestBody: { $ref: '#/components/requestBodies/ForgotPasswordInput' }
       responses:
         '200': { description: Gửi mã thành công., content: { application/json: { schema: { properties: { message: { type: string } } } } } }
@@ -82,8 +76,8 @@ paths:
 
   /auth/verify-reset-code:
     post:
-      tags: [Auth]
-      summary: Xác thực mã đặt lại mật khẩu
+      tags: [Auth & Profile]
+      summary: (Auth) Xác thực mã đặt lại mật khẩu
       requestBody: { $ref: '#/components/requestBodies/VerifyCodeInput' }
       responses:
         '200':
@@ -94,63 +88,30 @@ paths:
 
   /auth/reset-password:
     post:
-      tags: [Auth]
-      summary: Đặt lại mật khẩu mới
+      tags: [Auth & Profile]
+      summary: (Auth) Đặt lại mật khẩu mới
       description: Gửi mật khẩu mới và resetToken (trong header Authorization Bearer).
       parameters: [ { $ref: '#/components/parameters/ResetTokenHeader' } ]
       requestBody: { $ref: '#/components/requestBodies/ResetPasswordInput' }
       responses:
-        '200':
-          description: Mật khẩu đã được đặt lại.
-          content: { application/json: { schema: { properties: { message: { type: string } } } } }
-        '400':
-          $ref: '#/components/responses/BadRequestError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-
-  # --- ADMIN / ACCOUNT CREATION ---
-  /auth/create-account:
-    post:
-      tags: [Auth] 
-      summary: (Admin/Station Admin) Tạo tài khoản mới
-      description: Admin/Station Admin tạo tài khoản nhân viên hoặc vai trò khác. Station Admin chỉ tạo được cho trạm của mình.
-      security: [ { bearerAuth: [] } ] # Roles: ADMIN, STATION_ADMIN
-      requestBody: { $ref: '#/components/requestBodies/CreateAccountInput' }
-      responses:
-        '201':
-          description: Tạo tài khoản thành công.
-          content: { application/json: { schema: { $ref: '#/components/schemas/CreateAccountResponse' } } }
+        '200': { description: Mật khẩu đã được đặt lại., content: { application/json: { schema: { properties: { message: { type: string } } } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
 
-  /auth/all-profile:
-    get:
-      tags: [Auth] 
-      summary: (Admin) Lấy danh sách tất cả tài khoản
-      security: [ { bearerAuth: [] } ] # Roles: ADMIN
-      responses:
-        '200':
-          description: Thành công.
-          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/UserSummary' } } } }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-
-  # --- PROFILE ---
   /auth/profile: 
     get:
-      tags: [Profile]
-      summary: Lấy thông tin cá nhân (My Profile)
+      tags: [Auth & Profile]
+      summary: (Profile) Lấy thông tin cá nhân (My Profile)
       security: [ { bearerAuth: [] } ]
       responses:
         '200': { description: Thành công., content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
 
-  /auth/update-profile: # Cập nhật theo authRoutes.js
+  /auth/update-profile: 
     put: 
-      tags: [Profile]
-      summary: Cập nhật thông tin cá nhân
+      tags: [Auth & Profile]
+      summary: (Profile) Cập nhật thông tin cá nhân
       security: [ { bearerAuth: [] } ]
       requestBody: { $ref: '#/components/requestBodies/UpdateProfileInput' }
       responses:
@@ -160,21 +121,48 @@ paths:
 
   /auth/change-password:
     post:
-      tags: [Profile]
-      summary: Đổi mật khẩu
+      tags: [Auth & Profile]
+      summary: (Profile) Đổi mật khẩu
       security: [ { bearerAuth: [] } ]
       requestBody: { $ref: '#/components/requestBodies/ChangePasswordInput' }
       responses:
         '200': { description: Đổi mật khẩu thành công., content: { application/json: { schema: { properties: { message: { type: string } } } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
+  
+  /auth/create-account:
+    post:
+      tags: [Auth & Profile] 
+      summary: (Admin/Station Admin) Tạo tài khoản mới
+      description: Admin/Station Admin tạo tài khoản nhân viên hoặc vai trò khác.
+      security: [ { bearerAuth: [] } ] # Roles: ADMIN, STATION_ADMIN
+      requestBody: { $ref: '#/components/requestBodies/CreateAccountInput' }
+      responses:
+        '201': { description: Tạo tài khoản thành công., content: { application/json: { schema: { $ref: '#/components/schemas/CreateAccountResponse' } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
 
-  # --- VEHICLE ---
+  /auth/all-profile:
+    get:
+      tags: [Auth & Profile] 
+      summary: (Admin) Lấy danh sách tất cả tài khoản
+      security: [ { bearerAuth: [] } ] # Roles: ADMIN
+      responses:
+        '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/UserSummary' } } } } }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  # ===============================================
+  # === [LUỒNG 1] KHÁCH HÀNG ONLINE
+  # ===============================================
+
   /vehicle/add-vehicle:
     post:
-      tags: [Vehicle]
-      summary: (Customer/Staff) Thêm phương tiện mới
-      security: [ { bearerAuth: [] } ] # Roles: CUSTOMER, STAFF
+      tags: ['[Luồng 1] Khách hàng Online']
+      summary: '(L1.1) Thêm phương tiện mới'
+      description: Khách hàng tự thêm thông tin xe của mình.
+      security: [ { bearerAuth: [] } ] # Roles: CUSTOMER
       requestBody: { $ref: '#/components/requestBodies/VehicleInput' }
       responses:
         '201': { description: Thêm xe thành công., content: { application/json: { schema: { $ref: '#/components/schemas/Vehicle' } } } }
@@ -182,30 +170,38 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
-  /vehicle/my-vehicles:
+  /appointments/my-vehicles:
     get:
-      tags: [Vehicle]
-      summary: (Customer) Lấy danh sách xe của tôi
+      tags: ['[Luồng 1] Khách hàng Online']
+      summary: '(L1.2) Lấy danh sách xe của tôi (Để chọn đặt lịch)'
       security: [ { bearerAuth: [] } ] # Roles: CUSTOMER
       responses:
         '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Vehicle' } } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
-  # --- SERVICE CENTER ---
+  /appointments/service-types:
+    get:
+      tags: ['[Luồng 1] Khách hàng Online']
+      summary: '(L1.3) Lấy danh sách loại dịch vụ (Để chọn đặt lịch)'
+      security: [ { bearerAuth: [] } ]
+      responses:
+        '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ServiceType' } } } } }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+
   /service-centers:
     get:
-      tags: [Service Center]
-      summary: Lấy danh sách trung tâm dịch vụ
-      security: [ { bearerAuth: [] } ] # All authenticated users
+      tags: ['[Luồng 1] Khách hàng Online']
+      summary: '(L1.4) Lấy danh sách trung tâm dịch vụ'
+      security: [ { bearerAuth: [] } ]
       responses:
         '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ServiceCenter' } } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
 
   /service-centers/{id}/available-slots:
     get:
-      tags: [Service Center]
-      summary: Lấy các khung giờ trống theo ngày
+      tags: ['[Luồng 1] Khách hàng Online']
+      summary: '(L1.5) Lấy các khung giờ trống theo ngày (Để chọn đặt lịch)'
       security: [ { bearerAuth: [] } ]
       parameters:
         - { $ref: '#/components/parameters/ServiceCenterIdPath' }
@@ -216,30 +212,47 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
 
-  # --- APPOINTMENT (Customer Focus) ---
-  /appointments/my-vehicles:
-    get:
-      tags: [Appointment]
-      summary: (Customer) Lấy danh sách xe của tôi (cho đặt lịch)
+  /appointments/create-appointment:
+    post:
+      tags: ['[Luồng 1] Khách hàng Online']
+      summary: '(L1.6) Xác nhận & Tạo lịch hẹn mới'
       security: [ { bearerAuth: [] } ] # Roles: CUSTOMER
+      requestBody: { $ref: '#/components/requestBodies/AppointmentInput' }
       responses:
-        '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Vehicle' } } } } }
+        '201': { description: Tạo lịch hẹn thành công (Trạng thái PENDING)., content: { application/json: { schema: { properties: { message: { type: string }, appointment: { $ref: '#/components/schemas/Appointment' } } } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
-
-  /appointments/service-types:
+  
+  /appointments/{id}:
     get:
-      tags: [Appointment]
-      summary: Lấy danh sách loại dịch vụ
+      tags: ['[Luồng 1] Khách hàng Online']
+      summary: '(L1.7) Xem chi tiết lịch hẹn (Chờ duyệt báo giá)'
       security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/AppointmentIdPath' } ]
       responses:
-        '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ServiceType' } } } } }
+        '200': { description: Thành công., content: { application/json: { schema: { $ref: '#/components/schemas/AppointmentDetailSharedView' } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
 
+  /appointments/{id}/respond-quotation:
+    put:
+      tags: ['[Luồng 1] Khách hàng Online']
+      summary: '(L1.8) Phản hồi báo giá (Duyệt/Từ chối)'
+      security: [ { bearerAuth: [] } ] # Roles: CUSTOMER
+      parameters: [ { $ref: '#/components/parameters/AppointmentIdPath' } ]
+      requestBody: { $ref: '#/components/requestBodies/RespondInput' }
+      responses:
+        '200': { description: Phản hồi thành công., content: { application/json: { schema: { properties: { message: { type: string } } } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+  
   /appointments/suggestions:
     get:
-      tags: [Appointment]
-      summary: (Customer) Lấy gợi ý dịch vụ (Demo)
+      tags: ['[Luồng 1] Khách hàng Online']
+      summary: (Tùy chọn) Lấy gợi ý dịch vụ (Demo)
       security: [ { bearerAuth: [] } ] # Roles: CUSTOMER
       parameters:
         - { name: vehicleModel, in: query, required: true, schema: { type: string } }
@@ -250,62 +263,26 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
-  /appointments/create-appointment: # Cập nhật theo appointmentRoutes.js
-    post:
-      tags: [Appointment]
-      summary: (Customer) Tạo lịch hẹn mới
-      security: [ { bearerAuth: [] } ] # Roles: CUSTOMER
-      requestBody: { $ref: '#/components/requestBodies/AppointmentInput' }
-      responses:
-        '201':
-          description: Tạo lịch hẹn thành công.
-          content: { application/json: { schema: { properties: { message: { type: string }, appointment: { $ref: '#/components/schemas/Appointment' } } } } }
-        '400': { $ref: '#/components/responses/BadRequestError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-
-  /appointments/{id}: # Cập nhật theo appointmentRoutes.js
+  /vehicle/my-vehicles: # Tương tự /appointments/my-vehicles
     get:
-      tags: [Appointment]
-      summary: (Customer/Staff/Admin) Lấy chi tiết lịch hẹn
-      security: [ { bearerAuth: [] } ]
-      parameters: [ { $ref: '#/components/parameters/AppointmentIdPath' } ]
-      responses:
-        '200':
-          description: Thành công.
-          content: { application/json: { schema: { $ref: '#/components/schemas/AppointmentDetailSharedView' } } }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
-
-  /appointments/{id}/respond-quotation: # Cập nhật theo appointmentRoutes.js
-    put:
-      tags: [Appointment]
-      summary: (Customer) Phản hồi báo giá (Duyệt/Từ chối)
+      tags: ['[Luồng 1] Khách hàng Online']
+      summary: '(Tùy chọn) Lấy danh sách xe của tôi'
       security: [ { bearerAuth: [] } ] # Roles: CUSTOMER
-      parameters: [ { $ref: '#/components/parameters/AppointmentIdPath' } ]
-      requestBody: { $ref: '#/components/requestBodies/RespondInput' }
       responses:
-        '200': { description: Phản hồi thành công., content: { application/json: { schema: { properties: { message: { type: string } } } } } }
-        '400': { $ref: '#/components/responses/BadRequestError' }
+        '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Vehicle' } } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
-  # --- STAFF ---
-  /staff/technicians:
-    get:
-      tags: [Staff]
-      summary: (Staff) Lấy danh sách kỹ thuật viên tại trung tâm
-      security: [ { bearerAuth: [] } ] # Roles: STAFF, ADMIN, STATION_ADMIN
-      responses:
-        '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/TechnicianInfo' } } } } }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  # ===============================================
+  # === [LUỒNG 2] NHÂN VIÊN TẠI QUẦY
+  # ===============================================
 
   /staff/appointments:
     get:
-      tags: [Staff]
-      summary: (Staff) Lấy danh sách lịch hẹn tại trung tâm
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.1a) Xem danh sách lịch hẹn tại trung tâm (cho L1)'
+      description: Staff xem các lịch hẹn (đặc biệt là PENDING) do khách hàng (Luồng 1) tạo.
       security: [ { bearerAuth: [] } ] # Roles: STAFF, ADMIN, STATION_ADMIN
       parameters:
         - { name: status, in: query, required: false, schema: { $ref: '#/components/schemas/AppointmentStatusEnum' } }
@@ -314,10 +291,36 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
+  /staff/technicians:
+    get:
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.1b) Lấy danh sách kỹ thuật viên (Để phân công)'
+      security: [ { bearerAuth: [] } ] # Roles: STAFF, ADMIN, STATION_ADMIN
+      responses:
+        '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/TechnicianInfo' } } } } }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /staff/appointments/{id}/confirm:
+    put:
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.2) Xác nhận & Phân công lịch hẹn (L1)'
+      description: Staff xác nhận lịch hẹn (PENDING -> CONFIRMED) và phân công KTV.
+      security: [ { bearerAuth: [] } ] # Roles: STAFF, ADMIN, STATION_ADMIN
+      parameters: [ { $ref: '#/components/parameters/AppointmentIdPath' } ]
+      requestBody: { $ref: '#/components/requestBodies/ConfirmAppointmentInput' }
+      responses:
+        '200': { description: Thành công., content: { application/json: { schema: { properties: { message: { type: string }, data: { properties: { updatedAppointment: { $ref: '#/components/schemas/Appointment' }, newServiceRecord: { $ref: '#/components/schemas/ServiceRecord' } } } } } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
   /staff/appointments/search:
     get:
-      tags: [Staff]
-      summary: (Staff) Tìm lịch hẹn (CONFIRMED) theo SĐT khách hàng
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.3) Tìm lịch hẹn (CONFIRMED) theo SĐT (Để Check-in)'
+      description: Staff tìm lịch hẹn đã xác nhận của khách (L1) khi họ đến quầy.
       security: [ { bearerAuth: [] } ] # Roles: STAFF, ADMIN, STATION_ADMIN
       parameters:
         - { name: phone, in: query, required: true, description: SĐT khách (hoặc một phần), schema: { type: string } }
@@ -327,84 +330,74 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
-  /staff/appointments/{id}: # Cập nhật theo staffRoutes.js
+  /staff/appointments/{id}/start:
+    put:
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.4) Bắt đầu dịch vụ (Check-in xe) (CONFIRMED -> IN_PROGRESS)'
+      security: [ { bearerAuth: [] } ] # Roles: STAFF, ADMIN, STATION_ADMIN
+      parameters: [ { $ref: '#/components/parameters/AppointmentIdPath' } ]
+      responses:
+        '200': { description: Thành công., content: { application/json: { schema: { properties: { message: { type: string }, data: { properties: { updatedAppt: { $ref: '#/components/schemas/Appointment' }, updatedRecord: { $ref: '#/components/schemas/ServiceRecord' } } } } } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  
+  # --- Luồng Walk-in (Phần 2 của L2) ---
+  /staff/customers/search:
     get:
-      tags: [Staff]
-      summary: (Staff) Lấy chi tiết lịch hẹn
-      security: [ { bearerAuth: [] } ] # Roles: STAFF, ADMIN, STATION_ADMIN
-      parameters: [ { $ref: '#/components/parameters/AppointmentIdPath' } ]
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.WI-1) [Walk-in] Tìm khách hàng theo SĐT'
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - { name: phone, in: query, required: true, schema: { type: string } }
       responses:
-        '200':
-          description: Thành công. (Sử dụng chung logic với /appointments/{id})
-          content: { application/json: { schema: { $ref: '#/components/schemas/AppointmentDetailSharedView' } } }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
-
-  /staff/appointments/{id}/confirm:
-    put:
-      tags: [Staff]
-      summary: (Staff) Xác nhận và phân công lịch hẹn (PENDING -> CONFIRMED)
-      security: [ { bearerAuth: [] } ] # Roles: STAFF, ADMIN, STATION_ADMIN
-      parameters: [ { $ref: '#/components/parameters/AppointmentIdPath' } ]
-      requestBody: { $ref: '#/components/requestBodies/ConfirmAppointmentInput' }
-      responses:
-        '200':
-          description: Thành công.
-          content: { application/json: { schema: { properties: { message: { type: string }, data: { properties: { updatedAppointment: { $ref: '#/components/schemas/Appointment' }, newServiceRecord: { $ref: '#/components/schemas/ServiceRecord' } } } } } } }
+        '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/User' } } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
 
-  /staff/appointments/{id}/start: # Thêm route này
-    put:
-      tags: [Staff]
-      summary: (Staff) Bắt đầu dịch vụ (CONFIRMED -> IN_PROGRESS)
-      security: [ { bearerAuth: [] } ] # Roles: STAFF, ADMIN, STATION_ADMIN
-      parameters: [ { $ref: '#/components/parameters/AppointmentIdPath' } ]
-      responses:
-        '200':
-          description: Thành công.
-          content: { application/json: { schema: { properties: { message: { type: string }, data: { properties: { updatedAppt: { $ref: '#/components/schemas/Appointment' }, updatedRecord: { $ref: '#/components/schemas/ServiceRecord' } } } } } } }
-        '400': { $ref: '#/components/responses/BadRequestError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
-
-  /staff/service-records/{id}/create-invoice:
+  /staff/customers:
     post:
-      tags: [Staff]
-      summary: (Staff) Tạo hóa đơn từ Service Record
-      security: [ { bearerAuth: [] } ] # Roles: STAFF, ADMIN, STATION_ADMIN
-      parameters: [ { $ref: '#/components/parameters/ServiceRecordIdPath' } ]
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.WI-2) [Walk-in] Tạo khách hàng mới (Nếu không tìm thấy)'
+      security: [ { bearerAuth: [] } ]
+      requestBody: { $ref: '#/components/requestBodies/CreateCustomerInput' }
       responses:
-        '201': { description: Tạo hóa đơn thành công., content: { application/json: { schema: { $ref: '#/components/schemas/Invoice' } } } }
+        '201': { description: Tạo khách hàng thành công., content: { application/json: { schema: { $ref: '#/components/schemas/CreateAccountResponse' } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
 
-  /staff/invoices/{id}/pay-cash: # Thêm route này
+  /staff/customers/{customerId}/vehicles:
+    get:
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.WI-3a) [Walk-in] Lấy danh sách xe của khách'
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/CustomerIdPath' } ]
+      responses:
+        '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Vehicle' } } } } }
     post:
-      tags: [Staff]
-      summary: (Staff) Ghi nhận thanh toán tiền mặt
-      security: [ { bearerAuth: [] } ] # Roles: STAFF, ADMIN, STATION_ADMIN
-      parameters: [ { $ref: '#/components/parameters/InvoiceIdPath' } ]
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.WI-3b) [Walk-in] Thêm xe mới cho khách'
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/CustomerIdPath' } ]
+      requestBody: { $ref: '#/components/requestBodies/VehicleInput' }
       responses:
-        '200':
-          description: Ghi nhận thành công.
-          content: { application/json: { schema: { properties: { message: { type: string }, invoice: { $ref: '#/components/schemas/Invoice' } } } } }
+        '201': { description: Thêm xe thành công., content: { application/json: { schema: { $ref: '#/components/schemas/Vehicle' } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
 
-  # --- TECHNICIAN ---
+  /staff/appointments/create-walk-in:
+    post:
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.WI-4) [Walk-in] Tạo và Bắt đầu lịch hẹn ngay (-> IN_PROGRESS)'
+      security: [ { bearerAuth: [] } ]
+      requestBody: { $ref: '#/components/requestBodies/WalkInAppointmentInput' }
+      responses:
+        '201': { description: Tạo và bắt đầu lịch hẹn thành công., content: { application/json: { schema: { properties: { message: { type: string }, data: { properties: { appointment: { $ref: '#/components/schemas/Appointment' }, serviceRecord: { $ref: '#/components/schemas/ServiceRecord' } } } } } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+
+  # --- Luồng Kỹ thuật viên (Phần 3 của L2) ---
   /technician/my-tasks:
     get:
-      tags: [Technician]
-      summary: (Technician) Lấy danh sách công việc được giao
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.5) [KTV] Lấy danh sách công việc'
       security: [ { bearerAuth: [] } ] # Roles: TECHNICIAN
       parameters:
         - { name: status, in: query, required: false, schema: { $ref: '#/components/schemas/ServiceRecordStatusEnum' } }
@@ -415,31 +408,56 @@ paths:
 
   /technician/service-records/{id}/diagnose:
     post:
-      tags: [Technician]
-      summary: (Technician) Gửi chẩn đoán và báo giá
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.6) [KTV] Gửi chẩn đoán và báo giá (-> PENDING_APPROVAL)'
       security: [ { bearerAuth: [] } ] # Roles: TECHNICIAN
       parameters: [ { $ref: '#/components/parameters/ServiceRecordIdPath' } ]
       requestBody: { $ref: '#/components/requestBodies/DiagnosisInput' }
       responses:
-        '200':
-          description: Gửi báo giá thành công.
-          content: { application/json: { schema: { properties: { message: { type: string }, appointment: { $ref: '#/components/schemas/Appointment' }, quotation: { $ref: '#/components/schemas/Quotation' } } } } }
+        '200': { description: Gửi báo giá thành công., content: { application/json: { schema: { properties: { message: { type: string }, appointment: { $ref: '#/components/schemas/Appointment' }, quotation: { $ref: '#/components/schemas/Quotation' } } } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  
+  # (Khách hàng duyệt báo giá: Tái sử dụng L1.8 - PUT /appointments/{id}/respond-quotation)
+
+  /technician/service-records/{id}/complete:
+    put:
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.7) [KTV] Hoàn thành công việc (-> COMPLETED)'
+      security: [ { bearerAuth: [] } ] # Roles: TECHNICIAN
+      parameters: [ { $ref: '#/components/parameters/ServiceRecordIdPath' } ]
+      requestBody: { $ref: '#/components/requestBodies/CompletionInput' }
+      responses:
+        '200': { description: Hoàn thành thành công., content: { application/json: { schema: { properties: { message: { type: string }, data: { properties: { serviceRecord: { $ref: '#/components/schemas/ServiceRecord' }, appointment: { $ref: '#/components/schemas/Appointment' } } } } } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  
+  # --- Luồng Thanh toán (Phần 4 của L2) ---
+  /staff/service-records/{id}/create-invoice:
+    post:
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.8) [Staff] Tạo hóa đơn (Khi KTV đã COMPLETED)'
+      security: [ { bearerAuth: [] } ] # Roles: STAFF, ADMIN, STATION_ADMIN
+      parameters: [ { $ref: '#/components/parameters/ServiceRecordIdPath' } ]
+      responses:
+        '201': { description: Tạo hóa đơn thành công., content: { application/json: { schema: { $ref: '#/components/schemas/Invoice' } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
 
-  /technician/service-records/{id}/complete: # Thêm route này
-    put:
-      tags: [Technician]
-      summary: (Technician) Hoàn thành công việc (-> COMPLETED)
-      security: [ { bearerAuth: [] } ] # Roles: TECHNICIAN
-      parameters: [ { $ref: '#/components/parameters/ServiceRecordIdPath' } ]
-      requestBody: { $ref: '#/components/requestBodies/CompletionInput' }
+  /staff/invoices/{id}/pay-cash:
+    post:
+      tags: ['[Luồng 2] Nhân viên tại quầy']
+      summary: '(L2.9) [Staff] Ghi nhận thanh toán tiền mặt (UNPAID -> PAID)'
+      security: [ { bearerAuth: [] } ] # Roles: STAFF, ADMIN, STATION_ADMIN
+      parameters: [ { $ref: '#/components/parameters/InvoiceIdPath' } ]
       responses:
-        '200':
-          description: Hoàn thành thành công.
-          content: { application/json: { schema: { properties: { message: { type: string }, data: { properties: { serviceRecord: { $ref: '#/components/schemas/ServiceRecord' }, appointment: { $ref: '#/components/schemas/Appointment' } } } } } } }
+        '200': { description: Ghi nhận thành công., content: { application/json: { schema: { properties: { message: { type: string }, invoice: { $ref: '#/components/schemas/Invoice' } } } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
@@ -465,7 +483,6 @@ components:
         isActive: { type: boolean }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
-        # Không bao gồm passwordHash
 
     Vehicle:
       type: object
@@ -555,7 +572,7 @@ components:
         status: { $ref: '#/components/schemas/PaymentStatusEnum' }
         paymentDate: { type: string, format: date-time }
 
-    UserSummary: # Dùng cho Admin xem danh sách
+    UserSummary: 
       type: object
       properties:
         id: { type: string, format: uuid }
@@ -581,7 +598,7 @@ components:
        type: object
        properties:
          user: { $ref: '#/components/schemas/UserSummary' }
-         temporaryPassword: { type: string, description: "Mật khẩu tạm thời cho tài khoản mới" }
+         temporaryPassword: { type: string }
 
     TechnicianInfo:
       type: object
@@ -613,23 +630,23 @@ components:
         customer: { $ref: '#/components/schemas/CustomerInfoSummary' }
         vehicle: { $ref: '#/components/schemas/VehicleInfoSummary' }
 
-    AppointmentDetailSharedView: # Dùng chung cho GET /appointments/{id}
+    AppointmentDetailSharedView: 
       allOf:
         - $ref: '#/components/schemas/Appointment'
         - type: object
           properties:
-            customer: { $ref: '#/components/schemas/User' } # Full customer info
-            vehicle: { $ref: '#/components/schemas/Vehicle' } # Full vehicle info
-            serviceCenterName: { type: string, nullable: true } # Center name
+            customer: { $ref: '#/components/schemas/User' } 
+            vehicle: { $ref: '#/components/schemas/Vehicle' } 
+            serviceCenterName: { type: string, nullable: true } 
             requestedServices:
               type: array
-              items: { $ref: '#/components/schemas/ServiceType' } # List of service types
-            quotation: { $ref: '#/components/schemas/Quotation', nullable: true } # Quotation if exists
+              items: { $ref: '#/components/schemas/ServiceType' } 
+            quotation: { $ref: '#/components/schemas/Quotation', nullable: true } 
 
     TechnicianTaskSummary:
       type: object
       properties:
-        id: { type: string, format: uuid } # Service Record ID
+        id: { type: string, format: uuid } 
         status: { $ref: '#/components/schemas/ServiceRecordStatusEnum', nullable: true }
         startTime: { type: string, format: date-time, nullable: true }
         appointment:
@@ -720,7 +737,19 @@ components:
                fullName: { type: string }
                email: { type: string, format: email }
                role: { $ref: '#/components/schemas/RoleEnum' }
-               serviceCenterId: { type: string, format: uuid, description: "Bắt buộc nếu role là nhân viên và người tạo là ADMIN", nullable: true }
+               serviceCenterId: { type: string, format: uuid, nullable: true }
+    
+    CreateCustomerInput: # Dùng cho L2.WI-2
+       required: true
+       content:
+         application/json:
+           schema:
+             type: object
+             required: [fullName, phoneNumber]
+             properties:
+               fullName: { type: string }
+               phoneNumber: { type: string }
+               email: { type: string, format: email, nullable: true }
 
     VehicleInput:
       required: true
@@ -751,6 +780,21 @@ components:
               customerNotes: { type: string, nullable: true }
               requestedServices: { type: array, items: { type: string, format: uuid } }
 
+    WalkInAppointmentInput: # Dùng cho L2.WI-4
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [customerId, vehicleId, appointmentDate, requestedServices, technicianId]
+            properties:
+              customerId: { type: string, format: uuid }
+              vehicleId: { type: string, format: uuid }
+              appointmentDate: { type: string, format: date-time }
+              requestedServices: { type: array, items: { type: string, format: uuid } }
+              technicianId: { type: string, format: uuid }
+              customerNotes: { type: string, nullable: true }
+
     ConfirmAppointmentInput:
       required: true
       content: { application/json: { schema: { type: object, required: [technicianId], properties: { technicianId: { type: string, format: uuid } } } } }
@@ -770,15 +814,14 @@ components:
       required: true
       content: { application/json: { schema: { type: object, required: [accept], properties: { accept: { type: boolean } } } } }
 
-    CompletionInput: # Body cho KTV hoàn thành công việc
+    CompletionInput: 
        required: false
        content:
          application/json:
            schema:
              type: object
              properties:
-               notes: { type: string, description: "Ghi chú khi hoàn thành (tùy chọn)", nullable: true }
-
+               notes: { type: string, nullable: true }
 
   # --- RESPONSES (Common Errors) ---
   responses:
@@ -820,6 +863,12 @@ components:
       in: path
       required: true
       description: ID Hóa đơn (Invoice)
+      schema: { type: string, format: uuid }
+    CustomerIdPath: # Thêm mới
+      name: customerId
+      in: path
+      required: true
+      description: ID Khách hàng (Customer)
       schema: { type: string, format: uuid }
     DateQuery:
       name: date

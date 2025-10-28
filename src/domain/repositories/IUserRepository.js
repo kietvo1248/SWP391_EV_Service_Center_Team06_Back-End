@@ -38,6 +38,10 @@ class IUserRepository {
     async findTechniciansByCenter(serviceCenterId) {
         throw new Error('Method not implemented');
     }
+
+    async findCustomerByPhone(phone) {
+        throw new Error("Method 'findCustomerByPhone()' must be implemented.");
+    }
 }
 
 module.exports = IUserRepository;
