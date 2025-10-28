@@ -87,6 +87,9 @@ const ListVehiclesForCustomer = require('./application/staff/listVehicleForCusto
 const CreateCustomerByStaff = require('./application/staff/createCustomerByStaff');
 const AddVehicleForCustomer = require('./application/staff/addVehicleForCustomer');
 const CreateAndStartWalkInAppointment = require('./application/staff/createAppointmentAndStartWalkInAppointment');
+const ReviseQuotation = require('./application/staff/reviseQuotation'); // THÊM MỚI
+//const HandoverVehicle = require('./application/staff/handoverVehicle');
+
 // Technician Workflow
 const ListTechnicianTasks = require('./application/technician/listTechnicianTask'); 
 const SubmitDiagnosis = require('./application/technician/submitDiagnosis');
@@ -150,6 +153,7 @@ const responseToQuotationUseCase = new RespondToQuotation(
     serviceRecordRepository,
     prisma
 );
+const listAppointmentHistoryUseCase = new ListAppointmentHistory(appointmentRepository);
 // luồng 2 đặt lịch tại quầy
 const searchCustomerUseCase = new SearchCustomer(userRepository);
 const listVehiclesForCustomerUseCase = new ListVehiclesForCustomer(vehicleRepository);
@@ -163,7 +167,11 @@ const createAndStartWalkInAppointmentUseCase = new CreateAndStartWalkInAppointme
     vehicleRepository,
     prisma
 );
-
+const reviseQuotationUseCase = new ReviseQuotation(quotationRepository, 
+    appointmentRepository, 
+    serviceRecordRepository, 
+    prisma); 
+//const handoverVehicleUseCase = new HandoverVehicle(appointmentRepository, serviceRecordRepository, invoiceRepository);
 
 // Use Cases for Service Center Management
 const listAllServiceCentersUseCase = new ListAllServiceCenters(serviceCenterRepository);
@@ -241,7 +249,8 @@ const appointmentController = new AppointmentController(
     getServiceSuggestionsUseCase,
     listServiceTypesUseCase,
     getAppointmentDetailsUseCase, // Đây là use case chung
-    responseToQuotationUseCase
+    responseToQuotationUseCase,
+    listAppointmentHistoryUseCase
 );
 
 const serviceCenterController = new ServiceCenterController(
@@ -262,7 +271,9 @@ const staffController = new StaffController(
     listVehiclesForCustomerUseCase,
     createCustomerByStaffUseCase,
     addVehicleForCustomerUseCase,
-    createAndStartWalkInAppointmentUseCase
+    createAndStartWalkInAppointmentUseCase,
+    reviseQuotationUseCase // Thêm
+    //handoverVehicleUseCase
 );
 const technicianController = new TechnicianController(
     listTechnicianTasksUseCase,

@@ -39,6 +39,11 @@ const staffRouter = (controller) => {
     // (Bước 5 & 6) Tạo và bắt đầu lịch hẹn walk-in
     router.post('/appointments/create-walk-in', controller.createAndStartWalkInAppointment.bind(controller));
 
+    router.put('/quotations/:id/revise', controller.reviseQuotation.bind(controller));
+    
+    // (L1/L2) Giao xe (sau khi COMPLETED và PAID)
+    //router.put('/appointments/:id/handover', controller.handoverVehicle.bind(controller));
+
 
     return router;
 };
