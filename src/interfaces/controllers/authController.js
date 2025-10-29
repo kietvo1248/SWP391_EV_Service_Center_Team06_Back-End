@@ -107,8 +107,10 @@ class AuthController {
             const result = await this.forgotPasswordUseCase.execute(email);
             res.status(200).json(result);
         } catch (error) {
-            // Trả về 404 nếu không tìm thấy user để bảo mật hơn
-            res.status(404).json({ message: error.message });
+            if (error.message.includes('User with this email does not exist')) {
+                 return res.status(404).json({ message: error.message });
+            }
+            res.status(500).json({ message: error.message });
         }
     }
     // Xử lý xác thực mã reset
@@ -126,6 +128,7 @@ class AuthController {
     async resetPassword(req, res) {
         const { newPassword, confirmPassword } = req.body;
         const authHeader = req.header('Authorization');
+        const resetToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
         if (!newPassword || newPassword.length < 5) {
             return res.status(400).json({ message: 'Mật khẩu phải có ít nhất 5 ký tự.' });
@@ -134,8 +137,6 @@ class AuthController {
         if (newPassword !== confirmPassword) {
             return res.status(400).json({ message: 'Mật khẩu xác nhận không khớp.' });
         }
-
-        const resetToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
         try {
             const result = await this.resetPasswordUseCase.execute(resetToken, newPassword);

@@ -34,7 +34,7 @@ class ResetPassword {
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
         await this.userRepository.update(userId, {
-            password: hashedPassword,
+            passwordHash: hashedPassword, // Sửa từ 'password' thành 'passwordHash'
             resetPasswordCode: null,
             resetPasswordExpires: null,
         });
