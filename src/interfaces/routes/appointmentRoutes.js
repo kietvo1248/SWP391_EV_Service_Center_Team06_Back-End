@@ -11,6 +11,8 @@ const appointmentRouter = (appointmentController) => {
     router.get('/suggestions', authenticate, appointmentController.getSuggestions.bind(appointmentController));
     // Lấy danh sách loại dịch vụ
     router.get('/service-types', authenticate, appointmentController.listServiceTypes.bind(appointmentController));
+    // Lấy lịch sử lịch hẹn của khách hàng đã đăng nhập
+    router.get('/history', authenticate, appointmentController.listAppointmentHistory.bind(appointmentController));
     
     // Tạo một lịch hẹn mới
     router.post('/create-appointment', authenticate, appointmentController.create.bind(appointmentController));
