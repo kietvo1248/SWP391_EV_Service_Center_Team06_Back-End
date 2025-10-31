@@ -19,9 +19,14 @@ const PrismaServiceRecordRepository = require('./infrastructure/repositories/Pri
 const PrismaInvoiceRepository = require('./infrastructure/repositories/PrismaInvoiceRepository');
 const PrismaQuotationRepository = require('./infrastructure/repositories/PrismaQuotationRepository');
 const PrismaPaymentRepository = require('./infrastructure/repositories/PrismaPaymentRepository');
+//repo phụ tùng
+const PrismaInventoryItemRepository = require('./infrastructure/repositories/PrismaInventoryItemRepository');
+const PrismaPartUsageRepository = require('./infrastructure/repositories/PrismaPartUsageRepository');
+const PrismaRestockRequestRepository = require('./infrastructure/repositories/PrismaRestockRequestRepository');
+const PrismaPartRepository = require('./infrastructure/repositories/PrismaPartRepository');
 
 
-// Interfaces
+// Controllers và Routers
 //==auth==
 const AuthController = require('./interfaces/controllers/authController');
 const createAuthRouter = require('./interfaces/routes/authRoutes');
@@ -34,13 +39,17 @@ const appointmentRouter = require('./interfaces/routes/appointmentRoutes');
 //==service center==
 const ServiceCenterController = require('./interfaces/controllers/serviceCenterController');
 const serviceCenterRouter = require('./interfaces/routes/serviceCenterRoutes');
-
 //staff
 const StaffController = require('./interfaces/controllers/staffController');
 const staffRouter = require('./interfaces/routes/staffRoutes');
 //technician
 const TechnicianController = require('./interfaces/controllers/technicianController');
 const technicianRouter = require('./interfaces/routes/technicianRoutes');
+const InventoryController = require('./interfaces/controllers/inventoryController');
+const inventoryRouter = require('./interfaces/routes/inventoryRoutes');
+//admin
+const AdminController = require('./interfaces/controllers/adminController');
+const adminRouter = require('./interfaces/routes/adminRoutes');
 
 
 // Application (Use Cases)
@@ -95,6 +104,17 @@ const ReviseQuotation = require('./application/staff/reviseQuotation'); // THÊM
 const ListTechnicianTasks = require('./application/technician/listTechnicianTask'); 
 const SubmitDiagnosis = require('./application/technician/submitDiagnosis');
 const CompleteTechnicianTask = require('./application/technician/completeTechnicianTask');
+const TechnicianRequestParts = require('./application/technician/technicianRequestPart'); // MỚI
+// (Inventory - Luồng 3 MỚI)
+const ViewInventory = require('./application/inventory/viewInventory');
+const UpdateStockQuantity = require('./application/inventory/updateStockQuantity');
+const ListRequestsForIssuing = require('./application/inventory/listIssuanceRequests');
+const IssuePartsForService = require('./application/inventory/issuePartForService');
+const CreateRestockRequest = require('./application/inventory/createRestockRequest');
+const ReceiveStock = require('./application/inventory/receiveStock');
+// (Admin - Luồng 3 MỚI)
+const ListRestockRequests = require('./application/inventory/ListRestockRequests');
+const ProcessRestockRequest = require('./application/inventory/processRestockRequest'); // Sửa tên
 
 // --- Khởi tạo ứng dụng Express ---
 const app = express();
@@ -120,7 +140,10 @@ const serviceRecordRepository = new PrismaServiceRecordRepository(prisma);
 const invoiceRepository = new PrismaInvoiceRepository(prisma);
 const quotationRepository = new PrismaQuotationRepository(prisma);
 const paymentRepository = new PrismaPaymentRepository(prisma);  
-
+const inventoryItemRepository = new PrismaInventoryItemRepository(prisma);
+const partUsageRepository = new PrismaPartUsageRepository(prisma);
+const restockRequestRepository = new PrismaRestockRequestRepository(prisma);
+const partRepository = new PrismaPartRepository(prisma);
 // Initialize Passport with userRepository
 
 
@@ -212,6 +235,8 @@ const submitDiagnosisUseCase = new SubmitDiagnosis(
     serviceRecordRepository,
     quotationRepository,
     appointmentRepository,
+    partRepository,
+    partUsageRepository,
     prisma
 );
 const completeTechnicianTaskUseCase = new CompleteTechnicianTask(
@@ -219,7 +244,17 @@ const completeTechnicianTaskUseCase = new CompleteTechnicianTask(
     appointmentRepository,
     prisma
 );
-
+const technicianRequestPartsUseCase = new TechnicianRequestParts(serviceRecordRepository, partRepository, partUsageRepository, prisma);
+// Inventory (Luồng 3)
+const viewInventoryUseCase = new ViewInventory(inventoryItemRepository);
+const updateStockQuantityUseCase = new UpdateStockQuantity(inventoryItemRepository);
+const listRequestsForIssuingUseCase = new ListRequestsForIssuing(serviceRecordRepository); 
+const issuePartsForServiceUseCase = new IssuePartsForService(serviceRecordRepository, inventoryItemRepository, partUsageRepository, appointmentRepository); // SỬA DI
+const createRestockRequestUseCase = new CreateRestockRequest(restockRequestRepository, partRepository); 
+const receiveStockUseCase = new ReceiveStock(inventoryItemRepository, restockRequestRepository, prisma); // SỬA DI (thêm prisma)
+// Admin (Luồng 3)
+const listRestockRequestsUseCase = new ListRestockRequests(restockRequestRepository);
+const processRestockRequestAdminUseCase = new ProcessRestockRequest(restockRequestRepository);
 
 
 // --- Khởi tạo Controllers và Routers ---
@@ -279,7 +314,17 @@ const staffController = new StaffController(
 const technicianController = new TechnicianController(
     listTechnicianTasksUseCase,
     submitDiagnosisUseCase,
-    completeTechnicianTaskUseCase
+    completeTechnicianTaskUseCase,
+    technicianRequestPartsUseCase
+);
+const inventoryController = new InventoryController( // MỚI
+    viewInventoryUseCase, updateStockQuantityUseCase, listRequestsForIssuingUseCase,
+    issuePartsForServiceUseCase, createRestockRequestUseCase, receiveStockUseCase
+);
+
+const adminController = new AdminController( // MỚI
+    listRestockRequestsUseCase,
+    processRestockRequestAdminUseCase
 );
 
 initializePassport(passport, userRepository);
@@ -291,6 +336,8 @@ const appointmentRouterInstance = appointmentRouter(appointmentController);
 const serviceCenterRouterInstance = serviceCenterRouter(serviceCenterController);
 const staffRouterInstance = staffRouter(staffController);
 const technicianRouterInstance = technicianRouter(technicianController);
+const inventoryRouterInstance = inventoryRouter(inventoryController); // MỚI
+const adminRouterInstance = adminRouter(adminController);
 
 // --- Gắn Router vào ứng dụng ---
 app.use('/api/auth', authRouter);
@@ -299,6 +346,8 @@ app.use('/api/appointments', appointmentRouterInstance);
 app.use('/api/service-centers', serviceCenterRouterInstance);
 app.use('/api/staff', staffRouterInstance);
 app.use('/api/technician', technicianRouterInstance);
+app.use('/api/inventory', inventoryRouterInstance); // MỚI
+app.use('/api/admin', adminRouterInstance);
 
 
 // Health check endpoints

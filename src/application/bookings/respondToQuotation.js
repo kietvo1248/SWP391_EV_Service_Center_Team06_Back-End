@@ -1,31 +1,50 @@
+// Tệp: src/application/bookings/respondToQuotation.js
+const { AppointmentStatus, ServiceRecordStatus, PartUsageStatus } = require('@prisma/client');
+
 class RespondToQuotation {
-    constructor(appointmentRepo, serviceRecordRepo, prismaClient) {
-        this.appointmentRepo = appointmentRepo;
-        this.serviceRecordRepo = serviceRecordRepo;
-        this.prisma = prismaClient;
+    constructor(appointmentRepository, serviceRecordRepository, partUsageRepository) { 
+        this.appointmentRepo = appointmentRepository;
+        this.serviceRecordRepo = serviceRecordRepository;
+        this.partUsageRepo = partUsageRepository; 
     }
 
     async execute(appointmentId, customerId, didAccept) {
-        // ... (Logic kiểm tra appointment và trạng thái giữ nguyên) ...
         const appointment = await this.appointmentRepo.findByIdAndCustomer(appointmentId, customerId);
         if (!appointment) { throw new Error('Appointment not found or you are not the owner.'); }
-        if (appointment.status !== 'PENDING_APPROVAL') { throw new Error('No quotation is awaiting your approval.'); }
-        if (!appointment.serviceRecord) { throw new Error('Internal error: Service record not found for this appointment.'); }
+        if (appointment.status !== AppointmentStatus.PENDING_APPROVAL) { throw new Error('No quotation is awaiting your approval.'); }
+        if (!appointment.serviceRecord) { throw new Error('Internal error: Service record not found.'); }
 
-
+        const recordId = appointment.serviceRecord.id;
         let message = '';
-        await this.prisma.$transaction(async (tx) => {
-            if (didAccept) {
-                await this.appointmentRepo.updateStatus(appointmentId, 'IN_PROGRESS', tx);
-                await this.serviceRecordRepo.update(appointment.serviceRecord.id, { status: 'IN_PROGRESS' }, tx);
-                message = 'Quotation approved. Repair will proceed.';
+
+        if (didAccept) {
+            message = 'Quotation approved.';
+            // Kiểm tra xem KTV có yêu cầu phụ tùng nào không (status=REQUESTED)
+            const requestedParts = await this.partUsageRepo.findByServiceRecord(recordId, PartUsageStatus.REQUESTED);
+            
+            let nextRecordStatus;
+            if (requestedParts.length > 0) {
+                // Nếu CÓ, chuyển sang chờ IM xuất kho
+                nextRecordStatus = ServiceRecordStatus.WAITING_PARTS;
+                message += ' Service is now waiting for parts issuance.';
             } else {
-                await this.appointmentRepo.updateStatus(appointmentId, 'CANCELLED', tx);
-                await this.serviceRecordRepo.update(appointment.serviceRecord.id, { status: 'CANCELLED' }, tx);
-                message = 'Quotation rejected. Appointment has been cancelled.';
+                // Nếu KHÔNG, KTV vào việc sửa chữa ngay
+                nextRecordStatus = ServiceRecordStatus.REPAIRING;
+                message += ' Repair will proceed.';
             }
-        });
-        return { message }; // Chỉ trả về thông báo
+            
+            await this.appointmentRepo.updateStatus(appointmentId, AppointmentStatus.IN_PROGRESS);
+            await this.serviceRecordRepo.update(recordId, { status: nextRecordStatus });
+
+        } else {
+            // Khách từ chối
+            message = 'Quotation rejected. Appointment has been cancelled.';
+            await this.appointmentRepo.updateStatus(appointmentId, AppointmentStatus.CANCELLED);
+            await this.serviceRecordRepo.update(recordId, { status: ServiceRecordStatus.CANCELLED });
+            // Hủy luôn các PartUsage đã yêu cầu
+            await this.partUsageRepo.updateStatusByRecordId(recordId, PartUsageStatus.CANCELLED);
+        }
+        return { message };
     }
 }
 module.exports = RespondToQuotation;

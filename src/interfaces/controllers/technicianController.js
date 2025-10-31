@@ -1,8 +1,9 @@
 class TechnicianController {
-    constructor(listTechnicianTasksUseCase, submitDiagnosisUseCase, completeTechnicianTaskUseCase) {
+    constructor(listTechnicianTasksUseCase, submitDiagnosisUseCase, completeTechnicianTaskUseCase, technicianRequestPartsUseCase) {
         this.listTechnicianTasksUseCase = listTechnicianTasksUseCase;
         this.submitDiagnosisUseCase = submitDiagnosisUseCase;
         this.completeTechnicianTaskUseCase = completeTechnicianTaskUseCase;
+        this.technicianRequestPartsUseCase = technicianRequestPartsUseCase;
     }
 
     // GET /api/technician/my-tasks
@@ -21,19 +22,27 @@ class TechnicianController {
     async submitDiagnosis(req, res) {
         try {
             const technicianId = req.user.id;
-            const { id } = req.params; // ServiceRecord ID
-            const { estimatedCost, diagnosisNotes } = req.body;
+            const { id } = req.params;
+            const { estimatedCost, diagnosisNotes, partUsages } = req.body; // Thêm partUsages
 
             const result = await this.submitDiagnosisUseCase.execute({
-                technicianId,
-                serviceRecordId: id,
-                estimatedCost,
-                diagnosisNotes
+                technicianId, serviceRecordId: id,
+                estimatedCost, diagnosisNotes, partUsages // Truyền
             });
-            res.status(200).json({ message: 'Diagnosis submitted. Waiting for customer approval.', appointment: result });
-        } catch (error) {
-            res.status(400).json({ message: error.message });
-        }
+            res.status(200).json({ message: 'Diagnosis submitted. Waiting for customer approval.', ...result });
+        } catch (error) { res.status(400).json({ message: error.message }); }
+    }
+    
+    // POST /api/technician/service-records/:id/request-parts
+    async requestParts(req, res) {
+        try {
+            const { id } = req.params; // serviceRecordId
+            const { partItems } = req.body; // [{ partId, quantity }]
+            const actor = req.user;
+            
+            const updatedRecord = await this.technicianRequestPartsUseCase.execute(id, partItems, actor);
+            res.status(200).json({ message: 'Parts requested. Waiting for issuance.', record: updatedRecord });
+        } catch (error) { res.status(400).json({ message: error.message }); }
     }
     
     // PUT /api/technician/service-records/:id/complete
