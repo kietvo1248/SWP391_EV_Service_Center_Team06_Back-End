@@ -104,7 +104,7 @@ const ReviseQuotation = require('./application/staff/reviseQuotation'); // THÊM
 const ListTechnicianTasks = require('./application/technician/listTechnicianTask'); 
 const SubmitDiagnosis = require('./application/technician/submitDiagnosis');
 const CompleteTechnicianTask = require('./application/technician/completeTechnicianTask');
-const TechnicianRequestParts = require('./application/technician/technicianRequestPart'); // MỚI
+//const TechnicianRequestParts = require('./application/technician/technicianRequestPart');
 // (Inventory - Luồng 3 MỚI)
 const ViewInventory = require('./application/inventory/viewInventory');
 const UpdateStockQuantity = require('./application/inventory/updateStockQuantity');
@@ -244,7 +244,7 @@ const completeTechnicianTaskUseCase = new CompleteTechnicianTask(
     appointmentRepository,
     prisma
 );
-const technicianRequestPartsUseCase = new TechnicianRequestParts(serviceRecordRepository, partRepository, partUsageRepository, prisma);
+//const technicianRequestPartsUseCase = new TechnicianRequestParts(serviceRecordRepository, partRepository, partUsageRepository, prisma);
 // Inventory (Luồng 3)
 const viewInventoryUseCase = new ViewInventory(inventoryItemRepository);
 const updateStockQuantityUseCase = new UpdateStockQuantity(inventoryItemRepository);
@@ -314,8 +314,8 @@ const staffController = new StaffController(
 const technicianController = new TechnicianController(
     listTechnicianTasksUseCase,
     submitDiagnosisUseCase,
-    completeTechnicianTaskUseCase,
-    technicianRequestPartsUseCase
+    completeTechnicianTaskUseCase
+    //technicianRequestPartsUseCase
 );
 const inventoryController = new InventoryController( // MỚI
     viewInventoryUseCase, updateStockQuantityUseCase, listRequestsForIssuingUseCase,

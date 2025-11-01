@@ -1,9 +1,8 @@
 class TechnicianController {
-    constructor(listTechnicianTasksUseCase, submitDiagnosisUseCase, completeTechnicianTaskUseCase, technicianRequestPartsUseCase) {
+    constructor(listTechnicianTasksUseCase, submitDiagnosisUseCase, completeTechnicianTaskUseCase) {
         this.listTechnicianTasksUseCase = listTechnicianTasksUseCase;
         this.submitDiagnosisUseCase = submitDiagnosisUseCase;
         this.completeTechnicianTaskUseCase = completeTechnicianTaskUseCase;
-        this.technicianRequestPartsUseCase = technicianRequestPartsUseCase;
     }
 
     // GET /api/technician/my-tasks
@@ -33,17 +32,6 @@ class TechnicianController {
         } catch (error) { res.status(400).json({ message: error.message }); }
     }
     
-    // POST /api/technician/service-records/:id/request-parts
-    async requestParts(req, res) {
-        try {
-            const { id } = req.params; // serviceRecordId
-            const { partItems } = req.body; // [{ partId, quantity }]
-            const actor = req.user;
-            
-            const updatedRecord = await this.technicianRequestPartsUseCase.execute(id, partItems, actor);
-            res.status(200).json({ message: 'Parts requested. Waiting for issuance.', record: updatedRecord });
-        } catch (error) { res.status(400).json({ message: error.message }); }
-    }
     
     // PUT /api/technician/service-records/:id/complete
     async completeTask(req, res) {
