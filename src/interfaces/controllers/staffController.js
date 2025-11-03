@@ -14,7 +14,9 @@ class StaffController {
         listVehiclesForCustomerUseCase,
         createCustomerByStaffUseCase,
         addVehicleForCustomerUseCase,
-        createAndStartWalkInAppointmentUseCase
+        createAndStartWalkInAppointmentUseCase,
+        reviseQuotationUseCase,
+        //handoverVehicleUseCase
     ) {
         this.listCenterAppointmentsUseCase = listCenterAppointmentsUseCase;
         this.getAppointmentDetailsUseCase = getAppointmentDetailsUseCase; // Assign it
@@ -29,6 +31,8 @@ class StaffController {
         this.createCustomerByStaffUseCase = createCustomerByStaffUseCase;
         this.addVehicleForCustomerUseCase = addVehicleForCustomerUseCase;
         this.createAndStartWalkInAppointmentUseCase = createAndStartWalkInAppointmentUseCase;
+        this.reviseQuotationUseCase = reviseQuotationUseCase;
+        //this.handoverVehicleUseCase = handoverVehicleUseCase;
     }
 
     // GET /api/staff/appointments
@@ -200,6 +204,32 @@ class StaffController {
             res.status(400).json({ message: error.message });
         }
     }
+    // PUT /api/staff/quotations/:id/revise
+    async reviseQuotation(req, res) {
+        try {
+            const { id } = req.params; // Quotation ID
+            const newData = req.body; // { estimatedCost }
+            const actor = req.user;
+
+            const updatedAppointment = await this.reviseQuotationUseCase.execute(id, newData, actor);
+            res.status(200).json({ message: 'Quotation revised. Pending customer approval.', appointment: updatedAppointment });
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    }
+
+    // PUT /api/staff/appointments/:id/handover
+    // async handoverVehicle(req, res) {
+    //      try {
+    //         const { id } = req.params; // Appointment ID
+    //         const actor = req.user;
+            
+    //         const result = await this.handoverVehicleUseCase.execute(id, actor);
+    //         res.status(200).json(result); 
+    //     } catch (error) {
+    //         res.status(400).json({ message: error.message });
+    //     }
+    // }
 
 }
 

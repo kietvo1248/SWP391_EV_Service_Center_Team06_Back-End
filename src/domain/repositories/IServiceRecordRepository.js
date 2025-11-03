@@ -23,6 +23,9 @@ class IServiceRecordRepository {
     async update(recordId, data, tx) {
         throw new Error("Method 'update()' must be implemented.");
     }
+    async findByCenterAndStatus(serviceCenterId, status) {
+        throw new Error("Method 'findByCenterAndStatus()' must be implemented.");
+    }
 }
 
 module.exports = IServiceRecordRepository;

@@ -34,6 +34,14 @@ class IAppointmentRepository {
     async findByIdAndCustomer(appointmentId, customerId) {
         throw new Error("Method 'findByIdAndCustomer()' must be implemented.");
     }
+    /**
+     * Tìm lịch hẹn của khách hàng, lọc theo mảng trạng thái
+     * @param {string} customerId
+     * @param {string[]} statuses - Mảng các trạng thái (ví dụ: ['COMPLETED', 'CANCELLED'])
+     */
+    async findByCustomerId(customerId, statuses = []) {
+        throw new Error("Method 'findByCustomerId()' must be implemented.");
+    }
 }
 
 module.exports = IAppointmentRepository;

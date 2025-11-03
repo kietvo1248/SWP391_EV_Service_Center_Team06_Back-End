@@ -55,6 +55,30 @@ class PrismaServiceRecordRepository extends IServiceRecordRepository {
             data: data,
         });
     }
+    async findByCenterAndStatus(serviceCenterId, status) {
+        return this.prisma.serviceRecord.findMany({
+            where: {
+                status: status,
+                appointment: { // Lọc qua quan hệ
+                    serviceCenterId: serviceCenterId
+                }
+            },
+            include: {
+                appointment: {
+                    include: {
+                        customer: { select: { fullName: true } },
+                        vehicle: { select: { make: true, model: true, licensePlate: true } }
+                    }
+                },
+                partsUsed: { // Lấy các phụ tùng đang được yêu cầu
+                    where: { status: 'REQUESTED' },
+                    include: { part: true }
+                },
+                technician: { select: { fullName: true } }
+            },
+            orderBy: { appointment: { appointmentDate: 'asc' } }
+        });
+    }
 }
 
 module.exports = PrismaServiceRecordRepository;

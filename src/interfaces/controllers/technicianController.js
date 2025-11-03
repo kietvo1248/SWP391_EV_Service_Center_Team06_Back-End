@@ -21,20 +21,17 @@ class TechnicianController {
     async submitDiagnosis(req, res) {
         try {
             const technicianId = req.user.id;
-            const { id } = req.params; // ServiceRecord ID
-            const { estimatedCost, diagnosisNotes } = req.body;
+            const { id } = req.params;
+            const { estimatedCost, diagnosisNotes, partUsages } = req.body; // Thêm partUsages
 
             const result = await this.submitDiagnosisUseCase.execute({
-                technicianId,
-                serviceRecordId: id,
-                estimatedCost,
-                diagnosisNotes
+                technicianId, serviceRecordId: id,
+                estimatedCost, diagnosisNotes, partUsages // Truyền
             });
-            res.status(200).json({ message: 'Diagnosis submitted. Waiting for customer approval.', appointment: result });
-        } catch (error) {
-            res.status(400).json({ message: error.message });
-        }
+            res.status(200).json({ message: 'Diagnosis submitted. Waiting for customer approval.', ...result });
+        } catch (error) { res.status(400).json({ message: error.message }); }
     }
+    
     
     // PUT /api/technician/service-records/:id/complete
     async completeTask(req, res) {

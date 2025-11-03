@@ -141,6 +141,35 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
             }
         });
     }
+    async findByCustomerId(customerId, statuses = []) {
+        const whereClause = {
+            customerId: customerId,
+        };
+
+        if (statuses.length > 0) {
+            whereClause.status = { in: statuses };
+        }
+
+        return this.prisma.serviceAppointment.findMany({
+            where: whereClause,
+            select: { // Chọn lọc các trường cần cho lịch sử
+                id: true,
+                appointmentDate: true,
+                status: true,
+                vehicle: { select: { make: true, model: true, licensePlate: true } },
+                serviceCenter: { select: { name: true } },
+                requestedServices: { // Lấy 1 dịch vụ làm tiêu đề
+                    take: 1,
+                    include: { 
+                        serviceType: { select: { name: true } }
+                    }
+                }
+            },
+            orderBy: {
+                appointmentDate: 'desc', // Lịch sử mới nhất lên đầu
+            }
+        });
+    }
 }
 
 module.exports = PrismaAppointmentRepository;

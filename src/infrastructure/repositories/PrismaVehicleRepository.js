@@ -18,6 +18,12 @@ class PrismaVehicleRepository extends IVehicleRepository {
             where: { vin },
         }); 
     }
+    async findByLicensePlate(licensePlate) {
+        if (!licensePlate) return null;
+        return this.prisma.vehicle.findUnique({
+            where: { licensePlate: licensePlate },
+        });
+    }
 
     async findByOwnerId(ownerId) {
         return await this.prisma.vehicle.findMany({
