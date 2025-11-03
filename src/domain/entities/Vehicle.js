@@ -6,11 +6,12 @@ class Vehicle {
              throw new Error("Vehicle data cannot be empty");
         }
         this.id = data.id;
-        this.make = data.make;
+        this.brand = data.brand;
         this.model = data.model;
+        this.color = data.color;
         this.year = data.year;
         this.vin = data.vin;
-        this.licensePlate = data.licensePlate ?? null;
+        this.licensePlate = data.licensePlate;
 
         // --- SỬA ĐỔI Ở ĐÂY ---
         // Đảm bảo currentMileage là số, mặc định là 0
@@ -25,9 +26,11 @@ class Vehicle {
         // Validations
         if (!this.vin) throw new Error("Vehicle VIN is required.");
         // ... (các validation khác giữ nguyên)
-         if (!this.make) throw new Error("Vehicle make is required.");
+         if (!this.brand) throw new Error("Vehicle brand is required.");
         if (!this.model) throw new Error("Vehicle model is required.");
+        if (!this.color) throw new Error("Vehicle color is required.");
         if (!this.year || typeof this.year !== 'number') throw new Error("Vehicle year must be a number.");
+        if (!this.licensePlate) throw new Error("Vehicle license plate is required.");
         if (!this.ownerId) throw new Error("Vehicle ownerId is required.");
     }
 }

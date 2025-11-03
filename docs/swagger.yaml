@@ -497,7 +497,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequestError' }
 
   # --- Staff (Luồng 3 - Station Admin duyệt) ---
-  /staff/restock-requests:
+  /admin/restock-requests:
     get:
       tags: [Staff]
       summary: (Station Admin) Xem Y/C nhập hàng (PENDING) tại trạm
@@ -507,7 +507,7 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
-  /staff/restock-requests/{id}/approve:
+  /admin/restock-requests/{id}/approve:
     put:
       tags: [Staff]
       summary: (Station Admin) Duyệt Y/C nhập hàng
@@ -520,7 +520,7 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
 
-  /staff/restock-requests/{id}/reject:
+  /admin/restock-requests/{id}/reject:
     put:
       tags: [Staff]
       summary: (Station Admin) Từ chối Y/C nhập hàng
@@ -713,7 +713,7 @@ components:
       type: object
       properties:
         id: { type: string, format: uuid }
-        userCode: { type: string, nullable: true }
+        employeeCode: { type: string, nullable: true, description: "Mã nhân viên (chỉ dành cho nhân viên)" }
         fullName: { type: string }
         email: { type: string, format: email }
         role: { $ref: '#/components/schemas/RoleEnum' }
@@ -728,8 +728,9 @@ components:
       type: object
       properties:
         id: { type: string, format: uuid }
-        make: { type: string }
-        model: { type: string }
+        brand: { type: string, description: "Hãng xe, VD: VinFast" }
+        model: { type: string, description: "Dòng xe, VD: VF8" }
+        color: { type: string, nullable: true, description: "Màu xe" }
         year: { type: integer }
         vin: { type: string }
         licensePlate: { type: string, nullable: true }
@@ -869,6 +870,7 @@ components:
         fullName: { type: string }
         email: { type: string, format: email }
         role: { $ref: '#/components/schemas/RoleEnum' }
+        employeeCode: { type: string, nullable: true }
 
     LoginResponse:
       type: object
@@ -895,7 +897,7 @@ components:
       properties:
         id: { type: string, format: uuid }
         fullName: { type: string }
-        userCode: { type: string, nullable: true }
+        employeeCode: { type: string, nullable: true }
         email: { type: string, format: email }
 
     CustomerInfoSummary:
@@ -1098,14 +1100,16 @@ components:
         application/json:
           schema:
             type: object
-            required: [make, model, year, vin]
+            type: object
+            required: [brand, model, year, vin, licensePlate] # Sửa 'make' -> 'brand'
             properties:
-              make: { type: string }
-              model: { type: string }
-              year: { type: integer }
-              vin: { type: string }
-              licensePlate: { type: string, nullable: true }
-              currentMileage: { type: integer, nullable: true, default: 0 }
+              brand: { type: string, example: "VinFast" }
+              model: { type: string, example: "VF8" }
+              color: { type: string, example: "Đen", nullable: true }
+              year: { type: integer, example: 2024 }
+              vin: { type: string, example: "VINFASTVF8XYZ123" }
+              licensePlate: { type: string, example: "51K-123.45", nullable: true }
+              currentMileage: { type: integer, example: 15000, default: 0, nullable: true }
 
     AppointmentInput:
       required: true

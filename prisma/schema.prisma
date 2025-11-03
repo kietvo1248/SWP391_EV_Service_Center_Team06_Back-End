@@ -95,7 +95,7 @@ model ServiceCenter {
 
 model User {
   id                   String    @id @default(uuid())
-  userCode             String?   @unique @map("user_code")
+  employeeCode         String?   @unique @map("employee_code")
   fullName             String    @map("full_name")
   email                String    @unique
   passwordHash         String?   @map("password_hash") // Optional for Google Sign-In
@@ -162,11 +162,12 @@ model StaffCertification {
 
 model Vehicle {
   id              String    @id @default(uuid())
-  make            String
+  brand           String    @default("VinFast")
   model           String
+  color           String?
   year            Int
   vin             String    @unique
-  licensePlate    String?   @map("license_plate")
+  licensePlate    String    @unique @map("license_plate")
   currentMileage  Int?      @map("current_mileage")
   lastServiceDate DateTime? @db.Date @map("last_service_date")
 

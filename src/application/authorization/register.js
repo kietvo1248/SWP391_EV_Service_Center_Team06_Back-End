@@ -37,7 +37,7 @@ class RegisterUserUseCase {
         // 4. Tạo một đối tượng User entity mới
         const newUser = new User(
             null,           // id - sẽ được CSDL tự tạo
-            null,           // userCode
+            null,           // employeeCode
             fullName,
             email,
             hashedPassword,
@@ -53,7 +53,7 @@ class RegisterUserUseCase {
         // 5. Trả về một đối tượng User an toàn, không chứa mật khẩu
         return new User(
             createdUser.id,
-            createdUser.userCode,
+            createdUser.employeeCode,
             createdUser.fullName,
             createdUser.email,
             null, // Quan trọng: Không trả về password hash

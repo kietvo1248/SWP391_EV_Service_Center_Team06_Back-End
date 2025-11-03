@@ -19,7 +19,7 @@ class PrismaUserRepository extends IUserRepository {
             where: { id },
             select: {
                 id: true,
-                userCode: true,
+                employeeCode: true,
                 fullName: true,
                 email: true,
                 phoneNumber: true,
@@ -32,7 +32,7 @@ class PrismaUserRepository extends IUserRepository {
         return await this.prisma.user.findMany({
             select: {
                 id: true,
-                userCode: true,
+                employeeCode: true,
                 fullName: true,
                 email: true,
                 role: true,
@@ -80,7 +80,7 @@ class PrismaUserRepository extends IUserRepository {
 
     async add(user) {
         try {
-            const { id, userCode, fullName, email, passwordHash, role, phoneNumber, address, googleId } = user;
+            const { id, employeeCode, fullName, email, passwordHash, role, phoneNumber, address, googleId } = user;
             return await this.prisma.user.create({
                 data: {
                     fullName,
@@ -108,7 +108,7 @@ class PrismaUserRepository extends IUserRepository {
             select: {
                 id: true,
                 fullName: true,
-                userCode: true,
+                employeeCode: true,
                 email: true,
             }
         });

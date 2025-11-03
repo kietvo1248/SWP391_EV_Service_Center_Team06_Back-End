@@ -57,9 +57,22 @@ class AuthController {
     async viewAllAccounts(req, res) {
         try {
             const users = await this.viewAllAccountsUseCase.execute();
-            res.status(200).json(users);
+            const safeUsers = users.map(user => new UserEntity(
+                user.id,
+                user.employeeCode, 
+                user.fullName,
+                user.email,
+                null, // passwordHash
+                user.role,
+                user.phoneNumber,
+                user.address,
+                user.serviceCenterId,
+                null, // googleId
+                user.isActive
+            ));
+            res.status(200).json(safeUsers);
         } catch (error) {
-            res.status(404).json({ message: error.message });
+            res.status(500).json({ message: 'Internal server error' });
         }
     }
 

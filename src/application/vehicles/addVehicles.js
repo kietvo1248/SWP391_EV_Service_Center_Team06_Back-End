@@ -11,6 +11,13 @@ class AddVehicle {
         if (existingVehicle) {
             throw new Error('Vehicle with this VIN already exists.');
         }
+        // soi biển số
+        if (vehicleData.licensePlate) {
+            const existingLicensePlate = await this.vehicleRepository.findByLicensePlate(vehicleData.licensePlate);
+            if (existingLicensePlate) {
+                throw new Error('Vehicle with this License Plate already exists.');
+            }
+        }
 
         // --- SỬA ĐỔI Ở ĐÂY ---
         // 2. Chuẩn bị dữ liệu để tạo trong DB, đảm bảo currentMileage là số hoặc 0
@@ -24,8 +31,9 @@ class AddVehicle {
         }
 
         const dataToCreate = {
-            make: vehicleData.make,
+            brand: vehicleData.brand,
             model: vehicleData.model,
+            color: vehicleData.color || null,
             year: parseInt(vehicleData.year, 10), // Đảm bảo year là số
             vin: vehicleData.vin,
             licensePlate: vehicleData.licensePlate || null, // Dùng null nếu không có
