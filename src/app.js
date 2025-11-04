@@ -19,6 +19,7 @@ const PrismaServiceRecordRepository = require('./infrastructure/repositories/Pri
 const PrismaInvoiceRepository = require('./infrastructure/repositories/PrismaInvoiceRepository');
 const PrismaQuotationRepository = require('./infrastructure/repositories/PrismaQuotationRepository');
 const PrismaPaymentRepository = require('./infrastructure/repositories/PrismaPaymentRepository');
+const PrismaMaintenanceRecommendationRepository = require('./infrastructure/repositories/PrismaMaintenanceRecommendationRepository');
 //repo phụ tùng
 const PrismaInventoryItemRepository = require('./infrastructure/repositories/PrismaInventoryItemRepository');
 const PrismaPartUsageRepository = require('./infrastructure/repositories/PrismaPartUsageRepository');
@@ -144,6 +145,7 @@ const inventoryItemRepository = new PrismaInventoryItemRepository(prisma);
 const partUsageRepository = new PrismaPartUsageRepository(prisma);
 const restockRequestRepository = new PrismaRestockRequestRepository(prisma);
 const partRepository = new PrismaPartRepository(prisma);
+const maintenanceRecommendationRepository = new PrismaMaintenanceRecommendationRepository(prisma);
 // Initialize Passport with userRepository
 
 
@@ -170,7 +172,7 @@ const createAppointmentUseCase = new CreateAppointment(
     serviceCenterRepository, 
     prisma);
 const listMyVehiclesUseCase = new ListMyVehicles(vehicleRepository);
-const getServiceSuggestionsUseCase = new GetServiceSuggestions();
+const getServiceSuggestionsUseCase = new GetServiceSuggestions(maintenanceRecommendationRepository);
 const listServiceTypesUseCase = new ListServiceTypes(serviceTypeRepository);
 const responseToQuotationUseCase = new RespondToQuotation(
     appointmentRepository,

@@ -21,14 +21,21 @@ class AppointmentController {
 
     async getSuggestions(req, res) {
         try {
-            const { vehicleModel, mileage } = req.query;
-            if (!vehicleModel || !mileage) {
-                return res.status(400).json({ message: "Vehicle model and mileage are required." });
+            // Lấy 'mileage' và 'model' từ query string
+            const { mileage, model } = req.query;
+            
+            if (!mileage || !model) {
+                return res.status(400).json({ message: "Mileage and model parameters are required." });
             }
-            const suggestions = await this.getServiceSuggestionsUseCase.execute(vehicleModel, parseInt(mileage));
+
+            const suggestions = await this.getServiceSuggestionsUseCase.execute({ 
+                mileage: Number(mileage), // Chuyển sang số
+                model: model 
+            });
+            
             res.status(200).json(suggestions);
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            res.status(500).json({ message: 'Error fetching suggestions', error: error.message });
         }
     }
 

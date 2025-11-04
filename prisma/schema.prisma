@@ -182,10 +182,27 @@ model ServiceType {
   id          String  @id @default(uuid())
   name        String
   description String?
+  price       Decimal? @db.Decimal(12, 2)
 
   appointments AppointmentService[] // Relation to join table
 
+  // --- Quan hệ đối ứng ---
+  recommendations MaintenanceRecommendation[]
+
   @@map("service_types")
+}
+
+// --- Gợi ý Bảo dưỡng ---
+model MaintenanceRecommendation {
+  id               String @id @default(uuid())
+  model            String // Dòng xe, vd: "VF8", "VF e34", hoặc "ALL"
+  mileageMilestone Int    @map("mileage_milestone") // Mốc km, vd: 10000, 20000
+  
+  serviceTypeId String      @map("service_type_id")
+  serviceType   ServiceType @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+
+  @@index([model, mileageMilestone]) // Đánh index để tăng tốc độ truy vấn
+  @@map("maintenance_recommendations")
 }
 
 model AppointmentService {

@@ -1,25 +1,42 @@
-class GetServiceSuggestionsUseCase {
-    // để lấy các quy tắc bảo dưỡng.
-    // constructor(maintenanceRuleRepository) { ... }
+// Tệp: src/application/bookings/suggestion.js
+const ServiceTypeEntity = require('../../domain/entities/ServiceType');
 
-    async execute(vehicleModel, currentMileage) {
-        const suggestions = [];
-        // Đây là logic gợi ý đơn giản, có thể mở rộng sau này
-        if (currentMileage > 20000) {
-            suggestions.push("Kiểm tra và thay dầu hộp số (nếu có)");
-            suggestions.push("Kiểm tra hệ thống phanh, thay dầu phanh");
-        }
-        if (currentMileage > 40000) {
-            suggestions.push("Kiểm tra và thay nước làm mát pin");
-            suggestions.push("Kiểm tra hệ thống lọc gió điều hòa");
+class GetServiceSuggestions {
+    constructor(recommendationRepository) {
+        // Chỉ cần recommendationRepository
+        this.recommendationRepo = recommendationRepository;
+    }
+
+    /**
+     * Tìm mốc km gần nhất (làm tròn lên hoặc xuống 5000km)
+     * Ví dụ: 9000 -> 10000, 11000 -> 10000, 14000 -> 15000
+     */
+    _findTargetMilestone(mileage) {
+        const base = 5000; // Gợi ý theo các mốc 5.000 km
+        if (mileage <= 0) return 0;
+        
+        const target = Math.round(mileage / base) * base;
+        
+        // Nếu làm tròn về 0 (ví dụ: mileage = 1000),
+        // thì lấy mốc đầu tiên là 5000
+        return target === 0 ? base : target;
+    }
+
+    async execute({ mileage, model }) {
+        const mileageNumber = parseInt(mileage, 10);
+        if (isNaN(mileageNumber) || !model) {
+            throw new Error("Mileage (number) and model (string) are required.");
         }
 
-        if (vehicleModel === 'VF e34' && currentMileage > 50000) {
-            suggestions.push("Bảo dưỡng hệ thống pin cao áp chuyên sâu");
-        }
+        // 1. Tìm mốc km mục tiêu
+        const targetMilestone = this._findTargetMilestone(mileageNumber);
 
-        return suggestions;
+        // 2. Gọi Repository để lấy các dịch vụ
+        const serviceTypesPrisma = await this.recommendationRepo.findByMilestone(targetMilestone, model);
+        
+        // 3. Chuyển đổi sang Entities
+        return serviceTypesPrisma.map(st => new ServiceTypeEntity(st));
     }
 }
 
-module.exports = GetServiceSuggestionsUseCase;
+module.exports = GetServiceSuggestions;

@@ -29,6 +29,43 @@ async function seedServiceTypes() {
     console.log(' -> Đã tạo xong các loại dịch vụ.');
     return prisma.serviceType.findMany();
 }
+//tạo gợi ý bảo dưỡng
+async function seedMaintenanceRecommendations(serviceTypes) {
+    console.log('Đang tạo gợi ý bảo dưỡng (MaintenanceRecommendations)...');
+    
+    // Lấy ID của các dịch vụ từ tên (hoặc dùng ID cứng nếu bạn biết)
+    const bdDinhKy = serviceTypes.find(s => s.name.includes('định kỳ'))?.id;
+    const kiemTraPin = serviceTypes.find(s => s.name.includes('Pin'))?.id;
+    const dichVuLop = serviceTypes.find(s => s.name.includes('Lốp'))?.id;
+    const heThongPhanh = serviceTypes.find(s => s.name.includes('Phanh'))?.id;
+    const dieuHoa = serviceTypes.find(s => s.name.includes('Điều hòa'))?.id;
+
+    const recommendations = [];
+
+    // Mốc 5000km (Kiểm tra chung) - Cho tất cả xe
+    if (bdDinhKy) recommendations.push({ model: 'ALL', mileageMilestone: 5000, serviceTypeId: bdDinhKy });
+
+    // Mốc 10000km - Cho tất cả xe
+    if (bdDinhKy) recommendations.push({ model: 'ALL', mileageMilestone: 10000, serviceTypeId: bdDinhKy });
+    if (dieuHoa) recommendations.push({ model: 'ALL', mileageMilestone: 10000, serviceTypeId: dieuHoa }); // Ví dụ: 10k thay lọc gió
+
+    // Mốc 20000km - Cho VF8
+    if (bdDinhKy) recommendations.push({ model: 'VF8', mileageMilestone: 20000, serviceTypeId: bdDinhKy });
+    if (kiemTraPin) recommendations.push({ model: 'VF8', mileageMilestone: 20000, serviceTypeId: kiemTraPin }); // VF8 20k kiểm tra pin
+    if (heThongPhanh) recommendations.push({ model: 'VF8', mileageMilestone: 20000, serviceTypeId: heThongPhanh });
+
+    // Mốc 20000km - Cho VF e34 (khác VF8)
+    if (bdDinhKy) recommendations.push({ model: 'VF e34', mileageMilestone: 20000, serviceTypeId: bdDinhKy });
+    if (dichVuLop) recommendations.push({ model: 'VF e34', mileageMilestone: 20000, serviceTypeId: dichVuLop });
+
+    if (recommendations.length > 0) {
+        await prisma.maintenanceRecommendation.createMany({
+            data: recommendations,
+            skipDuplicates: true,
+        });
+    }
+    console.log(` -> Đã tạo ${recommendations.length} gợi ý bảo dưỡng.`);
+}
 
 async function seedPartsAndInventory(serviceCenters) {
     console.log('Đang tạo phụ tùng và kho hàng...');
@@ -243,6 +280,7 @@ async function main() {
 
     // --- TẠO DỮ LIỆU CHUNG ---
     const serviceTypes = await seedServiceTypes();
+    await seedMaintenanceRecommendations(serviceTypes);
     const certifications = await seedCertifications();
 
     // --- TẠO TRUNG TÂM & NHÂN VIÊN (FAKE) ---
