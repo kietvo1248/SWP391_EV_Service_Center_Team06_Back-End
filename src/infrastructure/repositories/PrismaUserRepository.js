@@ -130,6 +130,28 @@ class PrismaUserRepository extends IUserRepository {
             }
         });
     }
+    async findStaffByCenter(serviceCenterId) {
+        return this.prisma.user.findMany({
+            where: {
+                serviceCenterId: serviceCenterId,
+                role: {
+                    not: 'CUSTOMER' // Lấy tất cả trừ CUSTOMER
+                }
+            },
+            select: { 
+                id: true, fullName: true, email: true,
+                employeeCode: true, role: true, isActive: true, phoneNumber: true
+            },
+            orderBy: { role: 'asc' }
+        });
+    }
+    
+    async updateStatus(userId, isActive) {
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: { isActive: isActive }
+        });
+    }
 }
 
 module.exports = PrismaUserRepository;

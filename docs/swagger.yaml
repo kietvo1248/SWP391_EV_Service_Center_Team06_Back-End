@@ -4,7 +4,7 @@ info:
   description: Tài liệu API cho hệ thống Trung tâm Dịch vụ Xe điện.
   version: 1.0.0
 servers:
-  - url: http://localhost:6969/api
+  - url: http://localhost:6969/api # (Sửa lại cổng nếu cần)
     description: Development server
   - url: https://swp391-restapi-ev-service-center-back-ckkz.onrender.com/api
     description: Production server
@@ -22,6 +22,8 @@ tags:
     description: Kịch bản quản lý kho (IM) kiểm kê, xuất/nhập phụ tùng.
   - name: '[5] Luồng Quản trị viên (Admin)'
     description: Kịch bản quản trị viên (Admin) tạo tài khoản và duyệt yêu cầu.
+  - name: '[6] Luồng Quản lý Trạm (Station)'
+    description: Kịch bản Trưởng trạm (Station Admin) quản lý nhân sự và xem báo cáo.
 
 paths:
   # ===============================================
@@ -404,6 +406,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
 
   # --- (D) Xử lý Luồng 3 (Duyệt nhập kho - Station Admin) ---
+  # (GHI CHÚ: Logic này có vẻ mâu thuẫn với app.js, nhưng tôi giữ nguyên theo file swagger.yaml GỐC của bạn)
   /staff/restock-requests:
     get:
       tags: ['[2] Luồng Nhân viên (Staff)']
@@ -607,6 +610,127 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
 
+  # ===============================================
+  # === [6] LUỒNG QUẢN LÝ TRẠM (STATION) (MỚI)
+  # ===============================================
+  
+  /station/stations/{stationId}/staff:
+    get:
+      tags: ['[6] Luồng Quản lý Trạm (Station)']
+      summary: '(L6.1) Lấy danh sách nhân viên tại trạm (ListStationStaff)'
+      security: [ { bearerAuth: [] } ] # Roles: STATION_ADMIN
+      parameters:
+        - { $ref: '#/components/parameters/StationIdPath' }
+      responses:
+        '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/User' } } } } }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /station/stations/{stationId}/staff/{staffId}/status:
+    put:
+      tags: ['[6] Luồng Quản lý Trạm (Station)']
+      summary: '(L6.2) Cập nhật trạng thái nhân viên (UpdateStaffStatus)'
+      description: Cập nhật trạng thái (isActive) cho nhân viên (Staff, Technician...) thuộc trạm.
+      security: [ { bearerAuth: [] } ] # Roles: STATION_ADMIN
+      parameters:
+        - { $ref: '#/components/parameters/StationIdPath' }
+        - { $ref: '#/components/parameters/StaffIdPath' }
+      requestBody: { $ref: '#/components/requestBodies/UpdateStaffStatusInput' }
+      responses:
+        '200': { description: Cập nhật thành công., content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' } # Không tìm thấy trạm hoặc nhân viên
+
+  /station/certifications:
+    get:
+      tags: ['[6] Luồng Quản lý Trạm (Station)']
+      summary: '(L6.3) Lấy danh sách tất cả chứng chỉ (ListAllCertifications)'
+      description: Lấy danh sách các chứng chỉ có sẵn trong hệ thống (để gán cho KTV).
+      security: [ { bearerAuth: [] } ] # Roles: STATION_ADMIN
+      responses:
+        '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Certification' } } } } }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+  
+  /station/technicians/{technicianId}/certifications:
+    post:
+      tags: ['[6] Luồng Quản lý Trạm (Station)']
+      summary: '(L6.4) Gán chứng chỉ cho KTV (AssignCertification)'
+      security: [ { bearerAuth: [] } ] # Roles: STATION_ADMIN
+      parameters:
+        - { $ref: '#/components/parameters/TechnicianIdPath' }
+      requestBody: { $ref: '#/components/requestBodies/AssignCertificationInput' }
+      responses:
+        '201': { description: Gán thành công., content: { application/json: { schema: { $ref: '#/components/schemas/TechnicianCertification' } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' } # Không tìm thấy KTV hoặc Chứng chỉ
+        '409': { description: "Lỗi trùng lặp (KTV đã có chứng chỉ này)" }
+
+  /station/technicians/{technicianId}/certifications/{certificationId}:
+    delete:
+      tags: ['[6] Luồng Quản lý Trạm (Station)']
+      summary: '(L6.5) Thu hồi chứng chỉ của KTV (RevokeCertification)'
+      security: [ { bearerAuth: [] } ] # Roles: STATION_ADMIN
+      parameters:
+        - { $ref: '#/components/parameters/TechnicianIdPath' }
+        - { $ref: '#/components/parameters/CertificationIdPath' }
+      responses:
+        '200': { description: Thu hồi thành công., content: { application/json: { schema: { properties: { message: { type: string } } } } } }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' } # Không tìm thấy bản gán
+
+  /station/stations/{stationId}/technicians/{technicianId}/specialization:
+    put:
+      tags: ['[6] Luồng Quản lý Trạm (Station)']
+      summary: '(L6.6) Cập nhật chuyên môn KTV (UpdateTechnicianSpecification)'
+      description: Cập nhật lĩnh vực chuyên môn cho KTV (dựa trên repo TechnicianProfile).
+      security: [ { bearerAuth: [] } ] # Roles: STATION_ADMIN
+      parameters:
+        - { $ref: '#/components/parameters/StationIdPath' }
+        - { $ref: '#/components/parameters/TechnicianIdPath' }
+      requestBody: { $ref: '#/components/requestBodies/UpdateSpecificationInput' }
+      responses:
+        '200': { description: Cập nhật thành công., content: { application/json: { schema: { $ref: '#/components/schemas/TechnicianProfile' } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' } # Không tìm thấy KTV
+
+  /station/stations/{stationId}/reports/revenue:
+    get:
+      tags: ['[6] Luồng Quản lý Trạm (Station)']
+      summary: '(L6.7) Báo cáo doanh thu (GenerateStationRevenueReport)'
+      security: [ { bearerAuth: [] } ] # Roles: STATION_ADMIN
+      parameters:
+        - { $ref: '#/components/parameters/StationIdPath' }
+        - { $ref: '#/components/parameters/DateFromQuery' }
+        - { $ref: '#/components/parameters/DateToQuery' }
+      responses:
+        '200': { description: Thành công., content: { application/json: { schema: { $ref: '#/components/schemas/RevenueReport' } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /station/stations/{stationId}/reports/technician-performance:
+    get:
+      tags: ['[6] Luồng Quản lý Trạm (Station)']
+      summary: '(L6.8) Báo cáo hiệu suất KTV (GenerateTechnicianPerformanceReport)'
+      security: [ { bearerAuth: [] } ] # Roles: STATION_ADMIN
+      parameters:
+        - { $ref: '#/components/parameters/StationIdPath' }
+        - { $ref: '#/components/parameters/DateFromQuery' }
+        - { $ref: '#/components/parameters/DateToQuery' }
+      responses:
+        '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/TechnicianPerformanceReport' } } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
 # ===============================================
 # COMPONENTS
 # ===============================================
@@ -767,6 +891,48 @@ components:
         serviceCenterId: { type: string, format: uuid }
         stationAdminId: { type: string, format: uuid, nullable: true }
         adminId: { type: string, format: uuid, nullable: true }
+
+    # --- SCHEMAS MỚI CHO LUỒNG 6 (STATION) ---
+    Certification:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, example: "Chứng chỉ sửa chữa điện VF E-Series" }
+        description: { type: string, nullable: true }
+        
+    TechnicianCertification:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        technicianId: { type: string, format: uuid }
+        certificationId: { type: string, format: uuid }
+        issueDate: { type: string, format: date-time }
+
+    TechnicianProfile:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        specialization: { type: string, nullable: true, example: "Hệ thống pin, Động cơ điện" }
+        
+    RevenueReport:
+      type: object
+      properties:
+        totalRevenue: { type: number, format: double }
+        totalServices: { type: integer }
+        totalPartsSold: { type: integer }
+        fromDate: { type: string, format: date-time }
+        toDate: { type: string, format: date-time }
+
+    TechnicianPerformanceReport:
+      type: object
+      properties:
+        technicianId: { type: string, format: uuid }
+        technicianName: { type: string }
+        totalTasksCompleted: { type: integer }
+        averageRating: { type: number, format: double, nullable: true }
+        revenueGenerated: { type: number, format: double }
+    # ---------------------------------------------
 
     UserSummary: 
       type: object
@@ -1137,6 +1303,37 @@ components:
               requestId: { type: string, format: uuid }
               quantityReceived: { type: integer, minimum: 1 }
 
+    # --- REQUEST BODIES MỚI CHO LUỒNG 6 (STATION) ---
+    UpdateStaffStatusInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [isActive]
+            properties:
+              isActive: { type: boolean }
+              
+    AssignCertificationInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [certificationId]
+            properties:
+              certificationId: { type: string, format: uuid }
+              
+    UpdateSpecificationInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [specialization]
+            properties:
+              specialization: { type: string }
+
   # --- RESPONSES (Common Errors) ---
   responses:
     BadRequestError:
@@ -1214,6 +1411,44 @@ components:
       required: true
       description: "Token tạm thời để reset password. Ví dụ: 'Bearer {resetToken}'"
       schema: { type: string }
+      
+    # --- PARAMETERS MỚI CHO LUỒNG 6 (STATION) ---
+    StationIdPath:
+      name: stationId
+      in: path
+      required: true
+      description: ID Trạm (Station / Service Center)
+      schema: { type: string, format: uuid }
+    StaffIdPath:
+      name: staffId
+      in: path
+      required: true
+      description: ID Nhân viên (Staff)
+      schema: { type: string, format: uuid }
+    TechnicianIdPath:
+      name: technicianId
+      in: path
+      required: true
+      description: ID Kỹ thuật viên (Technician / Staff)
+      schema: { type: string, format: uuid }
+    CertificationIdPath:
+      name: certificationId
+      in: path
+      required: true
+      description: ID Chứng chỉ (Certification)
+      schema: { type: string, format: uuid }
+    DateFromQuery:
+      name: fromDate
+      in: query
+      required: true
+      description: Ngày bắt đầu (YYYY-MM-DD)
+      schema: { type: string, format: date }
+    DateToQuery:
+      name: toDate
+      in: query
+      required: true
+      description: Ngày kết thúc (YYYY-MM-DD)
+      schema: { type: string, format: date }
 
   # --- SECURITY ---
   securitySchemes:

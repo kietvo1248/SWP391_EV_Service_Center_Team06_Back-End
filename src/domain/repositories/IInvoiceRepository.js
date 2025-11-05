@@ -9,5 +9,9 @@ class IInvoiceRepository {
     async findByServiceRecordId(serviceRecordId) {
         throw new Error("Method 'findByServiceRecordId()' must be implemented.");
     }
+    
+    async getRevenueByCenter(serviceCenterId, startDate, endDate) {
+        throw new Error("Method 'getRevenueByCenter()' must be implemented.");
+    }
 }
 module.exports = IInvoiceRepository;

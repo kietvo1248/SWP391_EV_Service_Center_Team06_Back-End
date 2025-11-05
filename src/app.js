@@ -25,6 +25,10 @@ const PrismaInventoryItemRepository = require('./infrastructure/repositories/Pri
 const PrismaPartUsageRepository = require('./infrastructure/repositories/PrismaPartUsageRepository');
 const PrismaRestockRequestRepository = require('./infrastructure/repositories/PrismaRestockRequestRepository');
 const PrismaPartRepository = require('./infrastructure/repositories/PrismaPartRepository');
+//repo trạm
+const PrismaTechnicianProfileRepository = require('./infrastructure/repositories/PrismaTechnicianProfileRepository');
+const PrismaCertificationRepository = require('./infrastructure/repositories/PrismaCertificationRepository');
+
 
 
 // Controllers và Routers
@@ -51,6 +55,10 @@ const inventoryRouter = require('./interfaces/routes/inventoryRoutes');
 //admin
 const AdminController = require('./interfaces/controllers/adminController');
 const adminRouter = require('./interfaces/routes/adminRoutes');
+//station
+const StationController = require('./interfaces/controllers/stationController');
+const stationRouter = require('./interfaces/routes/stationRoutes');
+
 
 
 // Application (Use Cases)
@@ -117,6 +125,16 @@ const ReceiveStock = require('./application/inventory/receiveStock');
 const ListRestockRequests = require('./application/inventory/ListRestockRequests');
 const ProcessRestockRequest = require('./application/inventory/processRestockRequest'); // Sửa tên
 
+// quản lý trạm 
+const ListStationStaff = require('./application/station/listStationStaff');
+const UpdateStaffStatus = require('./application/station/updateStaffStatus');
+const ListAllCertifications = require('./application/station/listAllCertifications');
+const AssignCertification = require('./application/station/assignCertification');
+const RevokeCertification = require('./application/station/revokeCertification');
+const UpdateTechnicianSpecification = require('./application/station/updateTechnicianSpecification');
+const GenerateStationRevenueReport = require('./application/station/generateStationRevenueReport');
+const GenerateTechnicianPerformanceReport = require('./application/station/generateTechnicianPerformanceReport');  
+
 // --- Khởi tạo ứng dụng Express ---
 const app = express();
 
@@ -146,6 +164,8 @@ const partUsageRepository = new PrismaPartUsageRepository(prisma);
 const restockRequestRepository = new PrismaRestockRequestRepository(prisma);
 const partRepository = new PrismaPartRepository(prisma);
 const maintenanceRecommendationRepository = new PrismaMaintenanceRecommendationRepository(prisma);
+const technicianProfileRepository = new PrismaTechnicianProfileRepository(prisma);
+const certificationRepository = new PrismaCertificationRepository(prisma);
 // Initialize Passport with userRepository
 
 
@@ -258,6 +278,17 @@ const receiveStockUseCase = new ReceiveStock(inventoryItemRepository, restockReq
 const listRestockRequestsUseCase = new ListRestockRequests(restockRequestRepository);
 const processRestockRequestAdminUseCase = new ProcessRestockRequest(restockRequestRepository);
 
+// quản lý trạm 
+const listStationStaffUseCase = new ListStationStaff(userRepository);
+const updateStaffStatusUseCase = new UpdateStaffStatus(userRepository);
+const listAllCertificationsUseCase = new ListAllCertifications(certificationRepository);
+const assignCertificationUseCase = new AssignCertification(certificationRepository);
+const revokeCertificationUseCase = new RevokeCertification(certificationRepository);
+const updateTechnicianSpecificationUseCase = new UpdateTechnicianSpecification(userRepository);
+const generateStationRevenueReportUseCase = new GenerateStationRevenueReport(serviceRecordRepository);
+const generateTechnicianPerformanceReportUseCase = new GenerateTechnicianPerformanceReport(serviceRecordRepository);
+
+
 
 // --- Khởi tạo Controllers và Routers ---
 
@@ -323,10 +354,20 @@ const inventoryController = new InventoryController( // MỚI
     viewInventoryUseCase, updateStockQuantityUseCase, listRequestsForIssuingUseCase,
     issuePartsForServiceUseCase, createRestockRequestUseCase, receiveStockUseCase
 );
-
+// quản lý trạm
 const adminController = new AdminController( // MỚI
     listRestockRequestsUseCase,
     processRestockRequestAdminUseCase
+);
+const stationController = new StationController(
+    listStationStaffUseCase,
+    updateStaffStatusUseCase,
+    listAllCertificationsUseCase,
+    assignCertificationUseCase,
+    revokeCertificationUseCase,
+    updateTechnicianSpecificationUseCase,
+    generateStationRevenueReportUseCase,
+    generateTechnicianPerformanceReportUseCase
 );
 
 initializePassport(passport, userRepository);
@@ -340,6 +381,7 @@ const staffRouterInstance = staffRouter(staffController);
 const technicianRouterInstance = technicianRouter(technicianController);
 const inventoryRouterInstance = inventoryRouter(inventoryController); // MỚI
 const adminRouterInstance = adminRouter(adminController);
+const stationRouterInstance = stationRouter(stationController);
 
 // --- Gắn Router vào ứng dụng ---
 app.use('/api/auth', authRouter);
@@ -350,6 +392,7 @@ app.use('/api/staff', staffRouterInstance);
 app.use('/api/technician', technicianRouterInstance);
 app.use('/api/inventory', inventoryRouterInstance); // MỚI
 app.use('/api/admin', adminRouterInstance);
+app.use('/api/station', stationRouterInstance);
 
 
 // Health check endpoints

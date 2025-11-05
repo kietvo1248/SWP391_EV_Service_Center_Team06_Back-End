@@ -128,17 +128,17 @@ model User {
 
   @@map("users")
 }
-
+// chuyên ngành của kỹ thật viên
 model TechnicianProfile {
   id             String  @id @default(uuid())
   specialization String
-  // certifications Json? // --- LOẠI BỎ: Dùng StaffCertification ---
   userId         String  @unique // One-to-one relation with User
   user           User    @relation(fields: [userId], references: [id], onDelete: Cascade) // Delete profile if User deleted
 
   @@map("technician_profiles")
 }
 
+// chứng chỉ gì
 model Certification {
   id                  String @id @default(uuid())
   name                String
@@ -149,9 +149,12 @@ model Certification {
   @@map("certifications")
 }
 
-model StaffCertification {
+// chứng chỉ của ai
+model StaffCertification {  // chứng chỉ cho tất cả nhân viên
   staffId         String @map("staff_id")
   certificationId String @map("certification_id")
+  certificateNumber String   @unique @map("certificate_number") // Mã số chứng chỉ duy nhất
+  issueDate         DateTime @default(now()) @map("issue_date") // Ngày cấp
 
   staff         User          @relation(fields: [staffId], references: [id], onDelete: Cascade) // Delete join if User deleted
   certification Certification @relation(fields: [certificationId], references: [id], onDelete: Cascade) // Delete join if Certification deleted

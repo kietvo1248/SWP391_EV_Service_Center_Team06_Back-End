@@ -79,6 +79,40 @@ class PrismaServiceRecordRepository extends IServiceRecordRepository {
             orderBy: { appointment: { appointmentDate: 'asc' } }
         });
     }
+
+    async getPerformanceByCenter(serviceCenterId, startDate, endDate) {
+        const performance = await this.prisma.serviceRecord.groupBy({
+            by: ['technicianId'], // Nhóm theo KTV
+            _count: { id: true }, // Đếm số lượng record
+            where: {
+                status: 'COMPLETED',
+                appointment: {
+                    serviceCenterId: serviceCenterId
+                },
+                // Lọc theo ngày KTV hoàn thành
+                endTime: {
+                    gte: startDate,
+                    lte: endDate
+                }
+            }
+        });
+        const technicianIds = performance.map(p => p.technicianId);
+        const technicians = await this.prisma.user.findMany({
+            where: { id: { in: technicianIds } },
+            select: { id: true, fullName: true, employeeCode: true }
+        });
+
+        // Kết hợp kết quả
+        return performance.map(p => {
+            const techInfo = technicians.find(t => t.id === p.technicianId);
+            return {
+                technicianId: p.technicianId,
+                technicianName: techInfo?.fullName || 'N/A',
+                employeeCode: techInfo?.employeeCode || 'N/A',
+                completedJobs: p._count.id
+            };
+        });
+    }
 }
 
 module.exports = PrismaServiceRecordRepository;

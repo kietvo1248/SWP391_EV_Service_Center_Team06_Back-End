@@ -38,9 +38,18 @@ class IUserRepository {
     async findTechniciansByCenter(serviceCenterId) {
         throw new Error('Method not implemented');
     }
-
     async findCustomerByPhone(phone) {
         throw new Error("Method 'findCustomerByPhone()' must be implemented.");
+    }
+
+    async findStaffByCenter(serviceCenterId) {
+        throw new Error("Method 'findStaffByCenter()' must be implemented.");
+    }
+    /**
+     * Cập nhật trạng thái active/inactive của user
+     */
+    async updateStatus(userId, isActive) {
+        throw new Error("Method 'updateStatus()' must be implemented.");
     }
 }
 
