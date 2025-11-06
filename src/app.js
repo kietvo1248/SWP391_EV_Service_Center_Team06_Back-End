@@ -77,11 +77,16 @@ const googleSignIn = require('./application/authorization/googleSignIn');
 
 //manage vehicle
 const AddVehicle = require('./application/vehicles/addVehicles');
-const ViewVehicles = require('./application/vehicles/viewVehicles');
+const ViewVehicles = require('./application/vehicles/listvehicle'); // Đổi tên từ listvehicle -> ViewVehicles
+const GetVehicleDetails = require('./application/vehicles/getVehicleDetails'); 
+const UpdateVehicle = require('./application/vehicles/updateVehicle');         
+const DeleteVehicle = require('./application/vehicles/deleteVehicle');         
+const ListVehicleModels = require('./application/vehicles/listVehicleModels'); 
+const ListCompatibleBatteries = require('./application/vehicles/listCompatibleBatteries'); 
 
 //manage appointment
 const CreateAppointment = require('./application/bookings/createAppointment');
-const ListMyVehicles = require('./application/vehicles/listvehicle');
+const ListMyVehicles = require('./application/vehicles/listvehicle'); // Dùng cho AppointmentController
 const GetServiceSuggestions = require('./application/bookings/suggestion');
 const ListServiceTypes = require('./application/bookings/listAllServiceType');
 const RespondToQuotation = require('./application/bookings/respondToQuotation');
@@ -164,7 +169,7 @@ const partUsageRepository = new PrismaPartUsageRepository(prisma);
 const restockRequestRepository = new PrismaRestockRequestRepository(prisma);
 const partRepository = new PrismaPartRepository(prisma);
 const maintenanceRecommendationRepository = new PrismaMaintenanceRecommendationRepository(prisma);
-const technicianProfileRepository = new PrismaTechnicianProfileRepository(prisma);
+const technicianProfileRepository = new PrismaTechnicianProfileRepository(prisma); // (Repo đã được khai báo)
 const certificationRepository = new PrismaCertificationRepository(prisma);
 // Initialize Passport with userRepository
 
@@ -181,9 +186,15 @@ const forgotPasswordUseCase = new ForgotPassword(userRepository);
 const verifyResetCodeUseCase = new VerifyResetCode(userRepository);
 const resetPasswordUseCase = new ResetPassword(userRepository);
 const googleSignInUseCase = new googleSignIn(userRepository);
-// Use Cases for Vehicle Management
+//quản lý xe
 const addVehicleUseCase = new AddVehicle(vehicleRepository);
 const viewVehiclesUseCase = new ViewVehicles(vehicleRepository);
+const getVehicleDetailsUseCase = new GetVehicleDetails(vehicleRepository); 
+const updateVehicleUseCase = new UpdateVehicle(vehicleRepository);       
+const deleteVehicleUseCase = new DeleteVehicle(vehicleRepository); 
+const listVehicleModelsUseCase = new ListVehicleModels(vehicleRepository); 
+const listCompatibleBatteriesUseCase = new ListCompatibleBatteries(vehicleRepository); 
+// --------------------------------------------------
 
 //Usce Cases for Appointment Management
 const createAppointmentUseCase = new CreateAppointment(
@@ -191,7 +202,7 @@ const createAppointmentUseCase = new CreateAppointment(
     vehicleRepository, 
     serviceCenterRepository, 
     prisma);
-const listMyVehiclesUseCase = new ListMyVehicles(vehicleRepository);
+const listMyVehiclesUseCase = new ListMyVehicles(vehicleRepository); // Dùng cho AppointmentController
 const getServiceSuggestionsUseCase = new GetServiceSuggestions(maintenanceRecommendationRepository);
 const listServiceTypesUseCase = new ListServiceTypes(serviceTypeRepository);
 const responseToQuotationUseCase = new RespondToQuotation(
@@ -284,7 +295,8 @@ const updateStaffStatusUseCase = new UpdateStaffStatus(userRepository);
 const listAllCertificationsUseCase = new ListAllCertifications(certificationRepository);
 const assignCertificationUseCase = new AssignCertification(certificationRepository);
 const revokeCertificationUseCase = new RevokeCertification(certificationRepository);
-const updateTechnicianSpecificationUseCase = new UpdateTechnicianSpecification(userRepository);
+const updateTechnicianSpecificationUseCase = new UpdateTechnicianSpecification(technicianProfileRepository);
+// --------------------------------------------------
 const generateStationRevenueReportUseCase = new GenerateStationRevenueReport(serviceRecordRepository);
 const generateTechnicianPerformanceReportUseCase = new GenerateTechnicianPerformanceReport(serviceRecordRepository);
 
@@ -307,14 +319,21 @@ const authController = new AuthController(
     googleSignInUseCase
 
 );
+
 const vehicleController = new VehicleController(
     addVehicleUseCase,
-    viewVehiclesUseCase
+    viewVehiclesUseCase,
+    getVehicleDetailsUseCase,
+    updateVehicleUseCase,
+    deleteVehicleUseCase,
+    listVehicleModelsUseCase,
+    listCompatibleBatteriesUseCase
 );
+// ----------------------------------------------------------
 
 const appointmentController = new AppointmentController(
     createAppointmentUseCase,
-    listMyVehiclesUseCase,
+    listMyVehiclesUseCase, // Dùng cho AppointmentController
     getServiceSuggestionsUseCase,
     listServiceTypesUseCase,
     getAppointmentDetailsUseCase, // Đây là use case chung
@@ -350,12 +369,12 @@ const technicianController = new TechnicianController(
     completeTechnicianTaskUseCase
     //technicianRequestPartsUseCase
 );
-const inventoryController = new InventoryController( // MỚI
+const inventoryController = new InventoryController( 
     viewInventoryUseCase, updateStockQuantityUseCase, listRequestsForIssuingUseCase,
     issuePartsForServiceUseCase, createRestockRequestUseCase, receiveStockUseCase
 );
 // quản lý trạm
-const adminController = new AdminController( // MỚI
+const adminController = new AdminController( 
     listRestockRequestsUseCase,
     processRestockRequestAdminUseCase
 );
@@ -374,12 +393,12 @@ initializePassport(passport, userRepository);
 
 // Router
 const authRouter = createAuthRouter(authController, passport);
-const vehicleRouter = VehicleRouter(vehicleController);
+const vehicleRouter = VehicleRouter(vehicleController); 
 const appointmentRouterInstance = appointmentRouter(appointmentController);
 const serviceCenterRouterInstance = serviceCenterRouter(serviceCenterController);
 const staffRouterInstance = staffRouter(staffController);
 const technicianRouterInstance = technicianRouter(technicianController);
-const inventoryRouterInstance = inventoryRouter(inventoryController); // MỚI
+const inventoryRouterInstance = inventoryRouter(inventoryController); 
 const adminRouterInstance = adminRouter(adminController);
 const stationRouterInstance = stationRouter(stationController);
 
@@ -390,7 +409,7 @@ app.use('/api/appointments', appointmentRouterInstance);
 app.use('/api/service-centers', serviceCenterRouterInstance);
 app.use('/api/staff', staffRouterInstance);
 app.use('/api/technician', technicianRouterInstance);
-app.use('/api/inventory', inventoryRouterInstance); // MỚI
+app.use('/api/inventory', inventoryRouterInstance); 
 app.use('/api/admin', adminRouterInstance);
 app.use('/api/station', stationRouterInstance);
 
