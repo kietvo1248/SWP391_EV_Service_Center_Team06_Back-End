@@ -29,13 +29,22 @@ const createAuthRouter = (authController, passport) => {
     // 2. Route callback sau khi Google xác thực xong
     router.get('/google/callback', 
         passport.authenticate('google', { 
-            failureRedirect: '/login-failure', // Chuyển hướng nếu thất bại (frontend xử lý))
+            failureRedirect: '/login-failure', // Chuyển hướng nếu thất bại (frontend xử lý)
             session: false // Không tạo session vì chúng ta dùng JWT
         }),
         (req, res) => {
             // Xác thực thành công, req.user chứa { user, token } từ passportConfig
-            // Chuyển hướng người dùng về frontend với token
-            // Ví dụ: res.redirect(`http://your-frontend.com/login-success?token=${req.user.token}`);
+
+            // Lấy token từ req.user (do passportConfig của bạn trả về)
+            const token = req.user.token;
+
+            // Lấy địa chỉ frontend từ biến môi trường (an toàn hơn)
+            const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'; // Thay bằng URL frontend của bạn
+
+            // Chuyển hướng người dùng VỀ LẠI frontend
+            // Đính kèm token vào URL query
+            res.redirect(`${FRONTEND_URL}/login-success?token=${token}`);
+            
             res.status(200).json({
                 message: "Google authentication successful",
                 token: req.user.token,

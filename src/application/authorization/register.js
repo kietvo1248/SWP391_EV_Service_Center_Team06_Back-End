@@ -1,5 +1,7 @@
+// Tệp: src/application/authorization/register.js
 const User = require('../../domain/entities/User');
 const bcrypt = require('bcryptjs');
+const { Prisma } = require('@prisma/client'); // Import Prisma để bắt lỗi
 
 class RegisterUserUseCase {
     constructor(userRepository) {
@@ -16,8 +18,9 @@ class RegisterUserUseCase {
      * @param {string} userData.phoneNumber - Số điện thoại.
      * @returns {Promise<User>} Đối tượng người dùng đã được tạo.
      */
+
     async execute({ fullName, email, password, confirmPassword, phoneNumber }) {
-        // 1. Validation: Kiểm tra các trường bắt buộc và mật khẩu khớp nhau
+        // 1. Validation (Giữ nguyên)
         if (!fullName || !email || !password || !confirmPassword) {
             throw new Error('Vui lòng điền đầy đủ các trường bắt buộc.');
         }
@@ -25,45 +28,36 @@ class RegisterUserUseCase {
             throw new Error('Mật khẩu và mật khẩu xác nhận không khớp.');
         }
 
-        // 2. Kiểm tra email đã tồn tại hay chưa
-        const existingUser = await this.userRepository.findByEmail(email);
-        if (existingUser) {
-            throw new Error('Email này đã được sử dụng.');
-        }
+        // --- (SỬA LỖI TOCTOU) ---
+        // 2. XÓA BỎ bước kiểm tra email-
 
-        // 3. Mã hóa mật khẩu
+        // 3. Mã hóa mật khẩu (Giữ nguyên)
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 4. Tạo một đối tượng User entity mới
+        // 4. Tạo đối tượng User entity mới (Giữ nguyên)
         const newUser = new User(
-            null,           // id - sẽ được CSDL tự tạo
-            null,           // employeeCode
-            fullName,
-            email,
-            hashedPassword,
-            'CUSTOMER',     // Vai trò mặc định khi tự đăng ký
-            phoneNumber,    // Thêm số điện thoại
-            null,           // address
-            null,           // serviceCenterId
-            null            // googleId
+            null, 'CUSTOMER', fullName, email, hashedPassword, 'CUSTOMER', 
+            phoneNumber, null, null, null, true // Đã sửa constructor cho khớp file
         );
 
-        const createdUser = await this.userRepository.add(newUser);
+        try {
+            const createdUser = await this.userRepository.add(newUser);
 
-        // 5. Trả về một đối tượng User an toàn, không chứa mật khẩu
-        return new User(
-            createdUser.id,
-            createdUser.employeeCode,
-            createdUser.fullName,
-            createdUser.email,
-            null, // Quan trọng: Không trả về password hash
-            createdUser.role,
-            createdUser.phoneNumber,
-            createdUser.address,
-            null, // serviceCenterId
-            null, // googleId
-            createdUser.isActive
-        );
+            // 5. Trả về (Giữ nguyên)
+            return new User(
+                createdUser.id, createdUser.employeeCode, createdUser.fullName, 
+                createdUser.email, null, createdUser.role, createdUser.phoneNumber, 
+                createdUser.address, null, null, createdUser.isActive
+            );
+        } catch (error) {
+            // --- (SỬA LỖI TOCTOU) ---
+            // 6. Bẫy lỗi P2002 (Unique constraint violation)
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+                throw new Error('Email này đã được sử dụng.');
+            }
+            // --- KẾT THÚC SỬA LỖI ---
+            throw error;
+        }
     }
 }
 
