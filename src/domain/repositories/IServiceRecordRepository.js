@@ -26,6 +26,10 @@ class IServiceRecordRepository {
     async findByCenterAndStatus(serviceCenterId, status) {
         throw new Error("Method 'findByCenterAndStatus()' must be implemented.");
     }
+
+    async getPerformanceByCenter(serviceCenterId, startDate, endDate) {
+        throw new Error("Method 'getPerformanceByCenter()' must be implemented.");
+    }
 }
 
 module.exports = IServiceRecordRepository;

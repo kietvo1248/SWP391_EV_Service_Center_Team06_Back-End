@@ -128,17 +128,17 @@ model User {
 
   @@map("users")
 }
-
+// chuyên ngành của kỹ thật viên
 model TechnicianProfile {
   id             String  @id @default(uuid())
   specialization String
-  // certifications Json? // --- LOẠI BỎ: Dùng StaffCertification ---
   userId         String  @unique // One-to-one relation with User
   user           User    @relation(fields: [userId], references: [id], onDelete: Cascade) // Delete profile if User deleted
 
   @@map("technician_profiles")
 }
 
+// chứng chỉ gì
 model Certification {
   id                  String @id @default(uuid())
   name                String
@@ -149,9 +149,12 @@ model Certification {
   @@map("certifications")
 }
 
-model StaffCertification {
+// chứng chỉ của ai
+model StaffCertification {  // chứng chỉ cho tất cả nhân viên
   staffId         String @map("staff_id")
   certificationId String @map("certification_id")
+  certificateNumber String   @unique @map("certificate_number") // Mã số chứng chỉ duy nhất
+  issueDate         DateTime @default(now()) @map("issue_date") // Ngày cấp
 
   staff         User          @relation(fields: [staffId], references: [id], onDelete: Cascade) // Delete join if User deleted
   certification Certification @relation(fields: [certificationId], references: [id], onDelete: Cascade) // Delete join if Certification deleted
@@ -160,22 +163,64 @@ model StaffCertification {
   @@map("staff_certifications")
 }
 
+// --- Model Xe của Khách hàng ---
 model Vehicle {
-  id              String    @id @default(uuid())
-  brand           String    @default("VinFast")
-  model           String
-  color           String?
-  year            Int
-  vin             String    @unique
-  licensePlate    String    @unique @map("license_plate")
-  currentMileage  Int?      @map("current_mileage")
-  lastServiceDate DateTime? @db.Date @map("last_service_date")
+  id        String  @id @default(uuid())
+  ownerId   String  // Liên kết với User
+  owner     User    @relation(fields: [ownerId], references: [id])
+  
+  // --- Dữ liệu Cốt lõi (CẤM SỬA) ---
+  vin              String       @unique
+  year             Int
+  vehicleModelId   String       // Liên kết với Dòng xe
+  vehicleModel     VehicleModel @relation(fields: [vehicleModelId], references: [id])
 
-  ownerId      String
-  owner        User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade) // Delete vehicles if owner deleted
-  appointments ServiceAppointment[] // Appointments for this vehicle
+  // --- Dữ liệu Cập nhật được ---
+  licensePlate String?      @unique
+  color        String?
+  batteryId    String?      // Loại pin hiện tại
+  battery      BatteryType? @relation(fields: [batteryId], references: [id])
 
-  @@map("vehicles")
+  // --- Logic XÓA MỀM ---
+  isDeleted    Boolean      @default(false)
+  
+  // Liên kết với lịch sử
+  appointments   ServiceAppointment[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Đảm bảo xe đã xóa mềm có thể trùng biển số
+  @@index([ownerId, isDeleted])
+}
+
+// --- Model Dòng xe (ví dụ: VF8, VF9) ---
+model VehicleModel {
+  id    String @id @default(uuid())
+  brand String // Ví dụ: "VinFast"
+  name  String // Ví dụ: "VF8"
+
+  // Danh sách xe thuộc dòng này
+  vehicles Vehicle[] 
+  
+  // Danh sách các loại pin tương thích
+  // Prisma sẽ tự tạo bảng liên kết _BatteryTypeToVehicleModel
+  compatibleBatteries BatteryType[]
+}
+
+
+// --- Model Loại Pin (ví dụ: Pin 90kWh) ---
+model BatteryType {
+  id          String  @id @default(uuid())
+  name        String  @unique // Ví dụ: "Pin LFP 90kWh (Thuê)"
+  capacityKwh Decimal // Ví dụ: 90
+  // ... các thông tin khác như giá, mô tả, SKU ...
+
+  // Các dòng xe tương thích với pin này
+  compatibleModels VehicleModel[]
+  
+  // Các xe hiện đang dùng loại pin này
+  vehicles Vehicle[]
 }
 
 model ServiceType {
@@ -244,7 +289,6 @@ model ServiceRecord {
   staffNotes    String?   @map("staff_notes")
   // --- THAY ĐỔI: Sử dụng Enum ---
   status        ServiceRecordStatus @default(PENDING) // Thêm default
-  // --- KẾT THÚC THAY ĐỔI ---
   appointmentId String    @unique // One-to-one relation with Appointment
   technicianId  String
 

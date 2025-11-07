@@ -25,6 +25,10 @@ const PrismaInventoryItemRepository = require('./infrastructure/repositories/Pri
 const PrismaPartUsageRepository = require('./infrastructure/repositories/PrismaPartUsageRepository');
 const PrismaRestockRequestRepository = require('./infrastructure/repositories/PrismaRestockRequestRepository');
 const PrismaPartRepository = require('./infrastructure/repositories/PrismaPartRepository');
+//repo trạm
+const PrismaTechnicianProfileRepository = require('./infrastructure/repositories/PrismaTechnicianProfileRepository');
+const PrismaCertificationRepository = require('./infrastructure/repositories/PrismaCertificationRepository');
+
 
 
 // Controllers và Routers
@@ -51,6 +55,10 @@ const inventoryRouter = require('./interfaces/routes/inventoryRoutes');
 //admin
 const AdminController = require('./interfaces/controllers/adminController');
 const adminRouter = require('./interfaces/routes/adminRoutes');
+//station
+const StationController = require('./interfaces/controllers/stationController');
+const stationRouter = require('./interfaces/routes/stationRoutes');
+
 
 
 // Application (Use Cases)
@@ -69,11 +77,16 @@ const googleSignIn = require('./application/authorization/googleSignIn');
 
 //manage vehicle
 const AddVehicle = require('./application/vehicles/addVehicles');
-const ViewVehicles = require('./application/vehicles/viewVehicles');
+const ViewVehicles = require('./application/vehicles/listvehicle'); // Đổi tên từ listvehicle -> ViewVehicles
+const GetVehicleDetails = require('./application/vehicles/getVehicleDetails'); 
+const UpdateVehicle = require('./application/vehicles/updateVehicle');         
+const DeleteVehicle = require('./application/vehicles/deleteVehicle');         
+const ListVehicleModels = require('./application/vehicles/listVehicleModels'); 
+const ListCompatibleBatteries = require('./application/vehicles/listCompatibleBatteries'); 
 
 //manage appointment
 const CreateAppointment = require('./application/bookings/createAppointment');
-const ListMyVehicles = require('./application/vehicles/listvehicle');
+const ListMyVehicles = require('./application/vehicles/listvehicle'); // Dùng cho AppointmentController
 const GetServiceSuggestions = require('./application/bookings/suggestion');
 const ListServiceTypes = require('./application/bookings/listAllServiceType');
 const RespondToQuotation = require('./application/bookings/respondToQuotation');
@@ -117,6 +130,16 @@ const ReceiveStock = require('./application/inventory/receiveStock');
 const ListRestockRequests = require('./application/inventory/ListRestockRequests');
 const ProcessRestockRequest = require('./application/inventory/processRestockRequest'); // Sửa tên
 
+// quản lý trạm 
+const ListStationStaff = require('./application/station/listStationStaff');
+const UpdateStaffStatus = require('./application/station/updateStaffStatus');
+const ListAllCertifications = require('./application/station/listAllCertifications');
+const AssignCertification = require('./application/station/assignCertification');
+const RevokeCertification = require('./application/station/revokeCertification');
+const UpdateTechnicianSpecification = require('./application/station/updateTechnicianSpecification');
+const GenerateStationRevenueReport = require('./application/station/generateStationRevenueReport');
+const GenerateTechnicianPerformanceReport = require('./application/station/generateTechnicianPerformanceReport');  
+
 // --- Khởi tạo ứng dụng Express ---
 const app = express();
 
@@ -146,6 +169,8 @@ const partUsageRepository = new PrismaPartUsageRepository(prisma);
 const restockRequestRepository = new PrismaRestockRequestRepository(prisma);
 const partRepository = new PrismaPartRepository(prisma);
 const maintenanceRecommendationRepository = new PrismaMaintenanceRecommendationRepository(prisma);
+const technicianProfileRepository = new PrismaTechnicianProfileRepository(prisma); // (Repo đã được khai báo)
+const certificationRepository = new PrismaCertificationRepository(prisma);
 // Initialize Passport with userRepository
 
 
@@ -161,9 +186,15 @@ const forgotPasswordUseCase = new ForgotPassword(userRepository);
 const verifyResetCodeUseCase = new VerifyResetCode(userRepository);
 const resetPasswordUseCase = new ResetPassword(userRepository);
 const googleSignInUseCase = new googleSignIn(userRepository);
-// Use Cases for Vehicle Management
+//quản lý xe
 const addVehicleUseCase = new AddVehicle(vehicleRepository);
 const viewVehiclesUseCase = new ViewVehicles(vehicleRepository);
+const getVehicleDetailsUseCase = new GetVehicleDetails(vehicleRepository); 
+const updateVehicleUseCase = new UpdateVehicle(vehicleRepository);       
+const deleteVehicleUseCase = new DeleteVehicle(vehicleRepository); 
+const listVehicleModelsUseCase = new ListVehicleModels(vehicleRepository); 
+const listCompatibleBatteriesUseCase = new ListCompatibleBatteries(vehicleRepository); 
+// --------------------------------------------------
 
 //Usce Cases for Appointment Management
 const createAppointmentUseCase = new CreateAppointment(
@@ -171,7 +202,7 @@ const createAppointmentUseCase = new CreateAppointment(
     vehicleRepository, 
     serviceCenterRepository, 
     prisma);
-const listMyVehiclesUseCase = new ListMyVehicles(vehicleRepository);
+const listMyVehiclesUseCase = new ListMyVehicles(vehicleRepository); // Dùng cho AppointmentController
 const getServiceSuggestionsUseCase = new GetServiceSuggestions(maintenanceRecommendationRepository);
 const listServiceTypesUseCase = new ListServiceTypes(serviceTypeRepository);
 const responseToQuotationUseCase = new RespondToQuotation(
@@ -258,6 +289,18 @@ const receiveStockUseCase = new ReceiveStock(inventoryItemRepository, restockReq
 const listRestockRequestsUseCase = new ListRestockRequests(restockRequestRepository);
 const processRestockRequestAdminUseCase = new ProcessRestockRequest(restockRequestRepository);
 
+// quản lý trạm 
+const listStationStaffUseCase = new ListStationStaff(userRepository);
+const updateStaffStatusUseCase = new UpdateStaffStatus(userRepository);
+const listAllCertificationsUseCase = new ListAllCertifications(certificationRepository);
+const assignCertificationUseCase = new AssignCertification(certificationRepository);
+const revokeCertificationUseCase = new RevokeCertification(certificationRepository);
+const updateTechnicianSpecificationUseCase = new UpdateTechnicianSpecification(technicianProfileRepository);
+// --------------------------------------------------
+const generateStationRevenueReportUseCase = new GenerateStationRevenueReport(serviceRecordRepository);
+const generateTechnicianPerformanceReportUseCase = new GenerateTechnicianPerformanceReport(serviceRecordRepository);
+
+
 
 // --- Khởi tạo Controllers và Routers ---
 
@@ -276,14 +319,21 @@ const authController = new AuthController(
     googleSignInUseCase
 
 );
+
 const vehicleController = new VehicleController(
     addVehicleUseCase,
-    viewVehiclesUseCase
+    viewVehiclesUseCase,
+    getVehicleDetailsUseCase,
+    updateVehicleUseCase,
+    deleteVehicleUseCase,
+    listVehicleModelsUseCase,
+    listCompatibleBatteriesUseCase
 );
+// ----------------------------------------------------------
 
 const appointmentController = new AppointmentController(
     createAppointmentUseCase,
-    listMyVehiclesUseCase,
+    listMyVehiclesUseCase, // Dùng cho AppointmentController
     getServiceSuggestionsUseCase,
     listServiceTypesUseCase,
     getAppointmentDetailsUseCase, // Đây là use case chung
@@ -319,27 +369,38 @@ const technicianController = new TechnicianController(
     completeTechnicianTaskUseCase
     //technicianRequestPartsUseCase
 );
-const inventoryController = new InventoryController( // MỚI
+const inventoryController = new InventoryController( 
     viewInventoryUseCase, updateStockQuantityUseCase, listRequestsForIssuingUseCase,
     issuePartsForServiceUseCase, createRestockRequestUseCase, receiveStockUseCase
 );
-
-const adminController = new AdminController( // MỚI
+// quản lý trạm
+const adminController = new AdminController( 
     listRestockRequestsUseCase,
     processRestockRequestAdminUseCase
+);
+const stationController = new StationController(
+    listStationStaffUseCase,
+    updateStaffStatusUseCase,
+    listAllCertificationsUseCase,
+    assignCertificationUseCase,
+    revokeCertificationUseCase,
+    updateTechnicianSpecificationUseCase,
+    generateStationRevenueReportUseCase,
+    generateTechnicianPerformanceReportUseCase
 );
 
 initializePassport(passport, userRepository);
 
 // Router
 const authRouter = createAuthRouter(authController, passport);
-const vehicleRouter = VehicleRouter(vehicleController);
+const vehicleRouter = VehicleRouter(vehicleController); 
 const appointmentRouterInstance = appointmentRouter(appointmentController);
 const serviceCenterRouterInstance = serviceCenterRouter(serviceCenterController);
 const staffRouterInstance = staffRouter(staffController);
 const technicianRouterInstance = technicianRouter(technicianController);
-const inventoryRouterInstance = inventoryRouter(inventoryController); // MỚI
+const inventoryRouterInstance = inventoryRouter(inventoryController); 
 const adminRouterInstance = adminRouter(adminController);
+const stationRouterInstance = stationRouter(stationController);
 
 // --- Gắn Router vào ứng dụng ---
 app.use('/api/auth', authRouter);
@@ -348,8 +409,9 @@ app.use('/api/appointments', appointmentRouterInstance);
 app.use('/api/service-centers', serviceCenterRouterInstance);
 app.use('/api/staff', staffRouterInstance);
 app.use('/api/technician', technicianRouterInstance);
-app.use('/api/inventory', inventoryRouterInstance); // MỚI
+app.use('/api/inventory', inventoryRouterInstance); 
 app.use('/api/admin', adminRouterInstance);
+app.use('/api/station', stationRouterInstance);
 
 
 // Health check endpoints

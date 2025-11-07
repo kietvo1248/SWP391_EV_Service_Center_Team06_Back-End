@@ -1,52 +1,54 @@
 // Tệp: src/application/vehicles/addVehicles.js
-const VehicleEntity = require('../../domain/entities/Vehicle');
+// (Bỏ qua file Vehicle.js [cite: 1] vì logic validation đã chuyển về đây)
 
 class AddVehicle {
     constructor(vehicleRepository) {
         this.vehicleRepository = vehicleRepository;
     }
-    async execute(vehicleData) {
-        // 1. Kiểm tra VIN
-        const existingVehicle = await this.vehicleRepository.findByVin(vehicleData.vin);
-        if (existingVehicle) {
+
+    async execute(ownerId, vehicleData) {
+        const { vin, year, vehicleModelId, batteryId, licensePlate, color } = vehicleData;
+
+        // 1. Validation dữ liệu đầu vào
+        if (!vin || !year || !vehicleModelId || !batteryId) {
+            throw new Error('VIN, year, model, and battery are required.');
+        }
+
+        // 2. Kiểm tra VIN trùng lặp (Giữ logic từ file gốc )
+        const existingVin = await this.vehicleRepository.findByVin(vin);
+        if (existingVin) {
             throw new Error('Vehicle with this VIN already exists.');
         }
-        // soi biển số
-        if (vehicleData.licensePlate) {
-            const existingLicensePlate = await this.vehicleRepository.findByLicensePlate(vehicleData.licensePlate);
-            if (existingLicensePlate) {
+
+        // 3. Kiểm tra Biển số trùng lặp (Giữ logic từ file gốc )
+        if (licensePlate) {
+            const existingPlate = await this.vehicleRepository.findByLicensePlate(licensePlate);
+            if (existingPlate) {
                 throw new Error('Vehicle with this License Plate already exists.');
             }
         }
 
-        // --- SỬA ĐỔI Ở ĐÂY ---
-        // 2. Chuẩn bị dữ liệu để tạo trong DB, đảm bảo currentMileage là số hoặc 0
-        let mileage = vehicleData.currentMileage !== undefined && vehicleData.currentMileage !== null
-                      ? parseInt(vehicleData.currentMileage, 10)
-                      : 0; // Mặc định là 0 nếu không có hoặc null
-
-        // Kiểm tra nếu parseInt trả về NaN (ví dụ: nhập chữ) thì cũng set là 0
-        if (isNaN(mileage)) {
-            mileage = 0;
+        // 4. (MỚI) Kiểm tra tính tương thích của Pin
+        const compatibleBatteries = await this.vehicleRepository.listCompatibleBatteries(vehicleModelId);
+        const isCompatible = compatibleBatteries.some(battery => battery.id === batteryId);
+        if (!isCompatible) {
+            throw new Error('Selected battery is not compatible with this vehicle model.');
         }
 
+        // 5. Chuẩn bị dữ liệu
         const dataToCreate = {
-            brand: vehicleData.brand,
-            model: vehicleData.model,
-            color: vehicleData.color || null,
-            year: parseInt(vehicleData.year, 10), // Đảm bảo year là số
-            vin: vehicleData.vin,
-            licensePlate: vehicleData.licensePlate || null, // Dùng null nếu không có
-            currentMileage: mileage, // Sử dụng giá trị đã chuẩn hóa
-            ownerId: vehicleData.ownerId,
+            ownerId: ownerId,
+            vin: vin,
+            year: parseInt(year, 10),
+            vehicleModelId: vehicleModelId,
+            batteryId: batteryId,
+            licensePlate: licensePlate,
+            color: color || null,
+            isDeleted: false // Mặc định khi tạo
         };
-        // --- KẾT THÚC SỬA ĐỔI ---
 
-        // 3. Gọi repository để tạo
-        const newVehiclePrisma = await this.vehicleRepository.create(dataToCreate);
-
-        // 4. Trả về entity Vehicle
-        return new VehicleEntity(newVehiclePrisma);
+        // 6. Gọi repository để tạo
+        return this.vehicleRepository.create(dataToCreate);
     }
 }
 
