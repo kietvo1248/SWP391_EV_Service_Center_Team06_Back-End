@@ -503,36 +503,6 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
 
-  /staff/restock-requests:
-    get:
-      tags: ['[2] Luồng Nhân viên (Staff)']
-      summary: '(L3) [Station Admin] Xem Y/C nhập hàng (PENDING) tại trạm'
-      responses:
-        '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/RestockRequestView' } } } } }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-
-  /staff/restock-requests/{id}/approve:
-    put:
-      tags: ['[2] Luồng Nhân viên (Staff)']
-      summary: '(L3) [Station Admin] Duyệt Y/C nhập hàng'
-      parameters: [ { $ref: '#/components/parameters/RestockRequestIdPath' } ]
-      responses:
-        '200': { description: Đã duyệt., content: { application/json: { schema: { $ref: '#/components/schemas/RestockRequest' } } } }
-        '400': { $ref: '#/components/responses/BadRequestError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-
-  /staff/restock-requests/{id}/reject:
-    put:
-      tags: ['[2] Luồng Nhân viên (Staff)']
-      summary: '(L3) [Station Admin] Từ chối Y/C nhập hàng'
-      parameters: [ { $ref: '#/components/parameters/RestockRequestIdPath' } ]
-      responses:
-        '200': { description: Đã từ chối., content: { application/json: { schema: { $ref: '#/components/schemas/RestockRequest' } } } }
-        '400': { $ref: '#/components/responses/BadRequestError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
 
   # ===============================================
   # === [3] LUỒNG KỸ THUẬT VIÊN (TECHNICIAN)
@@ -798,6 +768,47 @@ paths:
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
+  # --- (PHẦN MỚI) Thêm 2 API Duyệt Đơn hàng cho Station Admin ---
+  
+  /station/restock-requests/{id}/approve:
+    put:
+      tags: ['[6] Luồng Quản lý Trạm (Station)']
+      summary: (L6.9) [Trưởng trạm] Duyệt Y/C nhập hàng
+      description: Trưởng trạm (Station Admin) duyệt một yêu cầu nhập hàng (Restock Request) tại trạm của mình.
+      security: [ { bearerAuth: [] } ] # Roles: STATION_ADMIN
+      parameters:
+        - { $ref: '#/components/parameters/RestockRequestIdPath' }
+      responses:
+        '200': 
+          description: Đã duyệt thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestockRequest'
+        '400': { $ref: '#/components/responses/BadRequestError' } # vd: Request không ở trạng thái PENDING
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' } # vd: Không phải trạm của mình
+        '404': { $ref: '#/components/responses/NotFoundError' } # vd: Không tìm thấy Request
+
+  /station/restock-requests/{id}/reject:
+    put:
+      tags: ['[6] Luồng Quản lý Trạm (Station)']
+      summary: (L6.10) [Trưởng trạm] Từ chối Y/C nhập hàng
+      description: Trưởng trạm (Station Admin) từ chối một yêu cầu nhập hàng (Restock Request) tại trạm của mình.
+      security: [ { bearerAuth: [] } ] # Roles: STATION_ADMIN
+      parameters:
+        - { $ref: '#/components/parameters/RestockRequestIdPath' }
+      responses:
+        '200': 
+          description: Đã từ chối thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestockRequest'
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
 
 # ===============================================
 # COMPONENTS

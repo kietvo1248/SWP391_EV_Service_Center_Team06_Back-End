@@ -8,7 +8,8 @@ class StationController {
         revokeCertificationUseCase,
         updateTechnicianSpecificationUseCase, // cập nhật chuyên môn
         generateStationRevenueReportUseCase,
-        generateTechnicianPerformanceReportUseCase
+        generateTechnicianPerformanceReportUseCase,
+        processRestockRequestUseCase
     ) {
         this.listStationStaffUseCase = listStationStaffUseCase;
         this.updateStaffStatusUseCase = updateStaffStatusUseCase;
@@ -18,6 +19,7 @@ class StationController {
         this.updateTechnicianSpecificationUseCase = updateTechnicianSpecificationUseCase;
         this.generateStationRevenueReportUseCase = generateStationRevenueReportUseCase;
         this.generateTechnicianPerformanceReportUseCase = generateTechnicianPerformanceReportUseCase;
+        this.processRestockRequestUseCase = processRestockRequestUseCase;
     }
 
     async listStaff(req, res) {
@@ -107,6 +109,56 @@ class StationController {
             const report = await this.generateTechnicianPerformanceReportUseCase.execute(req.user, { startDate, endDate });
             res.status(200).json(report);
         } catch (error) { res.status(400).json({ message: error.message }); }
+    }
+    async approveRestockRequest(req, res) {
+        try {
+            const actor = req.user; // (STATION_ADMIN)
+            const { id } = req.params; // (Restock Request ID)
+
+            const updatedRequest = await this.processRestockRequestUseCase.execute(
+                actor,
+                id,
+                RestockRequestStatus.APPROVED
+            );
+            
+            res.status(200).json(updatedRequest);
+        } catch (error) {
+            console.error("Error approving restock request (Station):", error.message);
+            if (error.message.includes("Forbidden")) {
+                return res.status(403).json({ message: error.message });
+            }
+            if (error.message.includes("not found")) {
+                return res.status(404).json({ message: error.message });
+            }
+            res.status(400).json({ message: error.message }); // Lỗi nghiệp vụ khác
+        }
+    }
+
+    /**
+     * Từ chối Yêu cầu Nhập hàng (Dành cho Station Admin)
+     */
+    async rejectRestockRequest(req, res) {
+         try {
+            const actor = req.user; // (STATION_ADMIN)
+            const { id } = req.params; // (Restock Request ID)
+
+            const updatedRequest = await this.processRestockRequestUseCase.execute(
+                actor,
+                id,
+                RestockRequestStatus.REJECTED
+            );
+            
+            res.status(200).json(updatedRequest);
+        } catch (error) {
+            console.error("Error rejecting restock request (Station):", error.message);
+            if (error.message.includes("Forbidden")) {
+                return res.status(403).json({ message: error.message });
+            }
+            if (error.message.includes("not found")) {
+                return res.status(404).json({ message: error.message });
+            }
+            res.status(400).json({ message: error.message }); // Lỗi nghiệp vụ khác
+        }
     }
 }
 module.exports = StationController;

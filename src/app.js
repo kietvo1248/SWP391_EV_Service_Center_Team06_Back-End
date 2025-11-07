@@ -392,7 +392,8 @@ const stationController = new StationController(
     revokeCertificationUseCase,
     updateTechnicianSpecificationUseCase,
     generateStationRevenueReportUseCase,
-    generateTechnicianPerformanceReportUseCase
+    generateTechnicianPerformanceReportUseCase,
+    processRestockRequestAdminUseCase
 );
 
 initializePassport(passport, userRepository);
