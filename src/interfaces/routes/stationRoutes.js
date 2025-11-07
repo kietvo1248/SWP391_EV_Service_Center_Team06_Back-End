@@ -21,6 +21,12 @@ const stationRouter = (controller) => {
     router.get('/reports/revenue', controller.getRevenueReport.bind(controller));
     router.get('/reports/performance', controller.getPerformanceReport.bind(controller));
 
+    // Duyệt Yêu cầu Nhập hàng (Dành cho Station Admin)
+    router.put('/restock-requests/:id/approve', authenticate, authorize(['STATION_ADMIN']), (req, res) => controller.approveRestockRequest(req, res));
+
+    // Từ chối Yêu cầu Nhập hàng (Dành cho Station Admin)
+    router.put('/restock-requests/:id/reject', authenticate, authorize(['STATION_ADMIN']), (req, res) => controller.rejectRestockRequest(req, res));
+
     return router;
 };
 
