@@ -268,7 +268,9 @@ const submitDiagnosisUseCase = new SubmitDiagnosis(
     serviceRecordRepository,
     quotationRepository,
     appointmentRepository,
-    prisma
+    partRepository,        
+    partUsageRepository,   
+    prisma                 
 );
 const completeTechnicianTaskUseCase = new CompleteTechnicianTask(
     serviceRecordRepository,

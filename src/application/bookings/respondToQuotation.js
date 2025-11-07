@@ -2,13 +2,14 @@
 const { AppointmentStatus, ServiceRecordStatus, PartUsageStatus } = require('@prisma/client');
 
 class RespondToQuotation {
-    constructor(appointmentRepository, serviceRecordRepository, partUsageRepository) { 
+    constructor(appointmentRepository, serviceRecordRepository, prisma) { 
         this.appointmentRepo = appointmentRepository;
         this.serviceRecordRepo = serviceRecordRepository;
-        this.partUsageRepo = partUsageRepository; 
+        this.prisma = prisma; // Sử dụng prisma client
     }
 
     async execute(appointmentId, customerId, didAccept) {
+        // (Logic kiểm tra appointment giữ nguyên)
         const appointment = await this.appointmentRepo.findByIdAndCustomer(appointmentId, customerId);
         if (!appointment) { throw new Error('Appointment not found or you are not the owner.'); }
         if (appointment.status !== AppointmentStatus.PENDING_APPROVAL) { throw new Error('No quotation is awaiting your approval.'); }
@@ -19,16 +20,21 @@ class RespondToQuotation {
 
         if (didAccept) {
             message = 'Quotation approved.';
-            // Kiểm tra xem KTV có yêu cầu phụ tùng nào không (status=REQUESTED)
-            const requestedParts = await this.partUsageRepo.findByServiceRecord(recordId, PartUsageStatus.REQUESTED);
             
+            //  (Logic): Dùng prisma để tìm requestedParts ---
+            // (partUsageRepo không còn ở đây)
+            const requestedParts = await this.prisma.partUsage.findMany({
+                where: { 
+                    serviceRecordId: recordId, 
+                    status: PartUsageStatus.REQUESTED 
+                }
+            });
+        
             let nextRecordStatus;
             if (requestedParts.length > 0) {
-                // Nếu CÓ, chuyển sang chờ IM xuất kho
                 nextRecordStatus = ServiceRecordStatus.WAITING_PARTS;
                 message += ' Service is now waiting for parts issuance.';
             } else {
-                // Nếu KHÔNG, KTV vào việc sửa chữa ngay
                 nextRecordStatus = ServiceRecordStatus.REPAIRING;
                 message += ' Repair will proceed.';
             }
@@ -41,8 +47,16 @@ class RespondToQuotation {
             message = 'Quotation rejected. Appointment has been cancelled.';
             await this.appointmentRepo.updateStatus(appointmentId, AppointmentStatus.CANCELLED);
             await this.serviceRecordRepo.update(recordId, { status: ServiceRecordStatus.CANCELLED });
-            // Hủy luôn các PartUsage đã yêu cầu
-            await this.partUsageRepo.updateStatusByRecordId(recordId, PartUsageStatus.CANCELLED);
+            
+            await this.prisma.partUsage.updateMany({
+                where: {
+                    serviceRecordId: recordId,
+                    status: PartUsageStatus.REQUESTED // Chỉ hủy những cái đang chờ
+                },
+                data: {
+                    status: PartUsageStatus.CANCELLED
+                }
+            });
         }
         return { message };
     }

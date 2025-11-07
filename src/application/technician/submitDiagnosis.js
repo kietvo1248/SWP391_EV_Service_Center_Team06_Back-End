@@ -1,71 +1,107 @@
 // Tệp: src/application/technician/submitDiagnosis.js
-const ServiceAppointmentEntity = require('../../domain/entities/ServiceAppointment'); 
-const QuotationEntity = require('../../domain/entities/Quotation'); 
-const { Decimal } = require('@prisma/client/runtime/library');
-const { ServiceRecordStatus, AppointmentStatus, PartUsageStatus } = require('@prisma/client');
+const { Prisma, AppointmentStatus, ServiceRecordStatus, PartUsageStatus } = require('@prisma/client');
 
 class SubmitDiagnosis {
-    constructor(serviceRecordRepository, quotationRepository, appointmentRepository, prismaClient) {
+    // Sửa Constructor: Thêm 2 repo cho việc tính toán và tạo partUsage
+    constructor(
+        serviceRecordRepository, 
+        quotationRepository, 
+        appointmentRepository, 
+        partRepository, // Thêm
+        partUsageRepository, // Thêm
+        prismaClient
+    ) {
         this.serviceRecordRepo = serviceRecordRepository;
         this.quotationRepo = quotationRepository;
         this.appointmentRepo = appointmentRepository;
+        this.partRepo = partRepository;
+        this.partUsageRepo = partUsageRepository;
         this.prisma = prismaClient;
     }
 
-    // THAY ĐỔI: Thêm partUsages (danh sách { partId, quantity })
-    async execute({ technicianId, serviceRecordId, estimatedCost, diagnosisNotes, partUsages = [] }) {
-        let updatedApptPrisma;
-        let createdQuotationPrisma;
-
-        await this.prisma.$transaction(async (tx) => {
-            const record = await this.serviceRecordRepo.findById(serviceRecordId);
-            if (!record || record.technicianId !== technicianId) {
-                throw new Error('Service record not found or not assigned to you.');
-            }
-            if (record.status !== ServiceRecordStatus.DIAGNOSING) {
-                throw new Error('Service must be in DIAGNOSING state to submit diagnosis.');
-            }
-
-            // 1. Cập nhật ghi chú và trạng thái ServiceRecord
-            await this.serviceRecordRepo.update(record.id, { 
-                staffNotes: diagnosisNotes,
-                status: ServiceRecordStatus.WAITING_APPROVAL // Chuyển sang chờ duyệt
-            }, tx);
-
-            // 2. Tạo PartUsage (với status REQUESTED)
-            if (partUsages.length > 0) {
-                const partIds = partUsages.map(p => p.partId);
-                const parts = await tx.part.findMany({ where: { id: { in: partIds } } });
-                if (parts.length !== partIds.length) {
-                    throw new Error("One or more parts are invalid.");
-                }
-
-                const partUsageData = parts.map(part => {
-                    const usage = partUsages.find(p => p.partId === part.id);
-                    if (!usage || usage.quantity <= 0) {
-                        throw new Error(`Invalid quantity for part ${part.name}`);
-                    }
-                    return {
-                        serviceRecordId: record.id,
-                        partId: part.id,
-                        quantity: usage.quantity,
-                        unitPrice: part.price,
-                        status: PartUsageStatus.REQUESTED // Trạng thái chờ IM xuất kho
-                    };
-                });
-                await tx.partUsage.createMany({ data: partUsageData });
-            }
-            // 3. Tạo Báo giá
-            createdQuotationPrisma = await this.quotationRepo.create({
-                serviceRecordId: record.id,
-                estimatedCost: new Decimal(estimatedCost),
-                creationDate: new Date(),
-            }, tx);
-            // 4. Cập nhật trạng thái Appointment -> PENDING_APPROVAL
-            updatedApptPrisma = await this.appointmentRepo.updateStatus(record.appointmentId, AppointmentStatus.PENDING_APPROVAL, tx);
-        });
+    // KTV không gửi 'estimatedCost' nữa, chỉ gửi 'partUsages'
+    async execute(serviceRecordId, actor, { diagnosisNotes, partUsages /* Xóa estimatedCost */ }) {
         
-        return { appointment: updatedApptPrisma, quotation: createdQuotationPrisma }; 
+        // Bọc trong transaction để đảm bảo tính toàn vẹn
+        return this.prisma.$transaction(async (tx) => {
+            // Bước 1: Xác thực (Giữ logic cũ)
+            const serviceRecord = await tx.serviceRecord.findUnique({
+                where: { id: serviceRecordId },
+                include: { appointment: true }
+            });
+            if (!serviceRecord || serviceRecord.technicianId !== actor.id) {
+                throw new Error("Service record not found or you are not assigned.");
+            }
+            if (serviceRecord.status !== ServiceRecordStatus.DIAGNOSING) {
+                throw new Error("Service record is not in diagnosing status.");
+            }
+
+            // --- SỬA LỖI LOGIC TÀI CHÍNH ---
+            let totalPartCost = 0;
+            const createdPartUsages = [];
+
+            if (partUsages && partUsages.length > 0) {
+                // Lấy ID của tất cả các part
+                const partIds = partUsages.map(p => p.partId);
+                
+                // Lấy giá của chúng từ CSDL
+                const partsFromDb = await tx.part.findMany({
+                    where: { id: { in: partIds } }
+                });
+
+                // Map giá vào
+                for (const requestedPart of partUsages) {
+                    const partInfo = partsFromDb.find(p => p.id === requestedPart.partId);
+                    if (!partInfo) {
+                        throw new Error(`Part ID ${requestedPart.partId} not found.`);
+                    }
+
+                    // Tính toán chi phí
+                    const unitPrice = partInfo.price;
+                    const quantity = requestedPart.quantity;
+                    totalPartCost += (Number(unitPrice) * quantity);
+
+                    // Tạo bản ghi PartUsage (chờ xuất kho)
+                    const newUsage = await tx.partUsage.create({
+                        data: {
+                            serviceRecordId: serviceRecordId,
+                            partId: partInfo.id,
+                            quantity: quantity,
+                            unitPrice: unitPrice, // Lưu giá tại thời điểm báo giá
+                            status: PartUsageStatus.REQUESTED
+                        }
+                    });
+                    createdPartUsages.push(newUsage);
+                }
+            }
+            
+            // Hiện tại, estimatedCost = tổng tiền phụ tùng
+            const estimatedCost = totalPartCost;
+
+            // Bước 3: Tạo Báo giá (Quotation) với chi phí ĐÃ TÍNH TOÁN
+            const newQuotation = await tx.quotation.create({
+                data: {
+                    serviceRecordId: serviceRecordId,
+                    estimatedCost: estimatedCost, // Sử dụng chi phí hệ thống tự tính
+                }
+            });
+
+            // Bước 4: Cập nhật trạng thái
+            await tx.serviceRecord.update({
+                where: { id: serviceRecordId },
+                data: { 
+                    status: ServiceRecordStatus.WAITING_APPROVAL,
+                    staffNotes: diagnosisNotes
+                }
+            });
+            const updatedAppointment = await tx.serviceAppointment.update({
+                where: { id: serviceRecord.appointmentId },
+                data: { status: AppointmentStatus.PENDING_APPROVAL }
+            });
+
+            return { appointment: updatedAppointment, quotation: newQuotation };
+        });
     }
 }
+
 module.exports = SubmitDiagnosis;
