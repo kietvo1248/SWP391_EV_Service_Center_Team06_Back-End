@@ -38,57 +38,34 @@ class StationController {
 
     async updateTechnicianSpecification(req, res) {
         try {
-            // Lấy cả hai ID từ URL
+            const actor = req.user; // (STATION_ADMIN)
+            
+            // stationId từ URL dùng để định tuyến, nhưng logic nghiệp vụ
+            // sẽ dùng stationId của actor (người đã đăng nhập) để bảo mật.
             const { stationId, technicianId } = req.params;
+            
             const { specialization } = req.body;
 
-            // 1. Kiểm tra dữ liệu đầu vào
-            if (typeof specialization === 'undefined') {
-                return res.status(400).json({ error: 'Dữ liệu chuyên môn là bắt buộc.' });
+            const updatedProfile = await this.updateTechnicianSpecificationUseCase.execute(
+                actor, 
+                technicianId, 
+                specialization
+            );
+
+            res.status(200).json(updatedProfile);
+
+        } catch (error) {
+            console.error("Error in updateTechnicianSpecification:", error.message);
+            if (error.message.includes("Forbidden")) {
+                return res.status(403).json({ message: error.message });
             }
-
-            /* *
-             * Kiểm tra xem kỹ thuật viên này có thực sự thuộc trạm này không.
-             * (Giả định model Staff/User của bạn có một trường 'stationId')
-             */
-            const technician = await this.prisma.staff.findFirst({
-                where: {
-                    id: technicianId,
-                    stationId: stationId, // Phải khớp với trạm
-                    role: 'TECHNICIAN'  // Phải là Kỹ thuật viên
-                }
-            });
-
-            // Nếu không tìm thấy, có nghĩa là Kỹ thuật viên này không tồn tại,
-            // không phải là Technician, hoặc không thuộc Trạm này.
-            if (!technician) {
-                return res.status(404).json({
-                    error: 'Không tìm thấy kỹ thuật viên này tại trạm được chỉ định.'
-                });
+            if (error.message.includes("not found")) {
+                return res.status(404).json({ message: error.message });
             }
-
-            // 3. Tiến hành cập nhật
-            // Vì đã xác minh ở bước 2, chúng ta chỉ cần cập nhật bằng technicianId
-            const updatedTechnician = await this.prisma.staff.update({
-                where: {
-                    id: technicianId,
-                },
-                data: {
-                    specialization: specialization,
-                },
-            });
-
-            // 4. Trả về kết quả thành công
-            res.status(200).json(updatedTechnician);
-
-        } catch (e) {
-            // Xử lý lỗi (ví dụ: P2025 nếu technicianId không tồn tại ngay từ đầu)
-            if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
-                return res.status(404).json({ error: 'ID Kỹ thuật viên không tồn tại.' });
+            if (error.message.includes("cannot be empty")) {
+                return res.status(400).json({ message: error.message });
             }
-
-            console.error(e);
-            res.status(500).json({ error: 'Lỗi máy chủ nội bộ.' });
+            res.status(500).json({ message: "Internal server error" });
         }
     }
 

@@ -69,7 +69,10 @@ paths:
       summary: Callback sau khi Google xác thực
       security: [] # Tắt bảo mật
       responses:
-        '200': { description: Xác thực Google thành công., content: { application/json: { schema: { $ref: '#/components/schemas/GoogleOAuthResponse' } } } }
+        # --- (SỬA LỖI OAUTH) ---
+        '302': 
+          description: Chuyển hướng (Redirect) trở lại Frontend với token (ví dụ: /login-success?token=...)
+        # --- (KẾT THÚC SỬA LỖI) ---
         '401': { $ref: '#/components/responses/UnauthorizedError' }
 
   /auth/forgot-password:
@@ -137,8 +140,6 @@ paths:
   # ===============================================
   # === [V] QUẢN LÝ XE (VEHICLE)
   # ===============================================
-  # (Based on /api/vehicle prefix from app.js)
-  
   /vehicle/models:
     get:
       tags: ['[V] Quản lý Xe (Vehicle)']
@@ -187,7 +188,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Vehicle'
-        '400': { $ref: '#/components/responses/BadRequestError' } # e.g., VIN duplicate, battery incompatible
+        '400': { $ref: '#/components/responses/BadRequestError' } 
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
   
@@ -241,7 +242,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Vehicle'
-        '400': { $ref: '#/components/responses/BadRequestError' } # e.g., battery incompatible
+        '400': { $ref: '#/components/responses/BadRequestError' } 
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
@@ -254,7 +255,7 @@ paths:
       parameters:
         - { $ref: '#/components/parameters/VehicleIdPath' }
       responses:
-        '204': # No Content
+        '204': 
           description: Xóa thành công.
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
@@ -263,14 +264,10 @@ paths:
   # ===============================================
   # === [1] LUỒNG KHÁCH HÀNG (CUSTOMER)
   # ===============================================
-  # (ĐÃ XÓA POST /vehicle/add-vehicle KHỎI ĐÂY VÌ ĐÃ CHUYỂN LÊN TRÊN)
-
   /appointments/my-vehicles:
     get:
       tags: ['[1] Luồng Khách hàng (Customer)']
       summary: '(L1.2) Lấy danh sách xe của tôi (Để chọn đặt lịch)'
-      # Ghi chú: API này vẫn tồn tại song song với /vehicle/my-vehicles
-      # API này có thể đã được tối ưu cho việc đặt lịch hẹn.
       responses:
         '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Vehicle' } } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
@@ -288,7 +285,6 @@ paths:
     get:
       tags: ['[1] Luồng Khách hàng (Customer)']
       summary: '(L1.3b) Lấy gợi ý dịch vụ (Theo KM)'
-      description: Cần sửa logic này để dùng schema vehicle mới (không có currentMileage)
       parameters:
         - { name: mileage, in: query, required: true, schema: { type: integer }, description: "Số KM hiện tại (Người dùng tự nhập)" }
         - { name: model, in: query, required: true, schema: { type: string }, description: "Dòng xe, vd: VF8" }
@@ -324,7 +320,7 @@ paths:
       requestBody: { $ref: '#/components/requestBodies/AppointmentInput' }
       responses:
         '201': { description: Tạo lịch hẹn thành công (Trạng thái PENDING)., content: { application/json: { schema: { $ref: '#/components/schemas/ServiceAppointment' } } } }
-        '400': { $ref: '#/components/responses/BadRequestError' } # Slot đã đầy
+        '400': { $ref: '#/components/responses/BadRequestError' } 
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
@@ -336,7 +332,7 @@ paths:
       responses:
         '200': { description: Thành công., content: { application/json: { schema: { $ref: '#/components/schemas/AppointmentDetailSharedView' } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' } # Không phải chủ
+        '403': { $ref: '#/components/responses/ForbiddenError' } 
         '404': { $ref: '#/components/responses/NotFoundError' }
 
   /appointments/{id}/respond-quotation:
@@ -363,8 +359,6 @@ paths:
   # ===============================================
   # === [2] LUỒNG NHÂN VIÊN (STAFF)
   # ===============================================
-
-  # --- (A) Xử lý Luồng 1 (Online) ---
   /staff/appointments:
     get:
       tags: ['[2] Luồng Nhân viên (Staff)']
@@ -419,7 +413,6 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
   
-  # --- (B) Xử lý Luồng 2 (Walk-in) ---
   /staff/customers/search:
     get:
       tags: ['[2] Luồng Nhân viên (Staff)']
@@ -465,7 +458,6 @@ paths:
         '201': { description: Tạo và bắt đầu lịch hẹn thành công., content: { application/json: { schema: { properties: { message: { type: string }, data: { properties: { appointment: { $ref: '#/components/schemas/ServiceAppointment' }, serviceRecord: { $ref: '#/components/schemas/ServiceRecord' } } } } } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
   
-  # --- (C) Xử lý chung (Sửa chữa, Hoàn tất, Thanh toán) ---
   /staff/quotations/{id}/revise:
     put:
       tags: ['[2] Luồng Nhân viên (Staff)']
@@ -511,7 +503,6 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
 
-  # --- (D) Xử lý Luồng 3 (Duyệt nhập kho - Station Admin) ---
   /staff/restock-requests:
     get:
       tags: ['[2] Luồng Nhân viên (Staff)']
@@ -561,6 +552,7 @@ paths:
     post:
       tags: ['[3] Luồng Kỹ thuật viên (Technician)']
       summary: '(L3.2) Gửi chẩn đoán và báo giá (-> PENDING_APPROVAL)'
+      description: Gửi chẩn đoán và danh sách phụ tùng. Hệ thống sẽ tự tính giá.
       parameters: [ { $ref: '#/components/parameters/ServiceRecordIdPath' } ]
       requestBody: { $ref: '#/components/requestBodies/DiagnosisInput' }
       responses:
@@ -633,7 +625,7 @@ paths:
       parameters: [ { $ref: '#/components/parameters/ServiceRecordIdPath' } ]
       responses:
         '200': { description: Xuất kho thành công., content: { application/json: { schema: { $ref: '#/components/schemas/ServiceRecord' } } } }
-        '400': { $ref: '#/components/responses/BadRequestError' } # Hết hàng
+        '400': { $ref: '#/components/responses/BadRequestError' } 
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
@@ -655,7 +647,7 @@ paths:
       requestBody: { $ref: '#/components/requestBodies/ReceiveStockInput' }
       responses:
         '200': { description: Nhận hàng thành công., content: { application/json: { schema: { $ref: '#/components/schemas/InventoryItem' } } } }
-        '400': { $ref: '#/components/responses/BadRequestError' } # Request not APPROVED
+        '400': { $ref: '#/components/responses/BadRequestError' } 
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
@@ -726,7 +718,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' } # Không tìm thấy trạm hoặc nhân viên
+        '404': { $ref: '#/components/responses/NotFoundError' } 
 
   /station/certifications:
     get:
@@ -748,7 +740,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' } # Không tìm thấy KTV hoặc Chứng chỉ
+        '404': { $ref: '#/components/responses/NotFoundError' } 
         '409': { description: "Lỗi trùng lặp (KTV đã có chứng chỉ này)" }
 
   /station/technicians/{technicianId}/certifications/{certificationId}:
@@ -762,7 +754,7 @@ paths:
         '200': { description: Thu hồi thành công., content: { application/json: { schema: { properties: { message: { type: string } } } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' } # Không tìm thấy bản gán
+        '404': { $ref: '#/components/responses/NotFoundError' } 
 
   /station/stations/{stationId}/technicians/{technicianId}/specialization:
     put:
@@ -777,7 +769,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' } # Không tìm thấy KTV
+        '404': { $ref: '#/components/responses/NotFoundError' } 
 
   /station/stations/{stationId}/reports/revenue:
     get:
@@ -984,21 +976,19 @@ components:
         partId: { type: string, format: uuid }
         inventoryManagerId: { type: string, format: uuid }
         serviceCenterId: { type: string, format: uuid }
-        stationAdminId: { type: string, format: uuid, nullable: true } # Đã sửa, đây phải là adminId hoặc stationAdminId
+        stationAdminId: { type: string, format: uuid, nullable: true } 
         adminId: { type: string, format: uuid, nullable: true }
 
-    # --- SCHEMAS MỚI CHO LUỒNG 6 (STATION) ---
     Certification:
       type: object
       properties:
         id: { type: string, format: uuid }
         name: { type: string, example: "Chứng chỉ sửa chữa điện VF E-Series" }
-        description: { type: string, nullable: true } # Đã sửa (thiếu 'description')
+        description: { type: string, nullable: true } 
         
     TechnicianCertification:
       type: object
       properties:
-        # (Schema này nên là StaffCertification, không phải TechnicianCertification)
         staffId: { type: string, format: uuid }
         certificationId: { type: string, format: uuid }
         issueDate: { type: string, format: date-time }
@@ -1027,7 +1017,6 @@ components:
         totalTasksCompleted: { type: integer }
         averageRating: { type: number, format: double, nullable: true }
         revenueGenerated: { type: number, format: double }
-    # ---------------------------------------------
 
     UserSummary: 
       type: object
@@ -1072,7 +1061,7 @@ components:
         fullName: { type: string }
         phoneNumber: { type: string, nullable: true }
 
-    VehicleInfoSummary: # (Schema này cũ, không còn chính xác 100%
+    VehicleInfoSummary: 
       type: object
       properties:
         brand: { type: string }
@@ -1104,7 +1093,7 @@ components:
         - type: object
           properties:
             customer: { $ref: '#/components/schemas/User' } 
-            vehicle: { $ref: '#/components/schemas/Vehicle' } # (Cập nhật lên schema Vehicle mới)
+            vehicle: { $ref: '#/components/schemas/Vehicle' } 
             serviceCenterName: { type: string, nullable: true } 
             requestedServices:
               type: array
@@ -1260,7 +1249,6 @@ components:
                phoneNumber: { type: string }
                email: { type: string, format: email, nullable: true }
 
-    # --- (CẬP NHẬT) Request Body cho Thêm Xe ---
     CreateVehicleInput:
       required: true
       content:
@@ -1276,7 +1264,6 @@ components:
               licensePlate: { type: string, example: "51K-123.45", nullable: true }
               color: { type: string, example: "Đen", nullable: true }
     
-    # --- (MỚI) Request Body cho Cập nhật Xe ---
     UpdateVehicleInput:
       required: true
       content:
@@ -1322,23 +1309,26 @@ components:
       required: true
       content: { application/json: { schema: { type: object, required: [technicianId], properties: { technicianId: { type: string, format: uuid } } } } }
 
+    # --- (SỬA LỖI TÀI CHÍNH) ---
     DiagnosisInput:
       required: true
       content:
         application/json:
           schema:
             type: object
-            required: [estimatedCost]
+            # (Xóa 'required: [estimatedCost]')
             properties:
-              estimatedCost: { type: number, format: double, minimum: 0 }
+              # (Xóa 'estimatedCost')
               diagnosisNotes: { type: string, nullable: true }
               partUsages: 
                 type: array
+                description: "Danh sách phụ tùng KTV yêu cầu"
                 items:
                   type: object
                   properties:
                     partId: { type: string, format: uuid }
                     quantity: { type: integer, minimum: 1 }
+    # --- (KẾT THÚC SỬA LỖI) ---
 
     RequestPartsInput:
       required: true
@@ -1411,7 +1401,6 @@ components:
               requestId: { type: string, format: uuid }
               quantityReceived: { type: integer, minimum: 1 }
 
-    # --- REQUEST BODIES MỚI CHO LUỒNG 6 (STATION) ---
     UpdateStaffStatusInput:
       required: true
       content:
@@ -1520,7 +1509,6 @@ components:
       description: "Token tạm thời để reset password. Ví dụ: 'Bearer {resetToken}'"
       schema: { type: string }
     
-    # --- (MỚI) Parameters cho Luồng Xe ---
     VehicleIdPath:
       name: id
       in: path
@@ -1534,7 +1522,6 @@ components:
       description: ID của Dòng xe (Vehicle Model)
       schema: { type: string, format: uuid }
       
-    # --- PARAMETERS MỚI CHO LUỒNG 6 (STATION) ---
     StationIdPath:
       name: stationId
       in: path

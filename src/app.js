@@ -298,7 +298,10 @@ const updateStaffStatusUseCase = new UpdateStaffStatus(userRepository);
 const listAllCertificationsUseCase = new ListAllCertifications(certificationRepository);
 const assignCertificationUseCase = new AssignCertification(certificationRepository);
 const revokeCertificationUseCase = new RevokeCertification(certificationRepository);
-const updateTechnicianSpecificationUseCase = new UpdateTechnicianSpecification(technicianProfileRepository);
+const updateTechnicianSpecificationUseCase = new UpdateTechnicianSpecification(
+    technicianProfileRepository, 
+    userRepository
+);
 // --------------------------------------------------
 const generateStationRevenueReportUseCase = new GenerateStationRevenueReport(invoiceRepository);
 const generateTechnicianPerformanceReportUseCase = new GenerateTechnicianPerformanceReport(serviceRecordRepository);
