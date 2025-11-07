@@ -1,21 +1,50 @@
-// dùng để update chuyên ngành cho kỹ thuật viên
+// Tệp: src/application/station/updateTechnicianSpecification.js
 const { Role } = require('@prisma/client');
-class updateTechnicianSpecification {
-    constructor(technicianProfileRepository, userRepository) {
-        this.profileRepo = technicianProfileRepository;
-        this.userRepo = userRepository;
-    }
-    async execute(staffId, { specialization }, actor) {
-        if (![Role.STATION_ADMIN, Role.ADMIN].includes(actor.role)) throw new Error("Forbidden.");
 
-        const targetUser = await this.userRepo.findById(staffId);
-        if (!targetUser) throw new Error("Technician not found.");
-        if (targetUser.role !== Role.TECHNICIAN) throw new Error("This user is not a technician.");
-        if (actor.role === Role.STATION_ADMIN && targetUser.serviceCenterId !== actor.serviceCenterId) {
-            throw new Error("Forbidden: Cannot manage staff outside your center.");
+class UpdateTechnicianSpecification {
+    constructor(technicianProfileRepository, userRepository) {
+        this.technicianProfileRepo = technicianProfileRepository;
+        this.userRepo = userRepository; // Dùng để kiểm tra trạm
+    }
+
+    async execute(actor, technicianId, specialization) {
+        // 1. Kiểm tra quyền của người thực hiện
+        if (actor.role !== Role.STATION_ADMIN) {
+            throw new Error("Forbidden: Only Station Admins can update specifications.");
+        }
+        if (!actor.serviceCenterId) {
+            throw new Error("Forbidden: Actor is not assigned to any station.");
         }
 
-        return this.profileRepo.upsert(staffId, specialization);
+        // 2. Kiểm tra KTV mục tiêu
+        const technician = await this.userRepo.findById(technicianId);
+        if (!technician || technician.role !== Role.TECHNICIAN) {
+            throw new Error("Technician not found.");
+        }
+
+        // 3. (Quan trọng) Kiểm tra KTV có thuộc trạm của Trưởng trạm không
+        if (technician.serviceCenterId !== actor.serviceCenterId) {
+            throw new Error("Forbidden: This technician does not belong to your station.");
+        }
+        
+        if (typeof specialization === 'undefined' || specialization === null) {
+            throw new Error("Specialization cannot be empty.");
+        }
+
+        // 4. Tìm hoặc Tạo Profile
+        let profile = await this.technicianProfileRepo.findByUserId(technicianId);
+
+        if (profile) {
+            // Nếu đã có -> Cập nhật
+            return this.technicianProfileRepo.update(profile.id, { specialization });
+        } else {
+            // Nếu chưa có -> Tạo mới
+            return this.technicianProfileRepo.create({
+                userId: technicianId,
+                specialization: specialization
+            });
+        }
     }
 }
-module.exports = updateTechnicianSpecification;
+
+module.exports = UpdateTechnicianSpecification;

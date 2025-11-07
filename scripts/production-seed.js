@@ -1,6 +1,7 @@
 /**
  * Production seed script cho Render deployment
  * Tạo dữ liệu mẫu cho production environment
+ * (ĐÃ CẬP NHẬT theo schema mới: VehicleModel, BatteryType)
  */
 
 const { PrismaClient } = require('@prisma/client');
@@ -22,9 +23,6 @@ async function createProductionSeedData() {
                 name: 'EV Service Center Hồ Chí Minh',
                 address: '123 Nguyễn Văn Cừ, Quận 5, TP.HCM',
                 phoneNumber: '028-1234-5678',
-                openingTime: '08:00',
-                closingTime: '17:00',
-                slotDurationMinutes: 60,
                 capacityPerSlot: 2
             }
         });
@@ -37,7 +35,7 @@ async function createProductionSeedData() {
             where: { email: 'admin@evservice.com' },
             update: {},
             create: {
-                userCode: 'ADMIN001',
+                // (Lưu ý: userCode không có trong schema mới nhất, đã xóa)
                 fullName: 'System Administrator',
                 email: 'admin@evservice.com',
                 passwordHash: adminPassword,
@@ -56,7 +54,6 @@ async function createProductionSeedData() {
             where: { email: 'station@evservice.com' },
             update: {},
             create: {
-                userCode: 'STATION001',
                 fullName: 'Station Manager',
                 email: 'station@evservice.com',
                 passwordHash: stationAdminPassword,
@@ -75,7 +72,6 @@ async function createProductionSeedData() {
             where: { email: 'staff@evservice.com' },
             update: {},
             create: {
-                userCode: 'STAFF001',
                 fullName: 'Nguyễn Văn Staff',
                 email: 'staff@evservice.com',
                 passwordHash: staffPassword,
@@ -94,7 +90,6 @@ async function createProductionSeedData() {
             where: { email: 'tech@evservice.com' },
             update: {},
             create: {
-                userCode: 'TECH001',
                 fullName: 'Lê Văn Technician',
                 email: 'tech@evservice.com',
                 passwordHash: techPassword,
@@ -113,7 +108,6 @@ async function createProductionSeedData() {
             where: { email: 'customer@example.com' },
             update: {},
             create: {
-                userCode: 'CUST001',
                 fullName: 'Nguyễn Văn Customer',
                 email: 'customer@example.com',
                 passwordHash: customerPassword,
@@ -126,84 +120,38 @@ async function createProductionSeedData() {
 
         // 7. Tạo Service Types
         console.log('🔧 Tạo các loại dịch vụ...');
-        const serviceTypes = [
-            {
-                id: 'service-type-1',
-                name: 'Bảo dưỡng định kỳ',
-                description: 'Kiểm tra tổng quát và bảo dưỡng theo khuyến nghị của nhà sản xuất'
-            },
-            {
-                id: 'service-type-2',
-                name: 'Sửa chữa pin',
-                description: 'Thay thế và sửa chữa pin xe điện'
-            },
-            {
-                id: 'service-type-3',
-                name: 'Kiểm tra hệ thống điện',
-                description: 'Kiểm tra và sửa chữa hệ thống điện tử'
-            },
-            {
-                id: 'service-type-4',
-                name: 'Dịch vụ lốp',
-                description: 'Thay lốp, cân bằng động, đảo lốp'
-            },
-            {
-                id: 'service-type-5',
-                name: 'Hệ thống phanh',
-                description: 'Kiểm tra và thay má phanh, dầu phanh'
-            }
+        const serviceTypesData = [
+            { id: 'service-type-1', name: 'Bảo dưỡng định kỳ' },
+            { id: 'service-type-2', name: 'Sửa chữa pin' },
+            { id: 'service-type-3', name: 'Kiểm tra hệ thống điện' },
+            { id: 'service-type-4', name: 'Dịch vụ lốp' },
+            { id: 'service-type-5', name: 'Hệ thống phanh' }
         ];
-
-        for (const serviceType of serviceTypes) {
-            await prisma.serviceType.upsert({
+        const serviceTypes = [];
+        for (const serviceType of serviceTypesData) {
+            const st = await prisma.serviceType.upsert({
                 where: { id: serviceType.id },
                 update: {},
                 create: serviceType
             });
+            serviceTypes.push(st);
         }
         console.log('✅ Service Types đã được tạo');
 
         // 8. Tạo Parts và Inventory
         console.log('📦 Tạo phụ tùng và kho hàng...');
-        const parts = [
-            {
-                id: 'part-1',
-                sku: 'VF-TYRE-001',
-                name: 'Lốp VinFast VF8 (235/55 R19)',
-                description: 'Lốp chuyên dụng cho VinFast VF8',
-                price: 4500000
-            },
-            {
-                id: 'part-2',
-                sku: 'VF-BAT-COOL',
-                name: 'Nước làm mát pin (1L)',
-                description: 'Chất làm mát pin chuyên dụng',
-                price: 350000
-            },
-            {
-                id: 'part-3',
-                sku: 'VF-FILTER-AC',
-                name: 'Lọc gió điều hòa HEPA',
-                description: 'Lọc gió điều hòa cao cấp',
-                price: 780000
-            },
-            {
-                id: 'part-4',
-                sku: 'VF-BRAKE-PAD',
-                name: 'Má phanh trước VinFast',
-                description: 'Má phanh chuyên dụng cho xe VinFast',
-                price: 2100000
-            }
+        const partsData = [
+            { id: 'part-1', sku: 'VF-TYRE-001', name: 'Lốp VinFast VF8 (235/55 R19)', price: 4500000 },
+            { id: 'part-2', sku: 'VF-BAT-COOL', name: 'Nước làm mát pin (1L)', price: 350000 },
+            { id: 'part-3', sku: 'VF-FILTER-AC', name: 'Lọc gió điều hòa HEPA', price: 780000 },
+            { id: 'part-4', sku: 'VF-BRAKE-PAD', name: 'Má phanh trước VinFast', price: 2100000 }
         ];
-
-        for (const part of parts) {
+        for (const part of partsData) {
             await prisma.part.upsert({
                 where: { id: part.id },
                 update: {},
                 create: part
             });
-
-            // Tạo inventory item cho service center
             await prisma.inventoryItem.create({
                 data: {
                     partId: part.id,
@@ -215,27 +163,55 @@ async function createProductionSeedData() {
         }
         console.log('✅ Parts và Inventory đã được tạo');
 
-        // 9. Tạo Vehicle mẫu
+        // --- (SỬA LỖI 1) ---
+        // 9. Tạo Dữ liệu Gốc cho Xe (Model và Pin)
+        console.log('🚗 Tạo Dòng xe (Model) và Loại pin (Battery)...');
+        const battery90 = await prisma.batteryType.upsert({
+            where: { name: 'Pin LFP 90kWh (Thuê)' },
+            update: {},
+            create: { id: 'bat-lfp-90', name: 'Pin LFP 90kWh (Thuê)', capacityKwh: 90 },
+        });
+
+        const modelVF8 = await prisma.vehicleModel.upsert({
+            where: { id: 'model-vf8' },
+            update: {},
+            create: {
+                id: 'model-vf8',
+                brand: 'VinFast',
+                name: 'VF8',
+                compatibleBatteries: {
+                    connect: [{ id: battery90.id }] // VF8 tương thích với pin 90
+                }
+            },
+            include: { compatibleBatteries: true }
+        });
+        console.log('✅ Đã tạo Model và Pin.');
+
+        // 10. Tạo Vehicle mẫu (Sử dụng schema mới)
         console.log('🚗 Tạo xe mẫu...');
         const vehicle = await prisma.vehicle.upsert({
             where: { vin: 'VF8VIN123456789' },
             update: {},
             create: {
-                make: 'VinFast',
-                model: 'VF8',
+                // make: 'VinFast', (XÓA)
+                // model: 'VF8', (XÓA)
+                // currentMileage: 15000, (XÓA)
+                // lastServiceDate: new Date('2024-01-15'), (XÓA)
+                
+                vehicleModelId: modelVF8.id, // (THÊM)
+                batteryId: modelVF8.compatibleBatteries[0].id, // (THÊM)
                 year: 2023,
                 vin: 'VF8VIN123456789',
                 licensePlate: '51A-12345',
-                currentMileage: 15000,
-                lastServiceDate: new Date('2024-01-15'),
                 ownerId: customer.id
             }
         });
-        console.log('✅ Vehicle:', vehicle.make, vehicle.model);
+        console.log('✅ Vehicle:', modelVF8.brand, modelVF8.name);
+        // --- (KẾT THÚC SỬA LỖI 1) ---
 
-        // 10. Tạo Appointment mẫu
+        // 11. Tạo Appointment mẫu
         console.log('📅 Tạo lịch hẹn mẫu...');
-        const appointment = await prisma.serviceAppointment.create({
+        await prisma.serviceAppointment.create({
             data: {
                 appointmentDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 ngày sau
                 status: 'PENDING',
@@ -245,8 +221,8 @@ async function createProductionSeedData() {
                 serviceCenterId: serviceCenter.id,
                 requestedServices: {
                     create: [
-                        { serviceTypeId: 'service-type-1' }, // Bảo dưỡng định kỳ
-                        { serviceTypeId: 'service-type-5' }  // Hệ thống phanh
+                        { serviceTypeId: serviceTypes[0].id }, // Bảo dưỡng định kỳ
+                        { serviceTypeId: serviceTypes[4].id }  // Hệ thống phanh
                     ]
                 }
             }
@@ -269,7 +245,6 @@ async function createProductionSeedData() {
     }
 }
 
-// Chạy nếu file được gọi trực tiếp
 if (require.main === module) {
     createProductionSeedData()
         .then(() => {

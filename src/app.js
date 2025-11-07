@@ -268,9 +268,9 @@ const submitDiagnosisUseCase = new SubmitDiagnosis(
     serviceRecordRepository,
     quotationRepository,
     appointmentRepository,
-    partRepository,
-    partUsageRepository,
-    prisma
+    partRepository,        
+    partUsageRepository,   
+    prisma                 
 );
 const completeTechnicianTaskUseCase = new CompleteTechnicianTask(
     serviceRecordRepository,
@@ -282,7 +282,10 @@ const completeTechnicianTaskUseCase = new CompleteTechnicianTask(
 const viewInventoryUseCase = new ViewInventory(inventoryItemRepository);
 const updateStockQuantityUseCase = new UpdateStockQuantity(inventoryItemRepository);
 const listRequestsForIssuingUseCase = new ListRequestsForIssuing(serviceRecordRepository); 
-const issuePartsForServiceUseCase = new IssuePartsForService(serviceRecordRepository, inventoryItemRepository, partUsageRepository, appointmentRepository); // SỬA DI
+const issuePartsForServiceUseCase = new IssuePartsForService(serviceRecordRepository, 
+    inventoryItemRepository, 
+    partUsageRepository, 
+    prisma); // SỬA DI
 const createRestockRequestUseCase = new CreateRestockRequest(restockRequestRepository, partRepository); 
 const receiveStockUseCase = new ReceiveStock(inventoryItemRepository, restockRequestRepository, prisma); // SỬA DI (thêm prisma)
 // Admin (Luồng 3)
@@ -295,9 +298,12 @@ const updateStaffStatusUseCase = new UpdateStaffStatus(userRepository);
 const listAllCertificationsUseCase = new ListAllCertifications(certificationRepository);
 const assignCertificationUseCase = new AssignCertification(certificationRepository);
 const revokeCertificationUseCase = new RevokeCertification(certificationRepository);
-const updateTechnicianSpecificationUseCase = new UpdateTechnicianSpecification(technicianProfileRepository);
+const updateTechnicianSpecificationUseCase = new UpdateTechnicianSpecification(
+    technicianProfileRepository, 
+    userRepository
+);
 // --------------------------------------------------
-const generateStationRevenueReportUseCase = new GenerateStationRevenueReport(serviceRecordRepository);
+const generateStationRevenueReportUseCase = new GenerateStationRevenueReport(invoiceRepository);
 const generateTechnicianPerformanceReportUseCase = new GenerateTechnicianPerformanceReport(serviceRecordRepository);
 
 

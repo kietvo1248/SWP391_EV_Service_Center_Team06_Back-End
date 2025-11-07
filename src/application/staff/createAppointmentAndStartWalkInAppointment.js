@@ -33,6 +33,7 @@ class CreateAndStartWalkInAppointment {
         const appointmentDateTime = new Date(appointmentDate);
 
         // --- 1. VALIDATIONS ---
+        // (Logic validations của bạn giữ nguyên, đã rất tốt)
         const [customer, vehicle, technician, center] = await Promise.all([
             this.userRepo.findById(customerId),
             this.vehicleRepo.findByIdAndOwner(vehicleId, customerId),
@@ -59,10 +60,11 @@ class CreateAndStartWalkInAppointment {
             throw new Error("At least one service must be selected.");
         }
         
-        // --- 2. TRANSACTION ---
+        // --- 2. TRANSACTION (ĐÃ SỬA LỖI RACE CONDITION) ---
         try {
+            // Thêm { isolationLevel: 'Serializable' }
             const result = await this.prisma.$transaction(async (tx) => {
-                // 2a. Kiểm tra Slot (Tái sử dụng logic CreateAppointment)
+                // 2a. Kiểm tra Slot
                 const capacity = center.capacityPerSlot;
                 const existingCount = await tx.serviceAppointment.count({
                     where: {
@@ -114,8 +116,15 @@ class CreateAndStartWalkInAppointment {
                 });
 
                 return { newAppointment, newServiceRecord };
+            }, {
+                // Đây là dòng quan trọng nhất để sửa lỗi
+                isolationLevel: 'Serializable',
+                maxWait: 5000,
+                timeout: 10000
             });
-            // 3. Trả về Entities
+            // --- KẾT THÚC SỬA LỖI ---
+
+            // 3. Trả về Entities (Giữ nguyên logic)
             const appEntity = new ServiceAppointmentEntity(
                 result.newAppointment.id,
                 result.newAppointment.customerId,
@@ -140,8 +149,7 @@ class CreateAndStartWalkInAppointment {
 
         } catch (error) {
             console.error("Error creating walk-in appointment:", error.message);
-            // Ném lại lỗi nghiệp vụ
-            if (error.message.includes("slot") || error.message.includes("service types") || error.message.includes("technician")) {
+            if (error.message.includes("slot") || error.message.includes("service types") || error.message.includes("technician") || error instanceof Prisma.PrismaClientKnownRequestError) {
                 throw error;
             }
             throw new Error("Failed to create walk-in appointment.");

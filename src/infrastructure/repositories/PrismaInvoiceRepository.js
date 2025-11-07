@@ -1,4 +1,5 @@
 const IInvoiceRepository = require('../../domain/repositories/IInvoiceRepository');
+const { Prisma, InvoiceStatus } = require('@prisma/client'); // Import Status
 
 class PrismaInvoiceRepository extends IInvoiceRepository {
     constructor(prismaClient) {
@@ -25,23 +26,32 @@ class PrismaInvoiceRepository extends IInvoiceRepository {
     }
 
     async getRevenueByCenter(serviceCenterId, startDate, endDate) {
+        
+        // 1. (Sửa lỗi 2) Tạo điều kiện where cơ bản.
+        // issueDate nằm ở cấp Invoice, không phải Appointment.
+        const whereConditions = {
+            status: InvoiceStatus.PAID, // An toàn hơn khi dùng Enum
+            issueDate: { // Lọc ngày tháng phải ở đây
+                gte: startDate,
+                lte: endDate
+            }
+        };
+
+        // 2. (Sửa lỗi 1) Chỉ thêm bộ lọc trạm nếu serviceCenterId tồn tại (không phải null)
+        if (serviceCenterId) {
+            whereConditions.serviceRecord = {
+                appointment: {
+                    serviceCenterId: serviceCenterId
+                }
+            };
+        }
+
         const result = await this.prisma.invoice.aggregate({
             _sum: { totalAmount: true },
             _count: { id: true },
-            where: {
-                status: 'PAID',
-                serviceRecord: {
-                    appointment: {
-                        serviceCenterId: serviceCenterId,
-                        // Lọc theo ngày hóa đơn được phát hành
-                        issueDate: { 
-                            gte: startDate,
-                            lte: endDate
-                        }
-                    }
-                }
-            }
+            where: whereConditions // Sử dụng điều kiện động
         });
+        
         return {
             totalRevenue: result._sum.totalAmount || 0,
             totalInvoices: result._count.id || 0,
