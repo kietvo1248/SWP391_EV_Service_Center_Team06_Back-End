@@ -1,22 +1,39 @@
-const IInventoryItemRepository = require('../../domain/repositories/IInventoryItemRepository');
+// Tệp: src/domain/repositories/IPartUsageRepository.js
+class IPartUsageRepository {
+    
+    /**
+     * Tạo một bản ghi sử dụng phụ tùng mới
+     * (Dùng trong submitDiagnosis)
+     * @param {object} data - Dữ liệu PartUsage
+     * @param {object} tx - (Tùy chọn) Prisma Transaction Client
+     * @returns {Promise<PartUsage>}
+     */
+    async create(data, tx) {
+        throw new Error('Method not implemented');
+    }
 
-class PrismaInventoryItemRepository extends IInventoryItemRepository {
-    constructor(prismaClient) { super(); this.prisma = prismaClient; }
-    async findByCenter(serviceCenterId) {
-        return this.prisma.inventoryItem.findMany({
-            where: { serviceCenterId: serviceCenterId },
-            include: { part: true }, orderBy: { part: { name: 'asc' } }
-        });
+    /**
+     * Tìm các phụ tùng đã yêu cầu theo Service Record
+     * (Dùng trong respondToQuotation và issuePartForService)
+     * @param {string} serviceRecordId
+     * @param {PartUsageStatus} status - (Tùy chọn) Lọc theo trạng thái
+     * @returns {Promise<PartUsage[]>}
+     */
+    async findByServiceRecord(serviceRecordId, status = null) {
+        throw new Error('Method not implemented');
     }
-    async findById(id) {
-        return this.prisma.inventoryItem.findUnique({ where: { id: id } });
-    }
-    async findByPartAndCenter(partId, serviceCenterId) {
-        return this.prisma.inventoryItem.findFirst({ where: { partId: partId, serviceCenterId: serviceCenterId } });
-    }
-    async update(id, data, tx) {
-        const db = tx || this.prisma;
-        return db.inventoryItem.update({ where: { id: id }, data: data });
+
+    /**
+     * Cập nhật hàng loạt trạng thái của PartUsage theo Service Record
+     * (Dùng trong respondToQuotation khi khách từ chối)
+     * @param {string} serviceRecordId
+     * @param {PartUsageStatus} newStatus - Trạng thái mới (vd: CANCELLED)
+     * @param {PartUsageStatus} oldStatus - (Tùy chọn) Chỉ cập nhật nếu trạng thái cũ là
+     * @param {object} tx - (Tùy chọn) Prisma Transaction Client
+     * @returns {Promise<{ count: number }>}
+     */
+    async updateStatusByRecordId(serviceRecordId, newStatus, oldStatus = null, tx) {
+        throw new Error('Method not implemented');
     }
 }
-module.exports = PrismaInventoryItemRepository;
+module.exports = IPartUsageRepository;
