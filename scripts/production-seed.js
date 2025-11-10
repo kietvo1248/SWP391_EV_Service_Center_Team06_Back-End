@@ -169,18 +169,18 @@ async function createProductionSeedData() {
         const battery90 = await prisma.batteryType.upsert({
             where: { name: 'Pin LFP 90kWh (Thuê)' },
             update: {},
-            create: { id: 'bat-lfp-90', name: 'Pin LFP 90kWh (Thuê)', capacityKwh: 90 },
+            create: { 
+                name: 'Pin LFP 90kWh (Thuê)', 
+                capacityKwh: 90 
+            },
         });
 
-        const modelVF8 = await prisma.vehicleModel.upsert({
-            where: { id: 'model-vf8' },
-            update: {},
-            create: {
-                id: 'model-vf8',
+        const modelVF8 = await prisma.vehicleModel.create({
+            data: {
                 brand: 'VinFast',
                 name: 'VF8',
                 compatibleBatteries: {
-                    connect: [{ id: battery90.id }] // VF8 tương thích với pin 90
+                    connect: [{ id: battery90.id }] 
                 }
             },
             include: { compatibleBatteries: true }
@@ -193,11 +193,6 @@ async function createProductionSeedData() {
             where: { vin: 'VF8VIN123456789' },
             update: {},
             create: {
-                // make: 'VinFast', (XÓA)
-                // model: 'VF8', (XÓA)
-                // currentMileage: 15000, (XÓA)
-                // lastServiceDate: new Date('2024-01-15'), (XÓA)
-                
                 vehicleModelId: modelVF8.id, // (THÊM)
                 batteryId: modelVF8.compatibleBatteries[0].id, // (THÊM)
                 year: 2023,

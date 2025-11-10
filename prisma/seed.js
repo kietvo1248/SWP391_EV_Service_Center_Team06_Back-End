@@ -97,43 +97,37 @@ async function seedModelsAndBatteries() {
     const battery90 = await prisma.batteryType.upsert({
         where: { name: 'Pin LFP 90kWh (Thuê)' },
         update: {},
-        create: { id: 'bat-lfp-90', name: 'Pin LFP 90kWh (Thuê)', capacityKwh: 90 },
+        create: {  name: 'Pin LFP 90kWh (Thuê)', capacityKwh: 90 },
     });
     const battery100 = await prisma.batteryType.upsert({
         where: { name: 'Pin NMC 100kWh (Sở hữu)' },
         update: {},
-        create: { id: 'bat-nmc-100', name: 'Pin NMC 100kWh (Sở hữu)', capacityKwh: 100 },
+        create: {  name: 'Pin NMC 100kWh (Sở hữu)', capacityKwh: 100 },
     });
     const battery77 = await prisma.batteryType.upsert({
         where: { name: 'Pin LFP 77kWh (VF e34)' },
         update: {},
-        create: { id: 'bat-lfp-77', name: 'Pin LFP 77kWh (VF e34)', capacityKwh: 77 },
+        create: { name: 'Pin LFP 77kWh (VF e34)', capacityKwh: 77 },
     });
     console.log(' -> Đã tạo 3 loại pin.');
 
     // 2. Tạo các dòng xe và liên kết pin tương thích
-    const modelVF8 = await prisma.vehicleModel.upsert({
-        where: { id: 'model-vf8' },
-        update: {},
-        create: {
-            id: 'model-vf8',
+    const modelVF8 = await prisma.vehicleModel.create({
+        data: {
             brand: 'VinFast',
             name: 'VF8',
             compatibleBatteries: {
-                connect: [{ id: battery90.id }, { id: battery100.id }] // VF8 tương thích với pin 90 và 100
+                connect: [{ id: battery90.id }, { id: battery100.id }] 
             }
         },
     });
 
-    const modelVFe34 = await prisma.vehicleModel.upsert({
-        where: { id: 'model-vfe34' },
-        update: {},
-        create: {
-            id: 'model-vfe34',
+    const modelVFe34 = await prisma.vehicleModel.create({
+        data: {
             brand: 'VinFast',
             name: 'VF e34',
             compatibleBatteries: {
-                connect: [{ id: battery77.id }] // VF e34 chỉ tương thích pin 77
+                connect: [{ id: battery77.id }]
             }
         },
     });
@@ -545,7 +539,6 @@ async function main() {
                     // model: faker.helpers.arrayElement(['VF8', 'VF e34']), (Xóa)
                     vehicleModelId: randomModel.id, // (THAY THẾ)
                     batteryId: randomBattery.id,    // (THAY THẾ)
-
                     color: faker.vehicle.color(),
                     year: faker.number.int({ min: 2021, max: 2024 }),
                     vin: faker.vehicle.vin(),

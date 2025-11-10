@@ -14,7 +14,7 @@ const VehicleRouter = (vehicleController) => {
     router.get('/models', authenticate, authorize(['CUSTOMER', 'STAFF']), (req, res) => vehicleController.listModels(req, res));
     
     // Lấy danh sách Pin tương thích theo Dòng xe
-    router.get('/models/:modelId/batteries', authenticate, authorize(['CUSTOMER', 'STAFF']), (req, res) => controller.listBatteries(req, res));
+    router.get('/models/:modelId/batteries', authenticate, authorize(['CUSTOMER', 'STAFF']), (req, res) => vehicleController.listBatteries(req, res));
 
     // === API CRUD CHÍNH (Tác vụ của Khách hàng) ===
 
