@@ -63,16 +63,24 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
                 customer: { // Lấy thông tin khách hàng
                     select: { fullName: true, phoneNumber: true }
                 },
+                // --- (SỬA LỖI) ---
                 vehicle: { // Lấy thông tin xe
-                    select: { make: true, model: true, licensePlate: true }
+                    select: { 
+                        licensePlate: true,
+                        vehicleModel: { // Lồng vào VehicleModel
+                            select: {
+                                brand: true, // Trường mới
+                                name: true   // Trường mới
+                            }
+                        }
+                    }
                 }
             },
             orderBy: {
-                appointmentDate: 'asc', // Sắp xếp theo ngày hẹn
+                appointmentDate: 'asc',
             }
         });
     }
-
     async findById(appointmentId) {
         return this.prisma.serviceAppointment.findUnique({
             where: { id: appointmentId },
@@ -106,16 +114,26 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
         return this.prisma.serviceAppointment.findMany({
             where: {
                 serviceCenterId: serviceCenterId,
-                status: 'CONFIRMED', // Chỉ tìm lịch đã xác nhận
+                status: 'CONFIRMED', 
                 customer: {
                     phoneNumber: {
-                        contains: phone, // Tìm kiếm SĐT
+                        contains: phone, 
                     }
                 }
             },
             include: {
                 customer: { select: { fullName: true, email: true, phoneNumber: true } },
-                vehicle: { select: { make: true, model: true, licensePlate: true } }
+                vehicle: {
+                    select: {
+                        licensePlate: true,
+                        vehicleModel: {
+                            select: {
+                                brand: true,
+                                name: true
+                            }
+                        }
+                    }
+                }
             },
             orderBy: {
                 appointmentDate: 'asc'
@@ -152,13 +170,23 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
 
         return this.prisma.serviceAppointment.findMany({
             where: whereClause,
-            select: { // Chọn lọc các trường cần cho lịch sử
+            select: { 
                 id: true,
                 appointmentDate: true,
                 status: true,
-                vehicle: { select: { make: true, model: true, licensePlate: true } },
+                vehicle: { 
+                    select: { 
+                        licensePlate: true,
+                        vehicleModel: {
+                            select: {
+                                brand: true,
+                                name: true
+                            }
+                        }
+                    } 
+                },
                 serviceCenter: { select: { name: true } },
-                requestedServices: { // Lấy 1 dịch vụ làm tiêu đề
+                requestedServices: { 
                     take: 1,
                     include: { 
                         serviceType: { select: { name: true } }
@@ -166,7 +194,7 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
                 }
             },
             orderBy: {
-                appointmentDate: 'desc', // Lịch sử mới nhất lên đầu
+                appointmentDate: 'desc', 
             }
         });
     }

@@ -31,7 +31,7 @@ const staffRouter = (controller) => {
     // (Bước 1) Tìm khách hàng
     router.get('/customers/search', controller.searchCustomer.bind(controller));
     // (Bước 2.2) Tạo khách hàng mới
-    router.post('/customers', controller.createCustomer.bind(controller));
+    router.post('/customers/create', controller.createCustomer.bind(controller));
     // (Bước 2.1a) Lấy xe của khách
     router.get('/customers/:customerId/vehicles', controller.listVehiclesForCustomer.bind(controller));
     // (Bước 2.1b) Thêm xe cho khách
