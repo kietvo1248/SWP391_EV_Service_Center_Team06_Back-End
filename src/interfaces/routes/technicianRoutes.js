@@ -13,7 +13,7 @@ const technicianRouter = (controller) => {
     // Gửi chẩn đoán và báo giá
     router.post('/service-records/:id/diagnose', controller.submitDiagnosis.bind(controller));
     // Yêu cầu linh kiện cho công việc
-    // router.post('/service-records/:id/request-parts', controller.requestParts.bind(controller));
+    router.post('/service-records/:id/request-parts', controller.requestParts.bind(controller));
 
     // (TODO: Endpoint để hoàn thành công việc)
     router.put('/service-records/:id/complete', controller.completeTask.bind(controller));
