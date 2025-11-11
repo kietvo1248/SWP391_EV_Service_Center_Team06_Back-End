@@ -9,7 +9,7 @@ class StartAppointmentProgress {
         this.prisma = prismaClient;
     }
 
-    async execute(appointmentId, staffServiceCenterId) {
+    async execute(appointmentId, staffServiceCenterId, currentMileage) {
         let updatedApptPrisma, updatedRecordPrisma; // Lưu kết quả Prisma
 
         await this.prisma.$transaction(async (tx) => {
@@ -25,11 +25,22 @@ class StartAppointmentProgress {
             updatedApptPrisma = await this.appointmentRepo.updateStatus(appointmentId, 'IN_PROGRESS', tx);
 
             // 2. Cập nhật ServiceRecord -> IN_PROGRESS
-            const record = await this.serviceRecordRepo.findByAppointmentId(appointmentId);
-            if (!record) {
-                throw new Error('Service record not found. Assignment might have failed.');
+            updatedRecordPrisma = await this.serviceRecordRepo.update(record.id, { 
+                status: ServiceRecordStatus.DIAGNOSING // (Sửa: 'DIAGNOSING' hợp lý hơn 'IN_PROGRESS')
+            }, tx);
+
+            // --- (MỚI) Cập nhật số km của xe ---
+            if (currentMileage !== undefined && currentMileage !== null) {
+                const newMileage = parseInt(currentMileage, 10);
+                if (!isNaN(newMileage) && newMileage >= 0) {
+                    await tx.vehicle.update({
+                        where: { id: appointment.vehicleId },
+                        data: { currentMileage: newMileage }
+                    });
+                } else {
+                    throw new Error("Invalid mileage provided.");
+                }
             }
-            updatedRecordPrisma = await this.serviceRecordRepo.update(record.id, { status: 'IN_PROGRESS' }, tx);
         });
 
         // 3. Chuyển đổi kết quả Prisma sang Entities trước khi trả về

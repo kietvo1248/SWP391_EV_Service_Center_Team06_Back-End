@@ -180,6 +180,7 @@ model Vehicle {
   color        String?
   batteryId    String?      // Loại pin hiện tại
   battery      BatteryType? @relation(fields: [batteryId], references: [id])
+  currentMileage Int?         @default(0) @map("current_mileage")
 
   // --- Logic XÓA MỀM ---
   isDeleted    Boolean      @default(false)

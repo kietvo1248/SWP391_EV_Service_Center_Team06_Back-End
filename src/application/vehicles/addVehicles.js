@@ -45,6 +45,7 @@ class AddVehicle {
             batteryId: batteryId,
             licensePlate: licensePlate,
             color: color || null,
+            currentMileage: parseInt(currentMileage, 10) || 0,
             isDeleted: false
         };
 

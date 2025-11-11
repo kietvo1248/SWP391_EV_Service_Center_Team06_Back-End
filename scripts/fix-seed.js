@@ -20,18 +20,15 @@ async function fixSeedData() {
         await prisma.serviceType.deleteMany();
         await prisma.vehicle.deleteMany();
         
-        // --- (SỬA LỖI 2) ---
-        // Phải xóa liên kết N-N trước (nếu có)
-        // (Bỏ qua vì chúng ta sẽ xóa cả 2 bảng)
+        // Xóa các bảng mới
         await prisma.batteryType.deleteMany();
         await prisma.vehicleModel.deleteMany();
-        // --- (KẾT THÚC SỬA LỖI 2) ---
 
         await prisma.user.deleteMany();
         await prisma.serviceCenter.deleteMany();
         console.log('✅ Data cleared\n');
 
-        // 2. Create Service Center
+        // 2. Create Service Center (Giữ nguyên)
         console.log('🏢 Creating service center...');
         const serviceCenter = await prisma.serviceCenter.create({
             data: {
@@ -43,11 +40,11 @@ async function fixSeedData() {
         });
         console.log('✅ Service Center created');
 
-        // 3. Create Users (Admin và Customer)
+        // 3. Create Users (Admin và Customer) (Giữ nguyên)
         console.log('👥 Creating users...');
+        // ... (Giữ nguyên logic tạo user của bạn) ...
         const users = [
             {
-                // (Xóa userCode)
                 fullName: 'System Administrator',
                 email: 'admin@evservice.com',
                 password: 'admin123',
@@ -61,7 +58,6 @@ async function fixSeedData() {
                 role: 'CUSTOMER'
             }
         ];
-
         const createdUsers = [];
         for (const userData of users) {
             const hashedPassword = await bcrypt.hash(userData.password, 10);
@@ -80,8 +76,9 @@ async function fixSeedData() {
             console.log(`✅ ${userData.role}: ${user.email}`);
         }
 
-        // 4. Create Service Types
+        // 4. Create Service Types (Giữ nguyên)
         console.log('🔧 Creating service types...');
+        // ... (Giữ nguyên logic) ...
         await prisma.serviceType.createMany({
             data: [
                 { name: 'Bảo dưỡng định kỳ', description: 'Kiểm tra tổng quát' },
@@ -90,8 +87,9 @@ async function fixSeedData() {
         });
         console.log('✅ Service Types created');
 
-        // 5. Create Parts
+        // 5. Create Parts (Giữ nguyên)
         console.log('📦 Creating parts...');
+        // ... (Giữ nguyên logic) ...
         const createdParts = [];
         for (const part of [{ sku: 'VF-TYRE-001', name: 'Lốp VinFast VF8', price: 4500000 }]) {
             const createdPart = await prisma.part.create({ data: part });
@@ -99,8 +97,9 @@ async function fixSeedData() {
         }
         console.log('✅ Parts created');
 
-        // 6. Create Inventory Items
+        // 6. Create Inventory Items (Giữ nguyên)
         console.log('📦 Creating inventory items...');
+        // ... (Giữ nguyên logic) ...
         for (const part of createdParts) {
             await prisma.inventoryItem.create({
                 data: {
@@ -114,22 +113,27 @@ async function fixSeedData() {
         console.log('✅ Inventory items created');
 
         // --- (SỬA LỖI 3) ---
-        // 7. Tạo Dữ liệu Gốc cho Xe (Model và Pin)
+        // 7. Tạo Dữ liệu Gốc cho Xe (Bỏ ID cứng)
         console.log('🚗 Tạo Dòng xe (Model) và Loại pin (Battery)...');
+        
+        // Bỏ 'id: "bat-lfp-90"'
         const battery90 = await prisma.batteryType.create({
-            data: { id: 'bat-lfp-90', name: 'Pin LFP 90kWh (Thuê)', capacityKwh: 90 },
+            data: { 
+                name: 'Pin LFP 90kWh (Thuê)', 
+                capacityKwh: 90 
+            },
         });
 
+        // Bỏ 'id: "model-vf8"'
         const modelVF8 = await prisma.vehicleModel.create({
             data: {
-                id: 'model-vf8',
                 brand: 'VinFast',
                 name: 'VF8',
                 compatibleBatteries: {
-                    connect: [{ id: battery90.id }]
+                    connect: [{ id: battery90.id }] // Dùng ID vừa tạo
                 }
             },
-            include: { compatibleBatteries: true }
+            include: { compatibleBatteries: true } // Lấy cả pin để dùng ở Bước 8
         });
         console.log('✅ Đã tạo Model và Pin.');
 
@@ -138,13 +142,9 @@ async function fixSeedData() {
         const customer = createdUsers.find(u => u.role === 'CUSTOMER');
         await prisma.vehicle.create({
             data: {
-                // make: 'VinFast', (XÓA)
-                // model: 'VF8', (XÓA)
-                // currentMileage: 15000, (XÓA)
-                // lastServiceDate: new Date('2024-01-15'), (XÓA)
-
-                vehicleModelId: modelVF8.id, // (THÊM)
-                batteryId: modelVF8.compatibleBatteries[0].id, // (THÊM)
+                // Xóa các trường cũ: make, model, currentMileage, lastServiceDate
+                vehicleModelId: modelVF8.id, // Dùng ID (UUID) thật
+                batteryId: modelVF8.compatibleBatteries[0].id, // Dùng ID (UUID) thật
                 year: 2023,
                 vin: 'VF8VIN123456789',
                 licensePlate: '51A-12345',

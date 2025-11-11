@@ -285,12 +285,19 @@ paths:
     get:
       tags: ['[1] Luồng Khách hàng (Customer)']
       summary: '(L1.3b) Lấy gợi ý dịch vụ (Theo KM)'
+      description: Cung cấp ID của xe, hệ thống sẽ tự lấy số km và dòng xe đã lưu để đưa ra gợi ý.
       parameters:
-        - { name: mileage, in: query, required: true, schema: { type: integer }, description: "Số KM hiện tại (Người dùng tự nhập)" }
-        - { name: model, in: query, required: true, schema: { type: string }, description: "Dòng xe, vd: VF8" }
+        - name: vehicleId
+          in: query
+          required: true
+          schema: 
+            type: string
+            format: uuid
+          description: "ID của xe (lấy từ /api/vehicle/my-vehicles)"
       responses:
         '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ServiceType' } } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
 
   /service-centers:
     get:
@@ -407,6 +414,17 @@ paths:
       tags: ['[2] Luồng Nhân viên (Staff)']
       summary: '(L1) Bắt đầu dịch vụ (Check-in xe) (CONFIRMED -> IN_PROGRESS)'
       parameters: [ { $ref: '#/components/parameters/AppointmentIdPath' } ]
+      requestBody:
+        description: (Tùy chọn) Cập nhật số km mới nhất của xe khi check-in.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currentMileage:
+                  type: integer
+                  example: 25000
+                  description: "Số km (Odometer) mới nhất của xe."
       responses:
         '200': { description: Thành công., content: { application/json: { schema: { properties: { message: { type: string }, data: { properties: { updatedAppt: { $ref: '#/components/schemas/ServiceAppointment' }, updatedRecord: { $ref: '#/components/schemas/ServiceRecord' } } } } } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
@@ -841,6 +859,7 @@ components:
         licensePlate: { type: string, nullable: true }
         color: { type: string, nullable: true }
         ownerId: { type: string, format: uuid }
+        currentMileage: { type: integer, nullable: true, default: 0 }
         isDeleted: { type: boolean }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
@@ -1274,6 +1293,7 @@ components:
               batteryId: { type: string, format: uuid, description: "Lấy từ GET /vehicle/models/{modelId}/batteries" }
               licensePlate: { type: string, example: "51K-123.45", nullable: true }
               color: { type: string, example: "Đen", nullable: true }
+              currentMileage: { type: integer, example: 15000, default: 0, nullable: true }
     
     UpdateVehicleInput:
       required: true
@@ -1286,6 +1306,7 @@ components:
               licensePlate: { type: string, nullable: true }
               color: { type: string, nullable: true }
               batteryId: { type: string, format: uuid, nullable: true, description: "Phải là Pin tương thích" }
+              currentMileage: { type: integer, nullable: true, description: "Số km mới nhất" }
 
     AppointmentInput:
       required: true

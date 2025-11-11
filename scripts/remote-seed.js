@@ -133,11 +133,10 @@ async function seedRemoteDatabase() {
         // 7. Tạo Dữ liệu Gốc cho Xe (Model và Pin)
         console.log('🚗 Tạo Dòng xe (Model) và Loại pin (Battery)...');
         const battery90 = await prisma.batteryType.create({
-            data: { id: 'bat-lfp-90', name: 'Pin LFP 90kWh (Thuê)', capacityKwh: 90 },
+            data: { name: 'Pin LFP 90kWh (Thuê)', capacityKwh: 90 },
         });
         const modelVF8 = await prisma.vehicleModel.create({
             data: {
-                id: 'model-vf8',
                 brand: 'VinFast',
                 name: 'VF8',
                 compatibleBatteries: {
