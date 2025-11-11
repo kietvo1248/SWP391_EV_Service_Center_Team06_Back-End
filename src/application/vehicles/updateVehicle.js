@@ -19,7 +19,12 @@ class UpdateVehicle {
                 licensePlate: updateData.licensePlate,
                 color: updateData.color,
                 batteryId: updateData.batteryId,
+                currentMileage: updateData.currentMileage
             };
+
+            if (dataToUpdate.currentMileage !== undefined) {
+                dataToUpdate.currentMileage = parseInt(dataToUpdate.currentMileage, 10) || existingVehicle.currentMileage;
+            }
 
             // 3. Kiểm tra Pin tương thích (Giữ nguyên)
             if (dataToUpdate.batteryId && dataToUpdate.batteryId !== existingVehicle.batteryId) {

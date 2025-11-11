@@ -203,7 +203,7 @@ const createAppointmentUseCase = new CreateAppointment(
     serviceCenterRepository, 
     prisma);
 const listMyVehiclesUseCase = new ListMyVehicles(vehicleRepository); // Dùng cho AppointmentController
-const getServiceSuggestionsUseCase = new GetServiceSuggestions(maintenanceRecommendationRepository);
+const getServiceSuggestionsUseCase = new GetServiceSuggestions(maintenanceRecommendationRepository, vehicleRepository);
 const listServiceTypesUseCase = new ListServiceTypes(serviceTypeRepository);
 const responseToQuotationUseCase = new RespondToQuotation(
     appointmentRepository,

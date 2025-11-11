@@ -114,7 +114,8 @@ class StaffController {
         try {
             const serviceCenterId = req.user.serviceCenterId;
             const { id } = req.params;
-            const result = await this.startAppointmentProgressUseCase.execute(id, serviceCenterId);
+            const { currentMileage } = req.body; // Lấy số km hiện tại từ body
+            const result = await this.startAppointmentProgressUseCase.execute(id, serviceCenterId, currentMileage);
             res.status(200).json({ message: 'Appointment started.', data: result });
         } catch (error) {
             res.status(400).json({ message: error.message });

@@ -39,7 +39,7 @@ class VehicleController {
         try {
             const ownerId = req.user.id; // Lấy từ passport/JWT
             // Dữ liệu mới dựa trên schema
-            const { vin, year, vehicleModelId, batteryId, licensePlate, color } = req.body;
+            const { vin, year, vehicleModelId, batteryId, licensePlate, color, currentMileage } = req.body;
             
             const vehicle = await this.addVehicleUseCase.execute(ownerId, {
                 vin,
@@ -48,6 +48,7 @@ class VehicleController {
                 batteryId,
                 licensePlate,
                 color,
+                currentMileage
             });
             res.status(201).json(vehicle);
         } catch (error) {
@@ -85,12 +86,13 @@ class VehicleController {
             const ownerId = req.user.id;
             const { id } = req.params;
             // Chỉ lấy 3 trường được phép cập nhật
-            const { licensePlate, color, batteryId } = req.body;
+            const { licensePlate, color, batteryId, currentMileage } = req.body;
 
             const updatedVehicle = await this.updateVehicleUseCase.execute(id, ownerId, {
                 licensePlate,
                 color,
-                batteryId
+                batteryId,
+                currentMileage
             });
             res.status(200).json(updatedVehicle);
         } catch (error) {
@@ -110,4 +112,5 @@ class VehicleController {
         }
     }
 }
+
 module.exports = VehicleController;
