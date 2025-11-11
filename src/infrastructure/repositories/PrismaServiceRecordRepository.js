@@ -26,7 +26,15 @@ class PrismaServiceRecordRepository extends IServiceRecordRepository {
                 appointment: {
                     include: {
                         customer: { select: { fullName: true } },
-                        vehicle: { select: { make: true, model: true, licensePlate: true } }
+                        // --- SỬA LỖI ---
+                        vehicle: { 
+                            select: { 
+                                licensePlate: true,
+                                vehicleModel: {
+                                    select: { brand: true, name: true }
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -55,11 +63,12 @@ class PrismaServiceRecordRepository extends IServiceRecordRepository {
             data: data,
         });
     }
+
     async findByCenterAndStatus(serviceCenterId, status) {
         return this.prisma.serviceRecord.findMany({
             where: {
                 status: status,
-                appointment: { // Lọc qua quan hệ
+                appointment: { 
                     serviceCenterId: serviceCenterId
                 }
             },
@@ -67,10 +76,17 @@ class PrismaServiceRecordRepository extends IServiceRecordRepository {
                 appointment: {
                     include: {
                         customer: { select: { fullName: true } },
-                        vehicle: { select: { make: true, model: true, licensePlate: true } }
+                        vehicle: { 
+                            select: { 
+                                licensePlate: true,
+                                vehicleModel: {
+                                    select: { brand: true, name: true }
+                                }
+                            }
+                        }
                     }
                 },
-                partsUsed: { // Lấy các phụ tùng đang được yêu cầu
+                partsUsed: { 
                     where: { status: 'REQUESTED' },
                     include: { part: true }
                 },
@@ -89,7 +105,6 @@ class PrismaServiceRecordRepository extends IServiceRecordRepository {
                 appointment: {
                     serviceCenterId: serviceCenterId
                 },
-                // Lọc theo ngày KTV hoàn thành
                 endTime: {
                     gte: startDate,
                     lte: endDate
