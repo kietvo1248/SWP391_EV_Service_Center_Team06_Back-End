@@ -1,6 +1,9 @@
 /**
  * Production seed script cho Render deployment
- * (ĐÃ SỬA LỖI: Thay thế upsert VehicleModel bằng create)
+ * (ĐÃ VIẾT LẠI TOÀN BỘ)
+ * - Tương thích schema mới (VehicleModel, BatteryType, employeeCode, currentMileage)
+ * - Tự động tạo nhân sự cứng cho TẤT CẢ các trạm
+ * - Tạo dữ liệu cho tất cả các trạng thái (Enums)
  */
 
 const { PrismaClient, Prisma, Role, AppointmentStatus, ServiceRecordStatus, InvoiceStatus, PaymentStatus, RestockRequestStatus, PartUsageStatus } = require('@prisma/client');
@@ -34,8 +37,8 @@ async function cleanupDatabase() {
     
     await prisma.vehicle.deleteMany();
     
-    // (Bảng VehicleModel liên kết n-n với BatteryType, 
-    // nhưng vì ta xóa cả 2 nên bảng _BatteryTypeToVehicleModel tự động bị xóa)
+    // Xóa liên kết N-N trước khi xóa bảng cha
+    // (Bỏ qua vì chúng ta xóa cả 2 bảng)
 
     await prisma.batteryType.deleteMany(); 
     await prisma.vehicleModel.deleteMany(); 
@@ -78,13 +81,17 @@ async function seedMasterData() {
         create: { name: 'Pin LFP 77kWh (VF e34)', capacityKwh: 77 },
     });
 
-    // 4. Model (Dùng 'create' vì CSDL đã được dọn dẹp)
-    const modelVF8 = await prisma.vehicleModel.create({
-        data: { brand: 'VinFast', name: 'VF8', compatibleBatteries: { connect: [{ id: battery90.id }] } },
+    // 4. Model (Dùng 'name' làm unique, BỎ 'id' cứng)
+    const modelVF8 = await prisma.vehicleModel.upsert({
+        where: { name: 'VF8' }, // Giả định 'name' là unique
+        update: { brand: 'VinFast' },
+        create: { brand: 'VinFast', name: 'VF8', compatibleBatteries: { connect: [{ id: battery90.id }] } },
         include: { compatibleBatteries: true }
     });
-    const modelVFe34 = await prisma.vehicleModel.create({
-        data: { brand: 'VinFast', name: 'VF e34', compatibleBatteries: { connect: [{ id: battery77.id }] } },
+    const modelVFe34 = await prisma.vehicleModel.upsert({
+        where: { name: 'VF e34' }, // Giả định 'name' là unique
+        update: { brand: 'VinFast' },
+        create: { brand: 'VinFast', name: 'VF e34', compatibleBatteries: { connect: [{ id: battery77.id }] } },
         include: { compatibleBatteries: true }
     });
 
@@ -102,8 +109,6 @@ async function createProductionSeedData() {
         console.log('🌱 Bắt đầu tạo dữ liệu mẫu cho production...\n');
         
         // --- 0. DỌN DẸP ---
-        // (Lưu ý: Lệnh 'pnpm db:reset' trong build command đã làm việc này,
-        // nhưng chạy lại cleanupDatabase() để đảm bảo an toàn tuyệt đối)
         await cleanupDatabase();
 
         // --- 1. TẠO TRUNG TÂM DỊCH VỤ (2 TRẠM) ---
@@ -156,63 +161,72 @@ async function createProductionSeedData() {
         console.log('👥 Tạo các tài khoản test...');
         
         // Admin Tổng
-        const admin = await prisma.user.create({
-            data: { fullName: 'Admin Tổng', email: 'admin@evservice.com', passwordHash: await hashPassword('admin123'), role: Role.ADMIN, employeeCode: 'ADMIN001', isActive: true }
+        const admin = await prisma.user.upsert({
+            where: { email: 'admin@evservice.com' }, update: {},
+            create: { fullName: 'Admin Tổng', email: 'admin@evservice.com', passwordHash: await hashPassword('admin123'), role: Role.ADMIN, employeeCode: 'ADMIN001', isActive: true }
         });
 
         // Tạo nhân sự cho từng trạm
-        const staffByCenter = {}; 
+        const staffByCenter = {}; // { centerId: { tech: User, ... } }
         
         for (const center of allCenters) {
             const suffix = center.id === 'prod-center-hcm' ? 'hcm' : 'hn';
             
-            const sa = await prisma.user.create({
-                data: { fullName: `Trưởng trạm ${suffix.toUpperCase()}`, email: `station.${suffix}@evservice.com`, passwordHash: await hashPassword('station123'), role: Role.STATION_ADMIN, employeeCode: `SA_${suffix.toUpperCase()}001`, serviceCenterId: center.id, isActive: true }
+            const sa = await prisma.user.upsert({
+                where: { email: `station.${suffix}@evservice.com` }, update: {},
+                create: { fullName: `Trưởng trạm ${suffix.toUpperCase()}`, email: `station.${suffix}@evservice.com`, passwordHash: await hashPassword('station123'), role: Role.STATION_ADMIN, employeeCode: `SA_${suffix.toUpperCase()}001`, serviceCenterId: center.id, isActive: true }
             });
-            const staff = await prisma.user.create({
-                data: { fullName: `Nhân viên ${suffix.toUpperCase()}`, email: `staff.${suffix}@evservice.com`, passwordHash: await hashPassword('staff123'), role: Role.STAFF, employeeCode: `STAFF_${suffix.toUpperCase()}001`, serviceCenterId: center.id, isActive: true }
+            const staff = await prisma.user.upsert({
+                where: { email: `staff.${suffix}@evservice.com` }, update: {},
+                create: { fullName: `Nhân viên ${suffix.toUpperCase()}`, email: `staff.${suffix}@evservice.com`, passwordHash: await hashPassword('staff123'), role: Role.STAFF, employeeCode: `STAFF_${suffix.toUpperCase()}001`, serviceCenterId: center.id, isActive: true }
             });
-            const tech = await prisma.user.create({
-                data: { fullName: `Kỹ thuật viên ${suffix.toUpperCase()}`, email: `tech.${suffix}@evservice.com`, passwordHash: await hashPassword('tech123'), role: Role.TECHNICIAN, employeeCode: `TECH_${suffix.toUpperCase()}001`, serviceCenterId: center.id, isActive: true }
+            const tech = await prisma.user.upsert({
+                where: { email: `tech.${suffix}@evservice.com` }, update: {},
+                create: { fullName: `Kỹ thuật viên ${suffix.toUpperCase()}`, email: `tech.${suffix}@evservice.com`, passwordHash: await hashPassword('tech123'), role: Role.TECHNICIAN, employeeCode: `TECH_${suffix.toUpperCase()}001`, serviceCenterId: center.id, isActive: true }
             });
-            const im = await prisma.user.create({
-                data: { fullName: `Quản lý kho ${suffix.toUpperCase()}`, email: `inventory.${suffix}@evservice.com`, passwordHash: await hashPassword('inventory123'), role: Role.INVENTORY_MANAGER, employeeCode: `IM_${suffix.toUpperCase()}001`, serviceCenterId: center.id, isActive: true }
+            const im = await prisma.user.upsert({
+                where: { email: `inventory.${suffix}@evservice.com` }, update: {},
+                create: { fullName: `Quản lý kho ${suffix.toUpperCase()}`, email: `inventory.${suffix}@evservice.com`, passwordHash: await hashPassword('inventory123'), role: Role.INVENTORY_MANAGER, employeeCode: `IM_${suffix.toUpperCase()}001`, serviceCenterId: center.id, isActive: true }
             });
 
             staffByCenter[center.id] = { sa, staff, tech, im };
         }
         
         // Khách hàng
-        const customer1 = await prisma.user.create({
-            data: { fullName: 'Khách hàng 001 (HCM)', email: 'customer1@example.com', passwordHash: await hashPassword('customer123'), role: Role.CUSTOMER }
+        const customer1 = await prisma.user.upsert({
+            where: { email: 'customer1@example.com' }, update: {},
+            create: { fullName: 'Khách hàng 001 (HCM)', email: 'customer1@example.com', passwordHash: await hashPassword('customer123'), role: Role.CUSTOMER }
         });
-        const customer2 = await prisma.user.create({
-            data: { fullName: 'Khách hàng 002 (HN)', email: 'customer2@example.com', passwordHash: await hashPassword('customer123'), role: Role.CUSTOMER }
+        const customer2 = await prisma.user.upsert({
+            where: { email: 'customer2@example.com' }, update: {},
+            create: { fullName: 'Khách hàng 002 (HN)', email: 'customer2@example.com', passwordHash: await hashPassword('customer123'), role: Role.CUSTOMER }
         });
         console.log('✅ Đã tạo các tài khoản.');
 
         // --- 5. TẠO XE (Sử dụng schema mới) ---
         console.log('🚗 Tạo 2 xe mẫu...');
-        const vehicle1 = await prisma.vehicle.create({
-            data: {
+        const vehicle1 = await prisma.vehicle.upsert({
+            where: { vin: 'PROD_VIN_001' }, update: {},
+            create: {
                 ownerId: customer1.id,
                 vin: 'PROD_VIN_001',
                 year: 2023,
                 vehicleModelId: modelVF8.id,
                 batteryId: modelVF8.compatibleBatteries[0].id,
                 licensePlate: '51K-001.01',
-                currentMileage: 15000
+                currentMileage: 15000 // (THÊM MỚI)
             }
         });
-        const vehicle2 = await prisma.vehicle.create({
-            data: {
+        const vehicle2 = await prisma.vehicle.upsert({
+            where: { vin: 'PROD_VIN_002' }, update: {},
+            create: {
                 ownerId: customer2.id,
                 vin: 'PROD_VIN_002',
                 year: 2022,
                 vehicleModelId: modelVFe34.id,
                 batteryId: modelVFe34.compatibleBatteries[0].id,
                 licensePlate: '29A-002.02',
-                currentMileage: 30000
+                currentMileage: 30000 // (THÊM MỚI)
             }
         });
         console.log('✅ Đã tạo xe.');
