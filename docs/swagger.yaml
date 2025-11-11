@@ -23,9 +23,9 @@ tags:
   - name: '[4] Luồng Quản lý Kho (Inventory)'
     description: Kịch bản quản lý kho (IM) kiểm kê, xuất/nhập phụ tùng.
   - name: '[5] Luồng Quản trị viên (Admin)'
-    description: Kịch bản quản trị viên (Admin) tạo tài khoản và duyệt yêu cầu.
+    description: Kịch bản quản trị viên (Admin) tạo tài khoản và quản lý trạm.
   - name: '[6] Luồng Quản lý Trạm (Station)'
-    description: Kịch bản Trưởng trạm (Station Admin) quản lý nhân sự và xem báo cáo.
+    description: Kịch bản Trưởng trạm (Station Admin) quản lý nhân sự, kho và xem báo cáo.
 
 # --- CÀI ĐẶT BẢO MẬT TOÀN CỤC (JWT) ---
 security:
@@ -39,7 +39,7 @@ paths:
     post:
       tags: ['[0] Xác thực & Hồ sơ (Chung)']
       summary: Đăng ký tài khoản Customer
-      security: [] # Tắt bảo mật
+      security: [] 
       requestBody: { $ref: '#/components/requestBodies/RegisterInput' }
       responses:
         '201': { description: Đăng ký thành công., content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
@@ -49,7 +49,7 @@ paths:
     post:
       tags: ['[0] Xác thực & Hồ sơ (Chung)']
       summary: Đăng nhập (Email/Password)
-      security: [] # Tắt bảo mật
+      security: [] 
       requestBody: { $ref: '#/components/requestBodies/LoginInput' }
       responses:
         '200': { description: Đăng nhập thành công., content: { application/json: { schema: { $ref: '#/components/schemas/LoginResponse' } } } }
@@ -59,7 +59,7 @@ paths:
     get:
       tags: ['[0] Xác thực & Hồ sơ (Chung)']
       summary: Bắt đầu đăng nhập với Google
-      security: [] # Tắt bảo mật
+      security: [] 
       responses:
         '302': { description: Redirect đến Google. }
 
@@ -67,19 +67,17 @@ paths:
     get:
       tags: ['[0] Xác thực & Hồ sơ (Chung)']
       summary: Callback sau khi Google xác thực
-      security: [] # Tắt bảo mật
+      security: [] 
       responses:
-        # --- (SỬA LỖI OAUTH) ---
         '302': 
           description: Chuyển hướng (Redirect) trở lại Frontend với token (ví dụ: /login-success?token=...)
-        # --- (KẾT THÚC SỬA LỖI) ---
         '401': { $ref: '#/components/responses/UnauthorizedError' }
 
   /auth/forgot-password:
     post:
       tags: ['[0] Xác thực & Hồ sơ (Chung)']
       summary: Yêu cầu mã đặt lại mật khẩu
-      security: [] # Tắt bảo mật
+      security: [] 
       requestBody: { $ref: '#/components/requestBodies/ForgotPasswordInput' }
       responses:
         '200': { description: Gửi mã thành công., content: { application/json: { schema: { properties: { message: { type: string } } } } } }
@@ -89,7 +87,7 @@ paths:
     post:
       tags: ['[0] Xác thực & Hồ sơ (Chung)']
       summary: Xác thực mã đặt lại mật khẩu
-      security: [] # Tắt bảo mật
+      security: [] 
       requestBody: { $ref: '#/components/requestBodies/VerifyCodeInput' }
       responses:
         '200': { description: Mã hợp lệ, trả về resetToken., content: { application/json: { schema: { properties: { message: { type: string }, resetToken: { type: string } } } } } }
@@ -99,8 +97,7 @@ paths:
     post:
       tags: ['[0] Xác thực & Hồ sơ (Chung)']
       summary: Đặt lại mật khẩu mới
-      description: Gửi mật khẩu mới và resetToken (trong header Authorization Bearer).
-      security: [] # Tắt bảo mật, dùng ResetToken
+      security: [] 
       parameters: [ { $ref: '#/components/parameters/ResetTokenHeader' } ]
       requestBody: { $ref: '#/components/requestBodies/ResetPasswordInput' }
       responses:
@@ -144,7 +141,6 @@ paths:
     get:
       tags: ['[V] Quản lý Xe (Vehicle)']
       summary: (Hỗ trợ) Lấy danh sách Dòng xe
-      description: Lấy danh sách các dòng xe (chỉ VinFast) để hiển thị form Thêm/Sửa.
       responses:
         '200':
           description: Danh sách dòng xe.
@@ -160,7 +156,6 @@ paths:
     get:
       tags: ['[V] Quản lý Xe (Vehicle)']
       summary: (Hỗ trợ) Lấy danh sách Pin tương thích
-      description: Lấy danh sách các loại pin tương thích với một dòng xe cụ thể.
       parameters:
         - { $ref: '#/components/parameters/VehicleModelIdPath' }
       responses:
@@ -231,7 +226,7 @@ paths:
     put:
       tags: ['[V] Quản lý Xe (Vehicle)']
       summary: (CRUD) Cập nhật thông tin xe
-      description: Cập nhật các trường được phép (Biển số, Màu, Loại Pin). Roles: CUSTOMER
+      description: Cập nhật các trường được phép (Biển số, Màu, Loại Pin, Số Km). Roles: CUSTOMER
       parameters:
         - { $ref: '#/components/parameters/VehicleIdPath' }
       requestBody: { $ref: '#/components/requestBodies/UpdateVehicleInput' }
@@ -284,7 +279,7 @@ paths:
   /appointments/suggestions:
     get:
       tags: ['[1] Luồng Khách hàng (Customer)']
-      summary: '(L1.3b) Lấy gợi ý dịch vụ (Theo KM)'
+      summary: '(L1.3b) Lấy gợi ý dịch vụ (Theo xe đã lưu)'
       description: Cung cấp ID của xe, hệ thống sẽ tự lấy số km và dòng xe đã lưu để đưa ra gợi ý.
       parameters:
         - name: vehicleId
@@ -377,6 +372,19 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
+  # --- (API MỚI BỔ SUNG) ---
+  /staff/appointments/{id}:
+    get:
+      tags: ['[2] Luồng Nhân viên (Staff)']
+      summary: (Chung) [Nhân viên] Lấy chi tiết một lịch hẹn
+      description: API nội bộ cho nhân viên (Staff, SA, Admin) xem chi tiết lịch hẹn.
+      parameters: [ { $ref: '#/components/parameters/AppointmentIdPath' } ]
+      responses:
+        '200': { description: Thành công., content: { application/json: { schema: { $ref: '#/components/schemas/AppointmentDetailSharedView' } } } }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
   /staff/technicians:
     get:
       tags: ['[2] Luồng Nhân viên (Staff)']
@@ -460,7 +468,7 @@ paths:
     post:
       tags: ['[2] Luồng Nhân viên (Staff)']
       summary: '(L2.3b) [Walk-in] Thêm xe mới cho khách'
-      description: API này nên dùng /api/vehicle/add-vehicle
+      description: API này nên dùng /api/vehicle/add-vehicle (đã được phân quyền cho STAFF)
       parameters: [ { $ref: '#/components/parameters/CustomerIdPath' } ]
       requestBody: { $ref: '#/components/requestBodies/CreateVehicleInput' }
       responses:
@@ -509,17 +517,12 @@ paths:
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
+  
+  # --- (API ĐÃ BỊ XÓA KHỎI SWAGGER VÌ ĐÃ BỊ COMMENT TRONG CODE) ---
+  # /staff/appointments/{id}/handover
 
-  /staff/appointments/{id}/handover:
-    put:
-      tags: ['[2] Luồng Nhân viên (Staff)']
-      summary: '(L1/L2) Xác nhận giao xe (Sau khi PAID)'
-      parameters: [ { $ref: '#/components/parameters/AppointmentIdPath' } ]
-      responses:
-        '200': { description: Xác nhận giao xe thành công., content: { application/json: { schema: { properties: { message: { type: string } } } } } }
-        '400': { $ref: '#/components/responses/BadRequestError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
+  # --- (API ĐÃ BỊ XÓA KHỎI SWAGGER VÌ ĐÃ BỊ XÓA KHỎI ROUTE) ---
+  # /staff/restock-requests/...
 
 
   # ===============================================
@@ -549,17 +552,8 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
-  /technician/service-records/{id}/request-parts:
-    post:
-      tags: ['[3] Luồng Kỹ thuật viên (Technician)']
-      summary: '(L3.3) Yêu cầu phụ tùng (khi đang REPAIRING -> WAITING_PARTS)'
-      parameters: [ { $ref: '#/components/parameters/ServiceRecordIdPath' } ]
-      requestBody: { $ref: '#/components/requestBodies/RequestPartsInput' }
-      responses:
-        '200': { description: Yêu cầu thành công, chờ xuất kho., content: { application/json: { schema: { $ref: '#/components/schemas/ServiceRecord' } } } }
-        '400': { $ref: '#/components/responses/BadRequestError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
+  # --- (API ĐÃ BỊ XÓA KHỎI SWAGGER VÌ ĐÃ BỊ COMMENT TRONG CODE) ---
+  # /technician/service-records/{id}/request-parts
 
   /technician/service-records/{id}/complete:
     put:
@@ -642,45 +636,50 @@ paths:
   # ===============================================
   # === [5] LUỒNG QUẢN TRỊ VIÊN (ADMIN)
   # ===============================================
-  /admin/restock-requests:
+  # --- (API MỚI BỔ SUNG) ---
+  /auth/all-profile:
     get:
       tags: ['[5] Luồng Quản trị viên (Admin)']
-      summary: (Admin) Xem tất cả Y/C nhập hàng (từ mọi trạm)
-      parameters:
-        - { name: status, in: query, required: false, schema: { $ref: '#/components/schemas/RestockRequestStatusEnum' } }
+      summary: (Admin) Lấy danh sách TẤT CẢ tài khoản
+      description: Lấy danh sách tất cả người dùng trong hệ thống (Customer, Staff, Admin...). Roles: ADMIN
       responses:
-        '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/RestockRequestAdminView' } } } } }
+        '200':
+          description: Danh sách tất cả người dùng.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
-  /admin/restock-requests/{id}/approve:
-    put:
-      tags: ['[5] Luồng Quản trị viên (Admin)']
-      summary: (Admin) Duyệt Y/C nhập hàng
-      parameters: [ { $ref: '#/components/parameters/RestockRequestIdPath' } ]
-      responses:
-        '200': { description: Đã duyệt., content: { application/json: { schema: { $ref: '#/components/schemas/RestockRequest' } } } }
-        '400': { $ref: '#/components/responses/BadRequestError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
+  # --- (API QUẢN LÝ KHO ĐÃ BỊ XÓA KHỎI ADMIN) ---
+  # (Chuyển sang Luồng 6 - Station Admin)
 
-  /admin/restock-requests/{id}/reject:
-    put:
-      tags: ['[5] Luồng Quản trị viên (Admin)']
-      summary: (Admin) Từ chối Y/C nhập hàng
-      parameters: [ { $ref: '#/components/parameters/RestockRequestIdPath' } ]
-      responses:
-        '200': { description: Đã từ chối., content: { application/json: { schema: { $ref: '#/components/schemas/RestockRequest' } } } }
-        '400': { $ref: '#/components/responses/BadRequestError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
 
   # ===============================================
   # === [6] LUỒNG QUẢN LÝ TRẠM (STATION)
   # ===============================================
   
+  # --- (API MỚI BỔ SUNG) ---
+  /auth/create-account:
+    post:
+      tags: ['[6] Luồng Quản lý Trạm (Station)']
+      summary: (Station Admin) Tạo tài khoản nhân viên mới
+      description: Trưởng trạm (Station Admin) tạo tài khoản cho nhân viên (Staff, Tech, IM) tại trạm của mình.
+      requestBody: { $ref: '#/components/requestBodies/CreateAccountInput' }
+      responses:
+        '201':
+          description: Tạo tài khoản thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateAccountResponse'
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
   /station/stations/{stationId}/staff:
     get:
       tags: ['[6] Luồng Quản lý Trạm (Station)']
@@ -786,14 +785,35 @@ paths:
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
-  # --- (PHẦN MỚI) Thêm 2 API Duyệt Đơn hàng cho Station Admin ---
   
+  # --- (API MỚI BỔ SUNG) ---
+  /station/restock-requests:
+    get:
+      tags: ['[6] Luồng Quản lý Trạm (Station)']
+      summary: (L6.9) [Trưởng trạm] Xem Y/C nhập hàng
+      description: Trưởng trạm (Station Admin) xem các yêu cầu nhập hàng tại trạm của mình.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/RestockRequestStatusEnum' }
+      responses:
+        '200': 
+          description: Danh sách yêu cầu nhập hàng.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RestockRequestView'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
   /station/restock-requests/{id}/approve:
     put:
       tags: ['[6] Luồng Quản lý Trạm (Station)']
-      summary: (L6.9) [Trưởng trạm] Duyệt Y/C nhập hàng
+      summary: (L6.10) [Trưởng trạm] Duyệt Y/C nhập hàng
       description: Trưởng trạm (Station Admin) duyệt một yêu cầu nhập hàng (Restock Request) tại trạm của mình.
-      security: [ { bearerAuth: [] } ] # Roles: STATION_ADMIN
       parameters:
         - { $ref: '#/components/parameters/RestockRequestIdPath' }
       responses:
@@ -803,17 +823,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RestockRequest'
-        '400': { $ref: '#/components/responses/BadRequestError' } # vd: Request không ở trạng thái PENDING
+        '400': { $ref: '#/components/responses/BadRequestError' } 
         '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' } # vd: Không phải trạm của mình
-        '404': { $ref: '#/components/responses/NotFoundError' } # vd: Không tìm thấy Request
+        '403': { $ref: '#/components/responses/ForbiddenError' } 
+        '404': { $ref: '#/components/responses/NotFoundError' } 
 
   /station/restock-requests/{id}/reject:
     put:
       tags: ['[6] Luồng Quản lý Trạm (Station)']
-      summary: (L6.10) [Trưởng trạm] Từ chối Y/C nhập hàng
+      summary: (L6.11) [Trưởng trạm] Từ chối Y/C nhập hàng
       description: Trưởng trạm (Station Admin) từ chối một yêu cầu nhập hàng (Restock Request) tại trạm của mình.
-      security: [ { bearerAuth: [] } ] # Roles: STATION_ADMIN
       parameters:
         - { $ref: '#/components/parameters/RestockRequestIdPath' }
       responses:
@@ -849,7 +868,6 @@ components:
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
-    # --- (CẬP NHẬT) Schema cho Vehicle (dùng cho Response) ---
     Vehicle:
       type: object
       properties:
@@ -863,11 +881,9 @@ components:
         isDeleted: { type: boolean }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
-        # Dữ liệu lồng nhau từ schema
         vehicleModel: { $ref: '#/components/schemas/VehicleModel' }
         battery: { $ref: '#/components/schemas/BatteryType' }
         
-    # --- (MỚI) Schema cho Dòng xe ---
     VehicleModel:
       type: object
       properties:
@@ -875,7 +891,6 @@ components:
         brand: { type: string, example: "VinFast" }
         name: { type: string, example: "VF8" }
 
-    # --- (MỚI) Schema cho Loại Pin ---
     BatteryType:
       type: object
       properties:
@@ -909,7 +924,7 @@ components:
         time: { type: string, format: date-time }
         available: { type: boolean }
 
-    ServiceAppointment: # (Đã đổi tên từ Appointment)
+    ServiceAppointment: 
       type: object
       properties:
         id: { type: string, format: uuid }
@@ -1341,16 +1356,13 @@ components:
       required: true
       content: { application/json: { schema: { type: object, required: [technicianId], properties: { technicianId: { type: string, format: uuid } } } } }
 
-    # --- (SỬA LỖI TÀI CHÍNH) ---
     DiagnosisInput:
       required: true
       content:
         application/json:
           schema:
             type: object
-            # (Xóa 'required: [estimatedCost]')
             properties:
-              # (Xóa 'estimatedCost')
               diagnosisNotes: { type: string, nullable: true }
               partUsages: 
                 type: array
@@ -1360,7 +1372,6 @@ components:
                   properties:
                     partId: { type: string, format: uuid }
                     quantity: { type: integer, minimum: 1 }
-    # --- (KẾT THÚC SỬA LỖI) ---
 
     RequestPartsInput:
       required: true
@@ -1598,3 +1609,15 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: "Nhập JWT token. Ví dụ: 'Bearer {token}'"
+
+# sửa lỗi file swagger, xem xét file seed.js và các tệp liên quan
+# 1. Lỗi Logic Hiển thị: Luồng lịch sử (`/history`) đang hiển thị sai thông tin xe.
+# 2. Lỗi Logic Hiển thị: Luồng xem lịch hẹn tại trạm (`/staff/appointments`) hiển thị sai thông tin xe.
+# 3. Lỗi Logic Hiển thị: Luồng xem chi tiết lịch hẹn (`/appointments/{id}`) hiển thị sai thông tin xe.
+# 4. Lỗi Logic Hiển thị: Luồng xem công việc (`/my-tasks`) hiển thị sai thông tin xe.
+# 5. Lỗi Logic Hiển thị: Luồng xem yêu cầu xuất kho (`/issue-requests`) hiển thị sai thông tin xe.
+
+# Các file bị ảnh hưởng (cần sửa):
+# 1.  `src/application/bookings/appointmentHistory.js`
+# 2.  `src/infrastructure/repositories/PrismaAppointmentRepository.js`
+# 3.  `src/infrastructure/repositories/PrismaServiceRecordRepository.js`

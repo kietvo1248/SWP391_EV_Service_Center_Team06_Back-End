@@ -21,16 +21,17 @@ class AppointmentController {
 
     async getSuggestions(req, res) {
         try {
-            // Lấy 'mileage' và 'model' từ query string
-            const { mileage, model } = req.query;
+            // Lấy 'vehicleId' từ query (thay vì mileage và model)
+            const { vehicleId } = req.query;
+            const ownerId = req.user.id;
             
-            if (!mileage || !model) {
-                return res.status(400).json({ message: "Mileage and model parameters are required." });
+            if (!vehicleId) {
+                return res.status(400).json({ message: "Vehicle ID is required." });
             }
 
             const suggestions = await this.getServiceSuggestionsUseCase.execute({ 
-                mileage: Number(mileage), // Chuyển sang số
-                model: model 
+                vehicleId: vehicleId, 
+                ownerId: ownerId    
             });
             
             res.status(200).json(suggestions);
