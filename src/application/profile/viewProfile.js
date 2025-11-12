@@ -17,7 +17,7 @@ class ViewAccount {
         // 2. Create a safe User object
         const userProfile = new User(
             user.id,
-            user.userCode,
+            user.employeeCode,
             user.fullName,
             user.email,
             null, // passwordHash - không trả về

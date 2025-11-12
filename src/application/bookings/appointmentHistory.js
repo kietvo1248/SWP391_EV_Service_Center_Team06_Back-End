@@ -1,3 +1,4 @@
+// Tệp: src/application/bookings/appointmentHistory.js
 const { AppointmentStatus } = require('@prisma/client');
 
 class ListAppointmentHistory {
@@ -12,17 +13,26 @@ class ListAppointmentHistory {
             AppointmentStatus.CANCELLED,
         ];
         
+        // Repo (đã sửa) sẽ trả về cấu trúc mới
         const history = await this.appointmentRepo.findByCustomerId(customerId, statuses);
         
         // Định dạng lại dữ liệu trả về cho gọn
-        return history.map(appt => ({
-            id: appt.id,
-            appointmentDate: appt.appointmentDate,
-            status: appt.status,
-            vehicle: appt.vehicle ? `${appt.vehicle.make} ${appt.vehicle.model} (${appt.vehicle.licensePlate || 'N/A'})` : 'N/A',
-            serviceCenter: appt.serviceCenter?.name || 'N/A',
-            serviceTitle: appt.requestedServices[0]?.serviceType?.name || 'Dịch vụ'
-        }));
+        return history.map(appt => {
+            
+            // Truy cập vào vehicleModel lồng bên trong
+            const vehicleInfo = (appt.vehicle && appt.vehicle.vehicleModel)
+                ? `${appt.vehicle.vehicleModel.brand} ${appt.vehicle.vehicleModel.name} (${appt.vehicle.licensePlate || 'N/A'})`
+                : 'N/A';
+
+            return {
+                id: appt.id,
+                appointmentDate: appt.appointmentDate,
+                status: appt.status,
+                vehicle: vehicleInfo, // Sử dụng chuỗi đã định dạng
+                serviceCenter: appt.serviceCenter?.name || 'N/A',
+                serviceTitle: appt.requestedServices[0]?.serviceType?.name || 'Dịch vụ'
+            };
+        });
     }
 }
 module.exports = ListAppointmentHistory;

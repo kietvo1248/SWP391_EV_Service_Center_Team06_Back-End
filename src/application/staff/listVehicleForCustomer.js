@@ -10,7 +10,7 @@ class ListVehiclesForCustomer {
             throw new Error('Customer ID is required.');
         }
         // Tái sử dụng logic repo
-        const vehiclesPrisma = await this.vehicleRepository.findByOwnerId(customerId);
+        const vehiclesPrisma = await this.vehicleRepository.findByOwner(customerId);
         
         // Chuyển đổi sang Entity
         return vehiclesPrisma.map(v => new VehicleEntity(v));

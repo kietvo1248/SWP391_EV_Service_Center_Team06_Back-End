@@ -1,3 +1,4 @@
+// Tệp: src/application/bookings/getAppointmentDetails.js
 const ServiceAppointmentEntity = require('../../domain/entities/ServiceAppointment');
 const QuotationEntity = require('../../domain/entities/Quotation');
 const VehicleEntity = require('../../domain/entities/Vehicle');
@@ -10,27 +11,23 @@ class GetAppointmentDetailsUseCase {
     }
 
     async execute(appointmentId, actor) {
-        // 1. Lấy dữ liệu
+        // 1. Lấy dữ liệu (Repo đã được sửa để include vehicleModel)
         const appointmentPrisma = await this.appointmentRepository.findById(appointmentId);
 
         if (!appointmentPrisma) {
             throw new Error('Appointment not found.');
         }
 
-        // 2. Kiểm tra quyền
+        // 2. Kiểm tra quyền (Logic này đã đúng)
         let hasAccess = false;
         switch (actor.role) {
             case 'CUSTOMER':
-                if (appointmentPrisma.customerId === actor.id) {
-                    hasAccess = true;
-                }
+                if (appointmentPrisma.customerId === actor.id) hasAccess = true;
                 break;
             case 'STAFF':
             case 'STATION_ADMIN':
             case 'TECHNICIAN':
-                if (appointmentPrisma.serviceCenterId === actor.serviceCenterId) {
-                    hasAccess = true;
-                }
+                if (appointmentPrisma.serviceCenterId === actor.serviceCenterId) hasAccess = true;
                 break;
             case 'ADMIN':
                 hasAccess = true;
@@ -53,21 +50,24 @@ class GetAppointmentDetailsUseCase {
             appointmentPrisma.customerNotes,
             appointmentPrisma.createdAt
         );
-
-        // 4. Chuyển đổi và gán các Entities liên quan
-        if (appointmentPrisma.vehicle) { // Kiểm tra vehicle
+        
+        // (SỬA) Logic này sẽ hoạt động sau khi VehicleEntity (Bước 1) được sửa
+        if (appointmentPrisma.vehicle) { 
             appointmentEntity.vehicle = new VehicleEntity(appointmentPrisma.vehicle);
         }
-
-        if (appointmentPrisma.customer) { // <-- Thêm kiểm tra này
+        if (appointmentPrisma.customer) { 
             appointmentEntity.customer = new UserEntity(
                 appointmentPrisma.customer.id,
-                appointmentPrisma.customer.userCode,
+                appointmentPrisma.customer.employeeCode, // Sửa từ userCode
                 appointmentPrisma.customer.fullName,
                 appointmentPrisma.customer.email,
+                null, // passwordHash
                 appointmentPrisma.customer.role,
                 appointmentPrisma.customer.phoneNumber,
-                null // serviceCenterId của customer là null
+                null, // address
+                null, // serviceCenterId
+                null, // googleId
+                appointmentPrisma.customer.isActive 
             );
         }
 
@@ -79,7 +79,8 @@ class GetAppointmentDetailsUseCase {
                      return new ServiceTypeEntity(
                          rs.serviceType.id,
                          rs.serviceType.name,
-                         rs.serviceType.description
+                         rs.serviceType.description,
+                         rs.serviceType.price // (Sửa: Thêm price)
                      );
                 }
                 return null;

@@ -22,6 +22,15 @@ class Vehicle {
         this.currentMileage = isNaN(parsedMileage) ? 0 : parsedMileage;
         this.lastServiceDate = data.lastServiceDate ?? null;
         this.ownerId = data.ownerId;
+        if (data.vehicleModel) {
+            this.brand = data.vehicleModel.brand;
+            this.model = data.vehicleModel.name;
+        }
+        
+        if (data.battery) {
+            this.batteryName = data.battery.name;
+            this.batteryCapacity = data.battery.capacityKwh;
+        }
 
         // Validations
         if (!this.vin) throw new Error("Vehicle VIN is required.");
