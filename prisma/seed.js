@@ -14,20 +14,16 @@ const faker = new Faker({ locale: [vi, en] });
 async function seedServiceTypes() {
     console.log('Đang tạo các loại dịch vụ...');
     const serviceTypesData = [
-        { id: 'svt-bdk', name: 'Bảo dưỡng định kỳ', description: 'Kiểm tra tổng quát và bảo dưỡng theo khuyến nghị.' },
-        { id: 'svt-pin', name: 'Kiểm tra Pin Cao Áp', description: 'Đo dung lượng, kiểm tra hệ thống làm mát.' },
-        { id: 'svt-lop', name: 'Dịch vụ Lốp Xe', description: 'Thay lốp, cân bằng động, đảo lốp.' },
-        { id: 'svt-phanh', name: 'Hệ thống Phanh', description: 'Kiểm tra má phanh, đĩa phanh, dầu phanh.' },
-        { id: 'svt-dhoa', name: 'Hệ thống Điều hòa', description: 'Kiểm tra gas, thay lọc gió cabin.' },
-        { id: 'svt-sw', name: 'Cập nhật Phần mềm', description: 'Cập nhật phiên bản phần mềm mới nhất cho xe.' },
+        { name: 'Bảo dưỡng định kỳ', description: 'Kiểm tra tổng quát và bảo dưỡng theo khuyến nghị.', price: 500000 },
+        { name: 'Kiểm tra Pin Cao Áp', description: 'Đo dung lượng, kiểm tra hệ thống làm mát.', price: 300000 },
+        { name: 'Dịch vụ Lốp Xe', description: 'Thay lốp, cân bằng động, đảo lốp.', price: 150000 },
+        { name: 'Hệ thống Phanh', description: 'Kiểm tra má phanh, đĩa phanh, dầu phanh.', price: 250000 },
+        { name: 'Hệ thống Điều hòa', description: 'Kiểm tra gas, thay lọc gió cabin.', price: 150000 },
+        { name: 'Cập nhật Phần mềm', description: 'Cập nhật phiên bản phần mềm mới nhất cho xe.', price: 0 },
     ];
-    for (const data of serviceTypesData) {
-        await prisma.serviceType.upsert({
-            where: { id: data.id },
-            update: { name: data.name, description: data.description },
-            create: data,
-        });
-    }
+    // Dùng createMany vì CSDL đã sạch
+    await prisma.serviceType.createMany({ data: serviceTypesData });
+    
     console.log(' -> Đã tạo xong các loại dịch vụ.');
     return prisma.serviceType.findMany();
 }
@@ -36,24 +32,25 @@ async function seedServiceTypes() {
 async function seedPartsAndInventory(serviceCenters) {
     console.log('Đang tạo phụ tùng và kho hàng...');
     const partsData = [
-        { id: 'part-lop', sku: 'VIN-TYRE-001', name: 'Lốp Michelin Pilot Sport EV 235/55 R19', price: 5500000, description: 'Lốp hiệu suất cao cho xe điện.' },
-        { id: 'part-cool', sku: 'VIN-BAT-COOL-1L', name: 'Nước làm mát pin (1L)', price: 350000, description: 'Dung dịch làm mát chuyên dụng.' },
-        { id: 'part-filter', sku: 'VIN-FILTER-AC-HEPA', name: 'Lọc gió điều hòa HEPA PM2.5', price: 780000, description: 'Lọc bụi mịn và tác nhân gây dị ứng.' },
-        { id: 'part-brake', sku: 'VIN-BRAKE-PAD-F', name: 'Má phanh trước (Bộ)', price: 2100000, description: 'Bộ má phanh chính hãng.' },
-        { id: 'part-wiper', sku: 'VIN-WIPER-BLADE', name: 'Lưỡi gạt mưa (Cặp)', price: 450000, description: 'Lưỡi gạt mưa silicone cao cấp.' },
+        { sku: 'VIN-TYRE-001', name: 'Lốp Michelin Pilot Sport EV 235/55 R19', price: 5500000, description: 'Lốp hiệu suất cao cho xe điện.' },
+        { sku: 'VIN-BAT-COOL-1L', name: 'Nước làm mát pin (1L)', price: 350000, description: 'Dung dịch làm mát chuyên dụng.' },
+        { sku: 'VIN-FILTER-AC-HEPA', name: 'Lọc gió điều hòa HEPA PM2.5', price: 780000, description: 'Lọc bụi mịn và tác nhân gây dị ứng.' },
+        { sku: 'VIN-BRAKE-PAD-F', name: 'Má phanh trước (Bộ)', price: 2100000, description: 'Bộ má phanh chính hãng.' },
+        { sku: 'VIN-WIPER-BLADE', name: 'Lưỡi gạt mưa (Cặp)', price: 450000, description: 'Lưỡi gạt mưa silicone cao cấp.' },
     ];
 
     const createdParts = [];
     for (const part of partsData) {
         const newPart = await prisma.part.upsert({
-            where: { id: part.id },
-            update: { sku: part.sku, name: part.name, price: new Prisma.Decimal(part.price), description: part.description },
+            where: { sku: part.sku }, // Dùng SKU làm khóa
+            update: { name: part.name, price: new Prisma.Decimal(part.price), description: part.description },
             create: { ...part, price: new Prisma.Decimal(part.price) },
         });
         createdParts.push(newPart);
     }
     console.log(` -> Đã tạo/cập nhật ${createdParts.length} phụ tùng.`);
 
+    // Logic tạo inventory giữ nguyên (vì nó đã dùng ID động)
     for (const center of serviceCenters) {
         for (const part of createdParts) {
             await prisma.inventoryItem.create({
@@ -74,17 +71,11 @@ async function seedPartsAndInventory(serviceCenters) {
 async function seedCertifications() {
     console.log('Đang tạo chứng chỉ mẫu...');
     const certs = [
-        { id: 'cert-vin-basic', name: 'Chứng chỉ Bảo dưỡng VinFast Cơ bản', issuingOrganization: 'VinFast Academy' },
-        { id: 'cert-vin-hv', name: 'Chứng chỉ Hệ thống Pin Cao Áp (HV)', issuingOrganization: 'VinFast Academy' },
-        { id: 'cert-diag', name: 'Chuyên gia Chẩn đoán Lỗi Điện', issuingOrganization: 'Trường ĐH Bách Khoa' },
+        { name: 'Chứng chỉ Bảo dưỡng VinFast Cơ bản', issuingOrganization: 'VinFast Academy' },
+        { name: 'Chứng chỉ Hệ thống Pin Cao Áp (HV)', issuingOrganization: 'VinFast Academy' },
+        { name: 'Chuyên gia Chẩn đoán Lỗi Điện', issuingOrganization: 'Trường ĐH Bách Khoa' },
     ];
-    for (const cert of certs) {
-        await prisma.certification.upsert({
-            where: { id: cert.id },
-            update: {},
-            create: cert,
-        });
-    }
+    await prisma.certification.createMany({ data: certs });
     console.log(' -> Đã tạo chứng chỉ.');
     return prisma.certification.findMany();
 }
@@ -93,25 +84,22 @@ async function seedCertifications() {
 async function seedModelsAndBatteries() {
     console.log('Đang tạo Dòng xe và Loại pin...');
     
-    // 1. Tạo các loại pin
+    // 1. Tạo các loại pin (Dùng 'name' @unique làm where)
     const battery90 = await prisma.batteryType.upsert({
-        where: { name: 'Pin LFP 90kWh (Thuê)' },
-        update: {},
-        create: {  name: 'Pin LFP 90kWh (Thuê)', capacityKwh: 90 },
+        where: { name: 'Pin LFP 90kWh (Thuê)' }, update: {},
+        create: { name: 'Pin LFP 90kWh (Thuê)', capacityKwh: 90 },
     });
     const battery100 = await prisma.batteryType.upsert({
-        where: { name: 'Pin NMC 100kWh (Sở hữu)' },
-        update: {},
-        create: {  name: 'Pin NMC 100kWh (Sở hữu)', capacityKwh: 100 },
+        where: { name: 'Pin NMC 100kWh (Sở hữu)' }, update: {},
+        create: { name: 'Pin NMC 100kWh (Sở hữu)', capacityKwh: 100 },
     });
     const battery77 = await prisma.batteryType.upsert({
-        where: { name: 'Pin LFP 77kWh (VF e34)' },
-        update: {},
+        where: { name: 'Pin LFP 77kWh (VF e34)' }, update: {},
         create: { name: 'Pin LFP 77kWh (VF e34)', capacityKwh: 77 },
     });
-    console.log(' -> Đã tạo 3 loại pin.');
+    console.log(' -> Đã tạo 3 loại pin (với UUID thật).');
 
-    // 2. Tạo các dòng xe và liên kết pin tương thích
+    // 2. Tạo các dòng xe (Dùng 'create' vì 'name' không @unique)
     const modelVF8 = await prisma.vehicleModel.create({
         data: {
             brand: 'VinFast',
@@ -131,7 +119,7 @@ async function seedModelsAndBatteries() {
             }
         },
     });
-    console.log(' -> Đã tạo 2 dòng xe và liên kết pin.');
+    console.log(' -> Đã tạo 2 dòng xe (với UUID thật).');
 
     // Trả về tất cả model và pin để sử dụng sau này
     return {
