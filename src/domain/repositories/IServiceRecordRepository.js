@@ -30,6 +30,9 @@ class IServiceRecordRepository {
     async getPerformanceByCenter(serviceCenterId, startDate, endDate) {
         throw new Error("Method 'getPerformanceByCenter()' must be implemented.");
     }
+    async findBusyTechnicianIds(serviceCenterId, appointmentDate, tx) {
+        throw new Error("Method 'findBusyTechnicianIds()' must be implemented.");
+    }
 }
 
 module.exports = IServiceRecordRepository;
