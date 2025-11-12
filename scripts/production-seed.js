@@ -39,9 +39,8 @@ async function cleanupDatabase() {
     
     await prisma.vehicle.deleteMany();
     
-    // (Bảng VehicleModel liên kết n-n với BatteryType, 
-    // nhưng vì ta xóa cả 2 nên bảng _BatteryTypeToVehicleModel tự động bị xóa)
-
+    // Xóa các bảng liên quan đến Model/Pin
+    // (Bảng _BatteryTypeToVehicleModel sẽ tự động bị xóa khi 2 bảng cha bị xóa)
     await prisma.batteryType.deleteMany(); 
     await prisma.vehicleModel.deleteMany(); 
 
