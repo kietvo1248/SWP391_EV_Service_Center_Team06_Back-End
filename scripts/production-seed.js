@@ -5,6 +5,7 @@
  * - Tương thích schema mới (VehicleModel, BatteryType, employeeCode, currentMileage).
  * - Tự động tạo nhân sự cứng cho TẤT CẢ các trạm.
  * - Tạo dữ liệu cho tất cả các trạng thái (Enums) bằng cách lồng (nested creates).
+ * - (SỬA) Bổ sung seedMaintenanceRecommendations để fix lỗi Suggestion.
  */
 
 const { PrismaClient, Prisma, Role, AppointmentStatus, ServiceRecordStatus, InvoiceStatus, PaymentStatus, RestockRequestStatus, PartUsageStatus } = require('@prisma/client');
@@ -33,7 +34,7 @@ async function cleanupDatabase() {
     await prisma.serviceAppointment.deleteMany();
     await prisma.inventoryItem.deleteMany();
     await prisma.part.deleteMany();
-    await prisma.maintenanceRecommendation.deleteMany();
+    await prisma.maintenanceRecommendation.deleteMany(); 
     await prisma.serviceType.deleteMany();
     
     await prisma.vehicle.deleteMany();
@@ -65,10 +66,13 @@ async function seedMasterData() {
     const serviceTypesData = [
         { name: 'Bảo dưỡng định kỳ', price: 500000 },
         { name: 'Kiểm tra Pin Cao Áp', price: 300000 },
-        { name: 'Hệ thống Phanh', price: 250000 }
+        { name: 'Hệ thống Phanh', price: 250000 },
+        { name: 'Hệ thống Điều hòa', price: 150000 } 
     ];
+    // Xóa trước khi tạo (vì không có trường unique để upsert)
+    await prisma.serviceType.deleteMany({ where: { name: { in: serviceTypesData.map(s => s.name) } } });
     await prisma.serviceType.createMany({ data: serviceTypesData });
-    const serviceTypes = await prisma.serviceType.findMany();
+    const serviceTypes = await prisma.serviceType.findMany(); // Lấy lại các dịch vụ đã tạo
     
     // 2. Phụ tùng (Dùng upsert vì 'sku' là @unique)
     const part_lop = await prisma.part.upsert({ 
@@ -94,7 +98,10 @@ async function seedMasterData() {
         create: { name: 'Pin LFP 77kWh (VF e34)', capacityKwh: 77 },
     });
 
-    // 4. Model (Dùng 'create' vì 'name' không unique và CSDL đã sạch)
+    // 4. Model (Dùng 'upsert' với 'name' làm 'where', YÊU CẦU 'name' PHẢI LÀ @unique)
+    // *** LƯU Ý: Bạn PHẢI thêm `@unique` vào trường 'name' của 'VehicleModel' trong schema.prisma ***
+    // Nếu không, hãy dùng 'create' như bên dưới sau khi đã cleanup
+    await prisma.vehicleModel.deleteMany({ where: { name: { in: ['VF8', 'VF e34'] } } }); 
     const modelVF8 = await prisma.vehicleModel.create({
         data: { brand: 'VinFast', name: 'VF8', compatibleBatteries: { connect: [{ id: battery90.id }] } },
         include: { compatibleBatteries: true }
@@ -106,11 +113,51 @@ async function seedMasterData() {
 
     console.log('✅ Đã tạo Dữ liệu Gốc.');
     return {
-        serviceTypes: serviceTypes, // Trả về mảng
-        parts: [part_lop, part_locgio, part_nuocmat], // Trả về mảng
-        models: [modelVF8, modelVFe34] // Trả về mảng
+        serviceTypes: serviceTypes,
+        parts: [part_lop, part_locgio, part_nuocmat],
+        models: [modelVF8, modelVFe34]
     };
 }
+
+// --- (THÊM HÀM MỚI TỪ SEED.JS) ---
+async function seedMaintenanceRecommendations(serviceTypes) {
+    console.log('Đang tạo gợi ý bảo dưỡng (MaintenanceRecommendations)...');
+    
+    // Lấy ID bằng tên
+    const bdDinhKy = serviceTypes.find(s => s.name.includes('Bảo dưỡng định kỳ'))?.id;
+    const kiemTraPin = serviceTypes.find(s => s.name.includes('Pin Cao Áp'))?.id;
+    const heThongPhanh = serviceTypes.find(s => s.name.includes('Hệ thống Phanh'))?.id;
+    const dieuHoa = serviceTypes.find(s => s.name.includes('Hệ thống Điều hòa'))?.id;
+
+    const recommendations = [];
+
+    // Tạo các mốc dữ liệu
+    if (bdDinhKy) recommendations.push({ model: 'ALL', mileageMilestone: 5000, serviceTypeId: bdDinhKy });
+    if (bdDinhKy) recommendations.push({ model: 'ALL', mileageMilestone: 10000, serviceTypeId: bdDinhKy });
+    if (dieuHoa) recommendations.push({ model: 'ALL', mileageMilestone: 10000, serviceTypeId: dieuHoa }); 
+    
+    // Mốc 15000 (cho xe 1)
+    if (bdDinhKy) recommendations.push({ model: 'VF8', mileageMilestone: 15000, serviceTypeId: bdDinhKy });
+    
+    if (bdDinhKy) recommendations.push({ model: 'VF8', mileageMilestone: 20000, serviceTypeId: bdDinhKy });
+    if (kiemTraPin) recommendations.push({ model: 'VF8', mileageMilestone: 20000, serviceTypeId: kiemTraPin });
+    if (heThongPhanh) recommendations.push({ model: 'VF8', mileageMilestone: 20000, serviceTypeId: heThongPhanh });
+    
+    // Mốc 30000 (cho xe 2)
+    if (bdDinhKy) recommendations.push({ model: 'VF e34', mileageMilestone: 30000, serviceTypeId: bdDinhKy });
+    if (kiemTraPin) recommendations.push({ model: 'VF e34', mileageMilestone: 30000, serviceTypeId: kiemTraPin });
+
+    if (recommendations.length > 0) {
+        // Xóa dữ liệu cũ trước khi tạo
+        await prisma.maintenanceRecommendation.deleteMany({});
+        await prisma.maintenanceRecommendation.createMany({
+            data: recommendations,
+            skipDuplicates: true,
+        });
+    }
+    console.log(` -> Đã tạo ${recommendations.length} gợi ý bảo dưỡng.`);
+}
+// --- (KẾT THÚC HÀM MỚI) ---
 
 
 async function createProductionSeedData() {
@@ -124,19 +171,18 @@ async function createProductionSeedData() {
 
         // --- 1. TẠO TRUNG TÂM DỊCH VỤ (2 TRẠM) ---
         console.log('🏢 Tạo 2 trung tâm dịch vụ...');
+        // (SỬA) Bỏ ID cứng 'prod-center-hcm'
         const centerHcm = await prisma.serviceCenter.create({
             data: {
-                // (Dùng ID tùy chỉnh cho Trung tâm vẫn OK)
-                id: 'prod-center-hcm', 
                 name: 'EV Service Center Hồ Chí Minh',
                 address: '123 Nguyễn Văn Cừ, Quận 5, TP.HCM',
                 phoneNumber: '028-1111-2222',
                 capacityPerSlot: 3
             }
         });
+        // (SỬA) Bỏ ID cứng 'prod-center-hn'
         const centerHn = await prisma.serviceCenter.create({
             data: {
-                id: 'prod-center-hn',
                 name: 'EV Service Center Hà Nội',
                 address: '55 Tràng Tiền, Quận Hoàn Kiếm, Hà Nội',
                 phoneNumber: '024-3333-4444',
@@ -150,8 +196,13 @@ async function createProductionSeedData() {
         const { serviceTypes, parts, models } = await seedMasterData();
         const modelVF8 = models.find(m => m.name === 'VF8');
         const modelVFe34 = models.find(m => m.name === 'VF e34');
-        const [svt_bdk, svt_pin, svt_phanh] = serviceTypes;
+        const svt_bdk = serviceTypes.find(s => s.name.includes('Bảo dưỡng định kỳ'));
+        const svt_pin = serviceTypes.find(s => s.name.includes('Pin Cao Áp'));
         const [part_lop, part_locgio, part_nuocmat] = parts;
+
+        // --- (SỬA) GỌI HÀM SEED GỢI Ý ---
+        await seedMaintenanceRecommendations(serviceTypes);
+        // --- (KẾT THÚC SỬA) ---
 
         // 3. TẠO KHO HÀNG CHO CÁC TRẠM
         console.log('📦 Tạo kho hàng cho các trạm...');
@@ -161,13 +212,14 @@ async function createProductionSeedData() {
                     data: {
                         partId: part.id,
                         serviceCenterId: center.id,
-                        quantityInStock: Math.floor(Math.random() * 41) + 10, // Random 10-50
+                        quantityInStock: Math.floor(Math.random() * 41) + 10,
                         minStockLevel: 5
                     }
                 });
             }
         }
         console.log('✅ Đã tạo kho hàng.');
+
 
         // --- 4. TẠO TÀI KHOẢN (CỨNG VÀ CHO TỪNG TRẠM) ---
         console.log('👥 Tạo các tài khoản test...');
@@ -183,7 +235,8 @@ async function createProductionSeedData() {
         const staffByCenter = {}; 
         
         for (const center of allCenters) {
-            const suffix = center.id === 'prod-center-hcm' ? 'hcm' : 'hn';
+            // (SỬA) Dùng tên trạm để tạo email unique
+            const suffix = center.name.includes('HCM') ? 'hcm' : 'hn';
             
             const sa = await prisma.user.upsert({
                 where: { email: `station.${suffix}@evservice.com` }, update: {},
@@ -255,7 +308,6 @@ async function createProductionSeedData() {
         // 6.1. APPOINTMENT_PENDING (HCM)
         await prisma.serviceAppointment.create({
             data: {
-                // id: 'appt-pending', // XÓA
                 customerId: customer1.id, vehicleId: vehicle1.id, serviceCenterId: centerHcm.id,
                 appointmentDate: tomorrow, status: AppointmentStatus.PENDING,
                 requestedServices: { create: [{ serviceTypeId: svt_bdk.id }] }
@@ -265,13 +317,11 @@ async function createProductionSeedData() {
         // 6.2. APPOINTMENT_CONFIRMED (-> ServiceRecord PENDING) (HN)
         await prisma.serviceAppointment.create({
             data: {
-                // id: 'appt-confirmed', // XÓA
                 customerId: customer2.id, vehicleId: vehicle2.id, serviceCenterId: centerHn.id,
                 appointmentDate: nextWeek, status: AppointmentStatus.CONFIRMED,
                 requestedServices: { create: [{ serviceTypeId: svt_pin.id }] },
                 serviceRecord: {
                     create: { 
-                        // id: 'sr-pending', // XÓA
                         technicianId: staffByCenter[centerHn.id].tech.id, 
                         status: ServiceRecordStatus.PENDING 
                     }
@@ -282,28 +332,17 @@ async function createProductionSeedData() {
         // 6.3. APPOINTMENT_PENDING_APPROVAL (-> SR WAITING_APPROVAL, PartUsage REQUESTED, Quotation) (HCM)
         await prisma.serviceAppointment.create({
             data: {
-                // id: 'appt-pending-approval', // XÓA
                 customerId: customer1.id, vehicleId: vehicle1.id, serviceCenterId: centerHcm.id,
                 appointmentDate: lastWeek, status: AppointmentStatus.PENDING_APPROVAL,
                 serviceRecord: {
                     create: {
-                        // id: 'sr-waiting-approval', // XÓA
                         technicianId: staffByCenter[centerHcm.id].tech.id, 
                         status: ServiceRecordStatus.WAITING_APPROVAL,
                         quotation: {
-                            create: { 
-                                // id: 'quot-1', // XÓA
-                                estimatedCost: new Prisma.Decimal(780000) 
-                            }
+                            create: { estimatedCost: new Prisma.Decimal(780000) }
                         },
                         partsUsed: {
-                            create: { 
-                                // id: 'partuse-requested', // XÓA
-                                partId: part_locgio.id, 
-                                quantity: 1, 
-                                unitPrice: 780000, 
-                                status: PartUsageStatus.REQUESTED 
-                            }
+                            create: { partId: part_locgio.id, quantity: 1, unitPrice: 780000, status: PartUsageStatus.REQUESTED }
                         }
                     }
                 }
@@ -313,16 +352,14 @@ async function createProductionSeedData() {
         // 6.4. APPOINTMENT_IN_PROGRESS (-> SR WAITING_PARTS) (HN)
         await prisma.serviceAppointment.create({
             data: {
-                // id: 'appt-waiting-parts', // XÓA
                 customerId: customer2.id, vehicleId: vehicle2.id, serviceCenterId: centerHn.id,
                 appointmentDate: lastWeek, status: AppointmentStatus.IN_PROGRESS,
                 serviceRecord: {
                     create: {
-                        // id: 'sr-waiting-parts', // XÓA
                         technicianId: staffByCenter[centerHn.id].tech.id, 
                         status: ServiceRecordStatus.WAITING_PARTS,
-                        quotation: { create: { /*id: 'quot-2',*/ estimatedCost: 350000 } },
-                        partsUsed: { create: { /*id: 'partuse-waiting',*/ partId: part_nuocmat.id, quantity: 1, unitPrice: 350000, status: PartUsageStatus.REQUESTED } }
+                        quotation: { create: { estimatedCost: 350000 } },
+                        partsUsed: { create: { partId: part_nuocmat.id, quantity: 1, unitPrice: 350000, status: PartUsageStatus.REQUESTED } }
                     }
                 }
             }
@@ -331,24 +368,17 @@ async function createProductionSeedData() {
         // 6.5. APPOINTMENT_COMPLETED (-> SR COMPLETED, Invoice UNPAID) (HCM)
         await prisma.serviceAppointment.create({
             data: {
-                // id: 'appt-completed-unpaid', // XÓA
                 customerId: customer1.id, vehicleId: vehicle1.id, serviceCenterId: centerHcm.id,
                 appointmentDate: lastMonth, status: AppointmentStatus.COMPLETED,
                 serviceRecord: {
                     create: {
-                        // id: 'sr-completed-unpaid', // XÓA
                         technicianId: staffByCenter[centerHcm.id].tech.id, 
                         status: ServiceRecordStatus.COMPLETED, 
                         endTime: lastMonth,
-                        quotation: { create: { /*id: 'quot-4',*/ estimatedCost: 4500000 } },
-                        partsUsed: { create: { /*id: 'partuse-issued-2',*/ partId: part_lop.id, quantity: 1, unitPrice: 4500000, status: PartUsageStatus.ISSUED } },
+                        quotation: { create: { estimatedCost: 4500000 } },
+                        partsUsed: { create: { partId: part_lop.id, quantity: 1, unitPrice: 4500000, status: PartUsageStatus.ISSUED } },
                         invoice: {
-                            create: { 
-                                // id: 'inv-unpaid', // XÓA
-                                totalAmount: 4500000, 
-                                dueDate: nextWeek, 
-                                status: InvoiceStatus.UNPAID 
-                            }
+                            create: { totalAmount: 4500000, dueDate: nextWeek, status: InvoiceStatus.UNPAID }
                         }
                     }
                 }
@@ -358,26 +388,22 @@ async function createProductionSeedData() {
         // 6.6. APPOINTMENT_COMPLETED (-> SR COMPLETED, Invoice PAID, Payment SUCCESSFUL) (HN)
         await prisma.serviceAppointment.create({
             data: {
-                // id: 'appt-completed-paid', // XÓA
                 customerId: customer2.id, vehicleId: vehicle2.id, serviceCenterId: centerHn.id,
                 appointmentDate: lastMonth, status: AppointmentStatus.COMPLETED,
                 serviceRecord: {
                     create: {
-                        // id: 'sr-completed-paid', // XÓA
                         technicianId: staffByCenter[centerHn.id].tech.id, 
                         status: ServiceRecordStatus.COMPLETED, 
                         endTime: lastMonth,
-                        quotation: { create: { /*id: 'quot-5',*/ estimatedCost: 350000 } },
-                        partsUsed: { create: { /*id: 'partuse-issued-3',*/ partId: part_nuocmat.id, quantity: 1, unitPrice: 350000, status: PartUsageStatus.ISSUED } },
+                        quotation: { create: { estimatedCost: 350000 } },
+                        partsUsed: { create: { partId: part_nuocmat.id, quantity: 1, unitPrice: 350000, status: PartUsageStatus.ISSUED } },
                         invoice: {
                             create: { 
-                                // id: 'inv-paid', // XÓA
                                 totalAmount: 350000, 
                                 dueDate: lastMonth, 
                                 status: InvoiceStatus.PAID,
                                 payments: {
                                     create: { 
-                                        // id: 'pay-1', // XÓA
                                         paymentMethod: 'CASH', 
                                         status: PaymentStatus.SUCCESSFUL, 
                                         paymentDate: lastMonth 
@@ -393,12 +419,10 @@ async function createProductionSeedData() {
         // 6.7. APPOINTMENT_CANCELLED (-> SR CANCELLED) (HCM)
         await prisma.serviceAppointment.create({
             data: {
-                // id: 'appt-cancelled', // XÓA
                 customerId: customer1.id, vehicleId: vehicle1.id, serviceCenterId: centerHcm.id,
                 appointmentDate: lastWeek, status: AppointmentStatus.CANCELLED,
                 serviceRecord: {
                     create: {
-                        // id: 'sr-cancelled', // XÓA
                         technicianId: staffByCenter[centerHcm.id].tech.id, 
                         status: ServiceRecordStatus.CANCELLED,
                     }
@@ -428,9 +452,13 @@ async function createProductionSeedData() {
         console.log(`  🔧 Tech HCM:      tech.hcm@evservice.com      (pass: tech123)`);
         console.log(`  📦 IM HCM:        inventory.hcm@evservice.com (pass: inventory123)`);
         console.log(`  👨‍💼 Station HN:    station.hn@evservice.com  (pass: station123)`);
-        console.log(`  👨‍🔧 Staff HN:      staff.hn@evservice.com      (pass: staff123)`);
-        console.log(`  🔧 Tech HN:       tech.hn@evservice.com       (pass: tech123)`);
-        console.log(`  📦 IM HN:         inventory.hn@evservice.com  (pass: inventory123)`);
+        // (SỬA) Thêm các user HN còn lại vào danh sách
+        const techHN = staffByCenter[centerHn.id].tech;
+        const staffHN = staffByCenter[centerHn.id].staff;
+        const imHN = staffByCenter[centerHn.id].im;
+        console.log(`  👨‍🔧 Staff HN:      ${staffHN.email}     (pass: staff123)`);
+        console.log(`  🔧 Tech HN:       ${techHN.email}      (pass: tech123)`);
+        console.log(`  📦 IM HN:         ${imHN.email}  (pass: inventory123)`);
         console.log(`  👤 Customer 1:    customer1@example.com     (pass: customer123)`);
         console.log(`  👤 Customer 2:    customer2@example.com     (pass: customer123)`);
 
