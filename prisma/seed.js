@@ -1,4 +1,5 @@
 // Tệp: prisma/seed.js
+// (ĐÃ VIẾT LẠI TOÀN BỘ ĐỂ SỬA LỖI MẬT KHẨU VÀ LOẠI BỎ ID CỨNG)
 
 const { PrismaClient, Prisma, Role, AppointmentStatus, ServiceRecordStatus, InvoiceStatus, PaymentStatus, RestockRequestStatus, PartUsageStatus } = require('@prisma/client');
 const { Faker, vi, en } = require('@faker-js/faker'); 
@@ -8,9 +9,50 @@ const prisma = new PrismaClient();
 const SALT_ROUNDS = 10;
 const faker = new Faker({ locale: [vi, en] });
 
-// --- HÀM TẠO DỮ LIỆU PHỤ TRỢ ---
+// (MỚI) Hàm helper để tạo mật khẩu hash
+const hashPassword = (pass) => bcrypt.hash(pass, SALT_ROUNDS);
 
-// (Hàm này giữ nguyên)
+/**
+ * (SỬA) Dọn dẹp CSDL theo đúng thứ tự
+ */
+async function cleanupDatabase() {
+    console.log('🗑️ Đang dọn dẹp CSDL...');
+    // Xóa theo thứ tự phụ thuộc (từ con đến cha)
+    await prisma.payment.deleteMany();
+    await prisma.invoice.deleteMany();
+    await prisma.quotation.deleteMany();
+    await prisma.partUsage.deleteMany();
+    await prisma.restockRequest.deleteMany(); 
+    await prisma.feedback.deleteMany();
+    await prisma.serviceRecord.deleteMany();
+    await prisma.appointmentService.deleteMany();
+    await prisma.serviceAppointment.deleteMany();
+    await prisma.inventoryItem.deleteMany();
+    await prisma.part.deleteMany();
+    await prisma.maintenanceRecommendation.deleteMany();
+    await prisma.serviceType.deleteMany();
+    
+    await prisma.vehicle.deleteMany();
+    
+    await prisma.batteryType.deleteMany(); 
+    await prisma.vehicleModel.deleteMany(); 
+
+    await prisma.servicePackage.deleteMany(); 
+    await prisma.message.deleteMany(); 
+    await prisma.notification.deleteMany(); 
+    await prisma.report.deleteMany(); 
+    await prisma.technicianProfile.deleteMany(); 
+    await prisma.staffCertification.deleteMany(); 
+    await prisma.certification.deleteMany(); 
+    await prisma.user.deleteMany();
+    await prisma.serviceCenter.deleteMany();
+    console.log('✅ Đã xóa dữ liệu cũ.');
+}
+
+
+/**
+ * (SỬA) seedServiceTypes: Dùng createMany, bỏ ID cứng
+ */
 async function seedServiceTypes() {
     console.log('Đang tạo các loại dịch vụ...');
     const serviceTypesData = [
@@ -28,7 +70,9 @@ async function seedServiceTypes() {
     return prisma.serviceType.findMany();
 }
 
-// (Hàm này giữ nguyên)
+/**
+ * (SỬA) seedPartsAndInventory: Dùng 'sku' làm unique key, bỏ ID cứng
+ */
 async function seedPartsAndInventory(serviceCenters) {
     console.log('Đang tạo phụ tùng và kho hàng...');
     const partsData = [
@@ -67,7 +111,9 @@ async function seedPartsAndInventory(serviceCenters) {
     return createdParts;
 }
 
-// (Hàm này giữ nguyên)
+/**
+ * (SỬA) seedCertifications: Dùng createMany, bỏ ID cứng
+ */
 async function seedCertifications() {
     console.log('Đang tạo chứng chỉ mẫu...');
     const certs = [
@@ -80,7 +126,9 @@ async function seedCertifications() {
     return prisma.certification.findMany();
 }
 
-// (HÀM MỚI) Tạo Dòng xe (Model) và Loại pin (Battery)
+/**
+ * (SỬA) seedModelsAndBatteries: Dùng 'name' (pin) làm unique key, bỏ ID cứng
+ */
 async function seedModelsAndBatteries() {
     console.log('Đang tạo Dòng xe và Loại pin...');
     
@@ -99,7 +147,7 @@ async function seedModelsAndBatteries() {
     });
     console.log(' -> Đã tạo 3 loại pin (với UUID thật).');
 
-    // 2. Tạo các dòng xe (Dùng 'create' vì 'name' không @unique)
+    // 2. Tạo các dòng xe (Dùng 'create' vì CSDL đã sạch)
     const modelVF8 = await prisma.vehicleModel.create({
         data: {
             brand: 'VinFast',
@@ -109,7 +157,6 @@ async function seedModelsAndBatteries() {
             }
         },
     });
-
     const modelVFe34 = await prisma.vehicleModel.create({
         data: {
             brand: 'VinFast',
@@ -121,7 +168,6 @@ async function seedModelsAndBatteries() {
     });
     console.log(' -> Đã tạo 2 dòng xe (với UUID thật).');
 
-    // Trả về tất cả model và pin để sử dụng sau này
     return {
         models: await prisma.vehicleModel.findMany({ include: { compatibleBatteries: true } }),
         batteries: [battery90, battery100, battery77]
@@ -129,22 +175,17 @@ async function seedModelsAndBatteries() {
 }
 
 
-// (Hàm này đã CẬP NHẬT)
+/**
+ * (Giữ nguyên)
+ */
 async function seedAppointmentsForCustomer(customer, serviceCenters, serviceTypes, parts, techniciansByCenter) {
     console.log(`Đang tạo lịch hẹn cho khách hàng: ${customer.email}`);
-    // Chỉ lấy xe CHƯA XÓA
     const vehicles = await prisma.vehicle.findMany({ 
         where: { ownerId: customer.id, isDeleted: false } 
     });
     if (vehicles.length === 0) return [];
 
     const createdAppointments = [];
-    
-    // (Logic tạo lịch hẹn, service record, invoice... giữ nguyên như file của bạn)
-    // ... (Giữ nguyên toàn bộ logic for-loop của bạn ở đây) ...
-    // (Không lặp lại code ở đây để giữ cho câu trả lời ngắn gọn)
-    // ...
-    // --- (Logic tạo lịch hẹn của bạn bắt đầu) ---
     const statusesToSeed = [
         AppointmentStatus.PENDING,
         AppointmentStatus.COMPLETED,
@@ -156,12 +197,9 @@ async function seedAppointmentsForCustomer(customer, serviceCenters, serviceType
         const randomCenter = faker.helpers.arrayElement(serviceCenters);
         const servicesToBook = faker.helpers.arrayElements(serviceTypes, { min: 1, max: 2 });
 
-        let appointmentDate;
-        if (appointmentStatus === AppointmentStatus.PENDING) {
-            appointmentDate = faker.date.soon({ days: 30, refDate: new Date() });
-        } else {
-            appointmentDate = faker.date.recent({ days: 60, refDate: new Date() });
-        }
+        let appointmentDate = (appointmentStatus === AppointmentStatus.PENDING)
+            ? faker.date.soon({ days: 30, refDate: new Date() })
+            : faker.date.recent({ days: 60, refDate: new Date() });
         appointmentDate.setHours(faker.helpers.arrayElement([9, 10, 11, 14, 15, 16]), 0, 0, 0);
 
         const appointmentInput = {
@@ -173,7 +211,7 @@ async function seedAppointmentsForCustomer(customer, serviceCenters, serviceType
             serviceCenterId: randomCenter.id,
             requestedServices: {
                 create: servicesToBook.map(service => ({
-                    serviceTypeId: service.id,
+                    serviceTypeId: service.id, // Dùng ID động (đã đúng)
                 })),
             },
         };
@@ -186,7 +224,6 @@ async function seedAppointmentsForCustomer(customer, serviceCenters, serviceType
 
             let recordStatus;
             switch(appointmentStatus) {
-                // (Sửa nhỏ): Thêm các trạng thái còn thiếu nếu cần
                 case AppointmentStatus.CONFIRMED: recordStatus = ServiceRecordStatus.PENDING; break;
                 case AppointmentStatus.IN_PROGRESS: recordStatus = ServiceRecordStatus.REPAIRING; break;
                 case AppointmentStatus.COMPLETED: recordStatus = ServiceRecordStatus.COMPLETED; break;
@@ -204,7 +241,9 @@ async function seedAppointmentsForCustomer(customer, serviceCenters, serviceType
 
             const partsToUse = faker.helpers.arrayElements(parts, { min: 1, max: 2 });
             const partsCost = partsToUse.reduce((sum, p) => sum + Number(p.price), 0);
-            const estimatedCost = servicesToBook.length * 500000 + partsCost;
+            // (SỬA) Tính giá dịch vụ từ 'price'
+            const servicesCost = servicesToBook.reduce((sum, s) => sum + Number(s.price || 0), 0);
+            const estimatedCost = servicesCost + partsCost;
 
             if (appointmentStatus === AppointmentStatus.COMPLETED) {
                 serviceRecordInput.partsUsed = {
@@ -220,7 +259,7 @@ async function seedAppointmentsForCustomer(customer, serviceCenters, serviceType
                 };
                 serviceRecordInput.invoice = {
                     create: {
-                        totalAmount: new Prisma.Decimal(estimatedCost * 1.08), 
+                        totalAmount: new Prisma.Decimal(estimatedCost * 1.08), // Giả sử VAT 8%
                         status: InvoiceStatus.PAID,
                         dueDate: new Date(),
                         payments: {
@@ -259,17 +298,21 @@ async function seedAppointmentsForCustomer(customer, serviceCenters, serviceType
     return createdAppointments;
 }
 
-// (Hàm này giữ nguyên)
+/**
+ * (SỬA) seedMaintenanceRecommendations: Sửa lỗi tham chiếu
+ */
 async function seedMaintenanceRecommendations(serviceTypes) {
     console.log('Đang tạo gợi ý bảo dưỡng (MaintenanceRecommendations)...');
     
-    const bdDinhKy = serviceTypes.find(s => s.name.includes('định kỳ'))?.id;
-    const kiemTraPin = serviceTypes.find(s => s.name.includes('Pin'))?.id;
-    const heThongPhanh = serviceTypes.find(s => s.name.includes('Phanh'))?.id;
-    const dieuHoa = serviceTypes.find(s => s.name.includes('Điều hòa'))?.id;
+    // (SỬA) Lấy ID bằng tên (an toàn hơn)
+    const bdDinhKy = serviceTypes.find(s => s.name.includes('Bảo dưỡng định kỳ'))?.id;
+    const kiemTraPin = serviceTypes.find(s => s.name.includes('Pin Cao Áp'))?.id;
+    const heThongPhanh = serviceTypes.find(s => s.name.includes('Hệ thống Phanh'))?.id;
+    const dieuHoa = serviceTypes.find(s => s.name.includes('Hệ thống Điều hòa'))?.id;
 
     const recommendations = [];
 
+    // Tạo các mốc dữ liệu
     if (bdDinhKy) recommendations.push({ model: 'ALL', mileageMilestone: 5000, serviceTypeId: bdDinhKy });
     if (bdDinhKy) recommendations.push({ model: 'ALL', mileageMilestone: 10000, serviceTypeId: bdDinhKy });
     if (dieuHoa) recommendations.push({ model: 'ALL', mileageMilestone: 10000, serviceTypeId: dieuHoa }); 
@@ -290,42 +333,12 @@ async function seedMaintenanceRecommendations(serviceTypes) {
 // --- HÀM MAIN (ĐÃ CẬP NHẬT) ---
 async function main() {
     console.log('Bắt đầu quá trình seeding...');
-    const password = await bcrypt.hash('123456', SALT_ROUNDS); 
+    
+    // (SỬA) Mã hóa mật khẩu fake
+    const password = await hashPassword('123456'); 
 
     // --- DỌN DẸP DỮ LIỆU CŨ (CẬP NHẬT THỨ TỰ) ---
-    console.log('Xóa dữ liệu cũ (Tất cả các bảng)...');
-    await prisma.payment.deleteMany();
-    await prisma.invoice.deleteMany();
-    await prisma.quotation.deleteMany();
-    await prisma.partUsage.deleteMany();
-    await prisma.restockRequest.deleteMany(); 
-    await prisma.feedback.deleteMany();
-    await prisma.serviceRecord.deleteMany();
-    await prisma.appointmentService.deleteMany();
-    await prisma.serviceAppointment.deleteMany();
-    await prisma.inventoryItem.deleteMany();
-    await prisma.part.deleteMany();
-    await prisma.maintenanceRecommendation.deleteMany();
-    await prisma.serviceType.deleteMany();
-    
-    await prisma.vehicle.deleteMany(); // Phải xóa xe TRƯỚC khi xóa Model và Pin
-    
-    // Xóa liên kết nhiều-nhiều của Pin và Model trước
-    //await prisma.vehicleModel.updateMany({ data: { compatibleBatteries: { set: [] } } }); // super bug
-
-    await prisma.batteryType.deleteMany(); // (MỚI)
-    await prisma.vehicleModel.deleteMany(); // (MỚI)
-
-    await prisma.servicePackage.deleteMany(); 
-    await prisma.message.deleteMany(); 
-    await prisma.notification.deleteMany(); 
-    await prisma.report.deleteMany(); 
-    await prisma.technicianProfile.deleteMany(); 
-    await prisma.staffCertification.deleteMany(); 
-    await prisma.certification.deleteMany(); 
-    await prisma.user.deleteMany();
-    await prisma.serviceCenter.deleteMany();
-    console.log('Đã xóa dữ liệu cũ.');
+    await cleanupDatabase();
 
     // --- TẠO DỮ LIỆU CHUNG ---
     const serviceTypes = await seedServiceTypes();
@@ -354,6 +367,7 @@ async function main() {
         console.log(`Đã tạo trung tâm: ${center.name}`);
         techniciansByCenter[center.id] = [];
 
+        // (SỬA) Đã dùng password (đã hash)
         const sa = await prisma.user.create({
             data: {
                 fullName: `Quản lý Trạm (Fake) ${i + 7}`, email: `stationadmin_fake${i + 7}@ev.com`, passwordHash: password, role: Role.STATION_ADMIN, serviceCenterId: center.id, phoneNumber: faker.phone.number('09########'), isActive: true, 
@@ -414,30 +428,30 @@ async function main() {
     techniciansByCenter[testCenter.id] = [];
     await seedPartsAndInventory([testCenter]); 
 
-    // (Tạo 6 tài khoản cứng: Admin, StationAdmin, Staff, Tech, IM, Customer giữ nguyên)
+    // (SỬA) Dùng hashPassword cho TẤT CẢ
     // 1. ADMIN CỨNG
     const adminTest = await prisma.user.upsert({
          where: { email: 'admin@evservice.com' }, update: { employeeCode: 'ADMIN001' },
-         create: { fullName: 'Admin Tổng (Hardcoded)', email: 'admin@evservice.com', passwordHash: await bcrypt.hash('admin123', SALT_ROUNDS), role: Role.ADMIN, phoneNumber: '0901112220', 
+         create: { fullName: 'Admin Tổng (Hardcoded)', email: 'admin@evservice.com', passwordHash: await hashPassword('admin123'), role: Role.ADMIN, phoneNumber: '0901112220', 
                    employeeCode: 'ADMIN001', isActive: true },
     });
     // 2. STATION_ADMIN CỨNG (Quản lý Q1)
     const stationAdminTest = await prisma.user.upsert({
          where: { email: 'station@evservice.com' }, update: { employeeCode: 'SA001' },
-         create: { fullName: 'Quản lý Trạm Q1 (Hardcoded)', email: 'station@evservice.com', passwordHash: await bcrypt.hash('station123', SALT_ROUNDS), role: Role.STATION_ADMIN, serviceCenterId: testCenter.id, phoneNumber: '0901112221', 
+         create: { fullName: 'Quản lý Trạm Q1 (Hardcoded)', email: 'station@evservice.com', passwordHash: await hashPassword('station123'), role: Role.STATION_ADMIN, serviceCenterId: testCenter.id, phoneNumber: '0901112221', 
                    employeeCode: 'SA001', isActive: true },
     });
     stationAdmins.push(stationAdminTest); 
     // 3. STAFF CỨNG (Nhân viên Q1)
     const staffTest = await prisma.user.upsert({
          where: { email: 'staff@evservice.com' }, update: { employeeCode: 'STF001' },
-         create: { fullName: 'Nhân viên Q1 (Hardcoded)', email: 'staff@evservice.com', passwordHash: await bcrypt.hash('staff123', SALT_ROUNDS), role: Role.STAFF, serviceCenterId: testCenter.id, phoneNumber: '0901112222', 
+         create: { fullName: 'Nhân viên Q1 (Hardcoded)', email: 'staff@evservice.com', passwordHash: await hashPassword('staff123'), role: Role.STAFF, serviceCenterId: testCenter.id, phoneNumber: '0901112222', 
                    employeeCode: 'STF001', isActive: true },
     });
     // 4. TECHNICIAN CỨNG (Kỹ thuật viên Q1)
     const techTest = await prisma.user.upsert({
          where: { email: 'tech@evservice.com' }, update: { employeeCode: 'TEC001' },
-         create: { fullName: 'Kỹ thuật viên Q1 (Hardcoded)', email: 'tech@evservice.com', passwordHash: await bcrypt.hash('tech123', SALT_ROUNDS), role: Role.TECHNICIAN, serviceCenterId: testCenter.id, phoneNumber: '0901112223', 
+         create: { fullName: 'Kỹ thuật viên Q1 (Hardcoded)', email: 'tech@evservice.com', passwordHash: await hashPassword('tech123'), role: Role.TECHNICIAN, serviceCenterId: testCenter.id, phoneNumber: '0901112223', 
                    employeeCode: 'TEC001', isActive: true },
     });
     techniciansByCenter[testCenter.id].push(techTest);
@@ -445,9 +459,10 @@ async function main() {
         where: { userId: techTest.id }, update: {},
         create: { userId: techTest.id, specialization: 'Hệ thống Pin Cao Áp (HV)' }
     });
+    // (SỬA) Dùng certification ID động
     await prisma.staffCertification.upsert({
         where: { staffId_certificationId: { staffId: techTest.id, certificationId: certifications[1].id } },
-        update: { certificateNumber: `HARDCODED-${faker.string.alphanumeric(10)}` },
+        update: {},
         create: { 
             staffId: techTest.id, 
             certificationId: certifications[1].id, 
@@ -458,46 +473,44 @@ async function main() {
     // 5. CUSTOMER CỨNG
     const customerTest = await prisma.user.upsert({
          where: { email: 'customer@example.com' }, update: {},
-         create: { fullName: 'Khách hàng Test (Hardcoded)', email: 'customer@example.com', passwordHash: await bcrypt.hash('customer123', SALT_ROUNDS), role: Role.CUSTOMER, phoneNumber: '0901112224', address: '123 Example St, Q1', 
+         create: { fullName: 'Khách hàng Test (Hardcoded)', email: 'customer@example.com', passwordHash: await hashPassword('customer123'), role: Role.CUSTOMER, phoneNumber: '0901112224', address: '123 Example St, Q1', 
                    employeeCode: null, isActive: true }, 
     });
     
-    // --- (CẬP NHẬT TẠO XE CỨNG) ---
+    // --- (SỬA) CẬP NHẬT TẠO XE CỨNG (Thêm currentMileage) ---
     await prisma.vehicle.upsert({ 
         where: { vin: 'VF8TESTVIN00001' }, 
         update: { color: 'Đen' }, 
         create: { 
-            // brand: 'VinFast', model: 'VF8', // (Xóa 2 trường này)
-            vehicleModelId: modelVF8.id, // (THAY THẾ)
+            vehicleModelId: modelVF8.id,
             year: 2023, 
             vin: 'VF8TESTVIN00001', 
             licensePlate: '51K-TEST1', 
             ownerId: customerTest.id, 
-            // currentMileage: 15000, // (Xóa trường này, đã bị loại khỏi schema)
-            batteryId: faker.helpers.arrayElement(modelVF8.compatibleBatteries).id, // (THÊM MỚI)
-            color: 'Đen' 
+            batteryId: faker.helpers.arrayElement(modelVF8.compatibleBatteries).id,
+            color: 'Đen',
+            currentMileage: 15000 // (THÊM)
         } 
     });
     await prisma.vehicle.upsert({ 
         where: { vin: 'VFE34TESTVIN002' }, 
         update: { color: 'Trắng' }, 
         create: { 
-            // brand: 'VinFast', model: 'VF e34', // (Xóa 2 trường này)
-            vehicleModelId: modelVFe34.id, // (THAY THẾ)
+            vehicleModelId: modelVFe34.id,
             year: 2022, 
             vin: 'VFE34TESTVIN002', 
             licensePlate: '51K-TEST2', 
             ownerId: customerTest.id, 
-            // currentMileage: 42000, // (Xóa trường này)
-            batteryId: modelVFe34.compatibleBatteries[0].id, // (THÊM MỚI)
-            color: 'Trắng' 
+            batteryId: modelVFe34.compatibleBatteries[0].id,
+            color: 'Trắng',
+            currentMileage: 30000 // (THÊM)
         } 
     });
 
     // 6. INVENTORY_MANAGER CỨNG (Quản lý kho Q1)
     const inventoryManagerTest = await prisma.user.upsert({
          where: { email: 'inventory@evservice.com' }, update: { employeeCode: 'IM001' },
-         create: { fullName: 'Quản lý Kho Q1 (Hardcoded)', email: 'inventory@evservice.com', passwordHash: await bcrypt.hash('inventory123', SALT_ROUNDS), role: Role.INVENTORY_MANAGER, serviceCenterId: testCenter.id, phoneNumber: '0901112225', 
+         create: { fullName: 'Quản lý Kho Q1 (Hardcoded)', email: 'inventory@evservice.com', passwordHash: await hashPassword('inventory123'), role: Role.INVENTORY_MANAGER, serviceCenterId: testCenter.id, phoneNumber: '0901112225', 
                    employeeCode: 'IM001', isActive: true },
     });
     inventoryManagers.push(inventoryManagerTest);
@@ -506,6 +519,7 @@ async function main() {
     // --- TẠO KHÁCH HÀNG FAKE KHÁC & XE (CẬP NHẬT) ---
     const customers = [customerTest]; 
     for (let i = 0; i < 5; i++) { 
+        // (SỬA) Dùng password (đã hash)
         const customer = await prisma.user.create({
             data: {
                 fullName: faker.person.fullName(), email: faker.internet.email().toLowerCase(), passwordHash: password, role: Role.CUSTOMER, 
@@ -516,23 +530,19 @@ async function main() {
         });
         customers.push(customer);
         for (let j = 0; j < 1; j++) {
-            // Chọn 1 dòng xe ngẫu nhiên (VF8 hoặc VFe34)
             const randomModel = faker.helpers.arrayElement(models);
-            // Chọn 1 loại pin ngẫu nhiên TƯƠNG THÍCH với dòng xe đó
             const randomBattery = faker.helpers.arrayElement(randomModel.compatibleBatteries);
 
             await prisma.vehicle.create({
                 data: {
-                    // brand: 'VinFast', (Xóa)
-                    // model: faker.helpers.arrayElement(['VF8', 'VF e34']), (Xóa)
-                    vehicleModelId: randomModel.id, // (THAY THẾ)
-                    batteryId: randomBattery.id,    // (THAY THẾ)
+                    vehicleModelId: randomModel.id,
+                    batteryId: randomBattery.id,
                     color: faker.vehicle.color(),
                     year: faker.number.int({ min: 2021, max: 2024 }),
                     vin: faker.vehicle.vin(),
                     licensePlate: faker.vehicle.vrm(),
                     ownerId: customer.id,
-                    // currentMileage: faker.number.int({ min: 500, max: 100000 }), (Xóa)
+                    currentMileage: faker.number.int({ min: 500, max: 100000 }), // (THÊM)
                 },
             });
         }
@@ -540,13 +550,13 @@ async function main() {
     console.log(`Đã tạo tổng cộng ${customers.length} khách hàng và xe của họ.`);
 
     // --- TẠO LỊCH HẸN & FEEDBACK ---
-    // (Logic này giữ nguyên)
     let allCreatedAppointments = [];
     for (const customer of customers) {
         const created = await seedAppointmentsForCustomer(customer, serviceCenters, serviceTypes, parts, techniciansByCenter);
         allCreatedAppointments = allCreatedAppointments.concat(created);
     }
 
+    // ... (Logic tạo Feedback giữ nguyên) ...
     console.log('Đang tạo feedback ngẫu nhiên...');
     const completedAppointments = allCreatedAppointments.filter(a => a.status === AppointmentStatus.COMPLETED);
     let feedbackCount = 0;
@@ -565,8 +575,8 @@ async function main() {
     }
     console.log(` -> Đã tạo ${feedbackCount} feedback.`);
 
+
     // --- TẠO DỮ LIỆU CHO CÁC BẢNG CÒN LẠI ---
-    // (Toàn bộ logic tạo RestockRequest, ServicePackage, Message, Notification, Report giữ nguyên)
     // 1. Tạo RestockRequest
     console.log('Đang tạo yêu cầu nhập kho (RestockRequest)...');
     for (let i = 0; i < 5; i++) {
@@ -577,7 +587,7 @@ async function main() {
             RestockRequestStatus.APPROVED, 
             RestockRequestStatus.REJECTED,
         ]);
-        let randomSA = null; // Đây là Station Admin
+        let randomSA = null;
         
         if (randomStatus !== RestockRequestStatus.PENDING) {
             randomSA = faker.helpers.arrayElement(stationAdmins.filter(sa => sa.serviceCenterId === randomIM.serviceCenterId) || stationAdmins);
@@ -591,9 +601,7 @@ async function main() {
                 partId: randomPart.id,
                 inventoryManagerId: randomIM.id,
                 serviceCenterId: randomIM.serviceCenterId,
-                
-                adminId: randomSA?.id || null, 
-
+                adminId: randomSA?.id || null, // (Sửa) Gán cho SA
                 processedAt: randomStatus !== RestockRequestStatus.PENDING ? faker.date.recent() : null,
             }
         });
@@ -626,7 +634,7 @@ async function main() {
     console.log('Đang tạo thông báo (Notification)...');
     await prisma.notification.create({
         data: {
-            message: "Lịch hẹn #12345 của bạn đã được xác nhận.",
+            message: "Lịch hẹn của bạn đã được xác nhận.",
             recipientId: customerTest.id,
         }
     });
@@ -659,8 +667,6 @@ async function main() {
     console.log('  👤 Customer:      customer@example.com      (pass: customer123)');
 
 }
-
-
 main()
     .catch((e) => {
         console.error('Lỗi trong quá trình seeding:', e);
