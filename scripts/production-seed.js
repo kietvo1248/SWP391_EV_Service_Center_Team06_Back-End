@@ -2,10 +2,10 @@
  * Production seed script cho Render deployment
  * (ĐÃ VIẾT LẠI TOÀN BỘ)
  * - Sử dụng UUID tự động 100%, không dùng ID cứng (vd: 'appt-pending').
- * - Sửa lỗi Mật khẩu: Dùng bcrypt.hash() cho tất cả tài khoản.
  * - Tương thích schema mới (VehicleModel, BatteryType, employeeCode, currentMileage).
  * - Tự động tạo nhân sự cứng cho TẤT CẢ các trạm.
- * - Bổ sung seedMaintenanceRecommendations để fix lỗi Suggestion.
+ * - Tạo dữ liệu cho tất cả các trạng thái (Enums) bằng cách lồng (nested creates).
+ * - (SỬA) Bổ sung seedMaintenanceRecommendations để fix lỗi Suggestion.
  */
 
 const { PrismaClient, Prisma, Role, AppointmentStatus, ServiceRecordStatus, InvoiceStatus, PaymentStatus, RestockRequestStatus, PartUsageStatus } = require('@prisma/client');
@@ -14,11 +14,11 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 const SALT_ROUNDS = 10;
 
-// Hàm helper để tạo mật khẩu hash
+// Hàm helper để tạo mật khẩu
 const hashPassword = (pass) => bcrypt.hash(pass, SALT_ROUNDS);
 
 /**
- * Dọn dẹp CSDL theo đúng thứ tự
+ * (MỚI) Dọn dẹp CSDL theo đúng thứ tự
  */
 async function cleanupDatabase() {
     console.log('🗑️ Đang dọn dẹp CSDL...');
@@ -36,9 +36,15 @@ async function cleanupDatabase() {
     await prisma.part.deleteMany();
     await prisma.maintenanceRecommendation.deleteMany(); 
     await prisma.serviceType.deleteMany();
+    
     await prisma.vehicle.deleteMany();
+    
+    // (Bảng VehicleModel liên kết n-n với BatteryType, 
+    // nhưng vì ta xóa cả 2 nên bảng _BatteryTypeToVehicleModel tự động bị xóa)
+
     await prisma.batteryType.deleteMany(); 
     await prisma.vehicleModel.deleteMany(); 
+
     await prisma.servicePackage.deleteMany(); 
     await prisma.message.deleteMany(); 
     await prisma.notification.deleteMany(); 
@@ -64,6 +70,8 @@ async function seedMasterData() {
         { name: 'Hệ thống Phanh', price: 250000 },
         { name: 'Hệ thống Điều hòa', price: 150000 } 
     ];
+    // Xóa trước khi tạo (vì không có trường unique để upsert)
+    await prisma.serviceType.deleteMany({ where: { name: { in: serviceTypesData.map(s => s.name) } } });
     await prisma.serviceType.createMany({ data: serviceTypesData });
     const serviceTypes = await prisma.serviceType.findMany(); // Lấy lại các dịch vụ đã tạo
     
@@ -91,8 +99,10 @@ async function seedMasterData() {
         create: { name: 'Pin LFP 77kWh (VF e34)', capacityKwh: 77 },
     });
 
-    // 4. Model (Dùng 'create' vì CSDL đã được dọn dẹp)
-    // (Lưu ý: Nếu 'name' trong VehicleModel là @unique, bạn có thể dùng upsert)
+    // 4. Model (Dùng 'upsert' với 'name' làm 'where', YÊU CẦU 'name' PHẢI LÀ @unique)
+    // *** LƯU Ý: Bạn PHẢI thêm `@unique` vào trường 'name' của 'VehicleModel' trong schema.prisma ***
+    // Nếu không, hãy dùng 'create' như bên dưới sau khi đã cleanup
+    await prisma.vehicleModel.deleteMany({ where: { name: { in: ['VF8', 'VF e34'] } } }); 
     const modelVF8 = await prisma.vehicleModel.create({
         data: { brand: 'VinFast', name: 'VF8', compatibleBatteries: { connect: [{ id: battery90.id }] } },
         include: { compatibleBatteries: true }
@@ -139,6 +149,8 @@ async function seedMaintenanceRecommendations(serviceTypes) {
     if (kiemTraPin) recommendations.push({ model: 'VF e34', mileageMilestone: 30000, serviceTypeId: kiemTraPin });
 
     if (recommendations.length > 0) {
+        // Xóa dữ liệu cũ trước khi tạo
+        await prisma.maintenanceRecommendation.deleteMany({});
         await prisma.maintenanceRecommendation.createMany({
             data: recommendations,
             skipDuplicates: true,
@@ -154,6 +166,8 @@ async function createProductionSeedData() {
         console.log('🌱 Bắt đầu tạo dữ liệu mẫu cho production...\n');
         
         // --- 0. DỌN DẸP ---
+        // (Lệnh 'pnpm db:reset' trong build command đã làm việc này,
+        // nhưng chạy lại cleanupDatabase() để đảm bảo an toàn tuyệt đối)
         await cleanupDatabase();
 
         // --- 1. TẠO TRUNG TÂM DỊCH VỤ (2 TRẠM) ---
@@ -211,7 +225,7 @@ async function createProductionSeedData() {
         // --- 4. TẠO TÀI KHOẢN (CỨNG VÀ CHO TỪNG TRẠM) ---
         console.log('👥 Tạo các tài khoản test...');
         
-        // (SỬA) Dùng hashPassword
+        // Admin Tổng (Dùng upsert vì email là @unique)
         const admin = await prisma.user.upsert({
             where: { email: 'admin@evservice.com' },
             update: { employeeCode: 'ADMIN001', isActive: true },
@@ -222,9 +236,9 @@ async function createProductionSeedData() {
         const staffByCenter = {}; 
         
         for (const center of allCenters) {
+            // (SỬA) Dùng tên trạm để tạo email unique
             const suffix = center.name.includes('HCM') ? 'hcm' : 'hn';
             
-            // (SỬA) Dùng hashPassword
             const sa = await prisma.user.upsert({
                 where: { email: `station.${suffix}@evservice.com` }, update: {},
                 create: { fullName: `Trưởng trạm ${suffix.toUpperCase()}`, email: `station.${suffix}@evservice.com`, passwordHash: await hashPassword('station123'), role: Role.STATION_ADMIN, employeeCode: `SA_${suffix.toUpperCase()}001`, serviceCenterId: center.id, isActive: true }
@@ -245,7 +259,7 @@ async function createProductionSeedData() {
             staffByCenter[center.id] = { sa, staff, tech, im };
         }
         
-        // Khách hàng (Dùng upsert và hashPassword)
+        // Khách hàng (Dùng upsert)
         const customer1 = await prisma.user.upsert({
             where: { email: 'customer1@example.com' }, update: {},
             create: { fullName: 'Khách hàng 001 (HCM)', email: 'customer1@example.com', passwordHash: await hashPassword('customer123'), role: Role.CUSTOMER, isActive: true }
@@ -439,7 +453,6 @@ async function createProductionSeedData() {
         console.log(`  🔧 Tech HCM:      tech.hcm@evservice.com      (pass: tech123)`);
         console.log(`  📦 IM HCM:        inventory.hcm@evservice.com (pass: inventory123)`);
         console.log(`  👨‍💼 Station HN:    station.hn@evservice.com  (pass: station123)`);
-        
         // (SỬA) Thêm các user HN còn lại vào danh sách
         const techHN = staffByCenter[centerHn.id].tech;
         const staffHN = staffByCenter[centerHn.id].staff;
@@ -447,7 +460,6 @@ async function createProductionSeedData() {
         console.log(`  👨‍🔧 Staff HN:      ${staffHN.email}     (pass: staff123)`);
         console.log(`  🔧 Tech HN:       ${techHN.email}      (pass: tech123)`);
         console.log(`  📦 IM HN:         ${imHN.email}  (pass: inventory123)`);
-        
         console.log(`  👤 Customer 1:    customer1@example.com     (pass: customer123)`);
         console.log(`  👤 Customer 2:    customer2@example.com     (pass: customer123)`);
 
