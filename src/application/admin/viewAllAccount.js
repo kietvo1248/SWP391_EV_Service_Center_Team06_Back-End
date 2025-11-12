@@ -1,3 +1,4 @@
+// Tệp: src/application/admin/viewAllAccount.js
 const User = require('../../domain/entities/User');
 class ViewAllAccounts {
     constructor(userRepository) {
@@ -5,12 +6,11 @@ class ViewAllAccounts {
     }
 
     async execute() {
-        // 1. Lấy tất cả người dùng
         const users = await this.userRepository.findAll();
-        // 2. Trả về danh sách các đối tượng User an toàn
+        // --- SỬA LỖI 'userCode' ---
         return users.map(user => new User(
             user.id,
-            user.userCode,
+            user.employeeCode, 
             user.fullName,
             user.email,
             null, // passwordHash
@@ -20,9 +20,7 @@ class ViewAllAccounts {
             user.serviceCenterId,
             null, // googleId
             user.isActive
-            // googleId is not needed for this response
         ));
     }
 }
-
 module.exports = ViewAllAccounts;

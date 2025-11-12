@@ -7,7 +7,7 @@ class AddVehicle {
     }
 
     async execute(ownerId, vehicleData) {
-        const { vin, year, vehicleModelId, batteryId, licensePlate, color } = vehicleData;
+        const { vin, year, vehicleModelId, batteryId, licensePlate, color, currentMileage} = vehicleData;
 
         // 1. Validation dữ liệu đầu vào (Giữ nguyên)
         if (!vin || !year || !vehicleModelId || !batteryId) {

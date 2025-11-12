@@ -97,13 +97,13 @@ pnpm add swagger-ui-express yamljs
 Khởi động server ở chế độ phát triển:
 
 ```bash
-pnpm dev
+pnpm run dev
 ```
 
 Server sẽ chạy tại địa chỉ:
 
 ```
-http://localhost:5000
+http://localhost:6969
 ```
 
 ### 🌐 Bước 5.3: Truy cập Swagger UI
@@ -111,7 +111,7 @@ http://localhost:5000
 Mở trình duyệt và truy cập:
 
 ```
-http://localhost:5000/api-docs
+http://localhost:6969/api-docs
 ```
 
 > Dự án được cấu hình để tự động tải tài liệu từ file `swagger.yaml` tại thư mục gốc.
@@ -124,6 +124,12 @@ Nếu bạn muốn khởi tạo dữ liệu mẫu để kiểm thử:
 
 ```bash
 pnpm db:seed
+```
+
+Nếu bạn muốn dọn sạch dữ liệu mẫu đ:
+
+```bash
+pnpm prisma migrate reset
 ```
 
 ---

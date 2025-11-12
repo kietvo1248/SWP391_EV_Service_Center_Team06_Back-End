@@ -1,6 +1,8 @@
-// Tệp: src/application/staff/startAppointmentProgress.js
-const ServiceAppointmentEntity = require('../../domain/entities/ServiceAppointment'); // Import
-const ServiceRecordEntity = require('../../domain/entities/ServiceRecord'); // Import
+// Tệp: src/application/staff/startAppointment.js
+const ServiceAppointmentEntity = require('../../domain/entities/ServiceAppointment');
+const ServiceRecordEntity = require('../../domain/entities/ServiceRecord');
+// (THÊM) Import Enums để dùng
+const { ServiceRecordStatus, AppointmentStatus } = require('@prisma/client');
 
 class StartAppointmentProgress {
     constructor(appointmentRepo, serviceRecordRepo, prismaClient) {
@@ -10,26 +12,31 @@ class StartAppointmentProgress {
     }
 
     async execute(appointmentId, staffServiceCenterId, currentMileage) {
-        let updatedApptPrisma, updatedRecordPrisma; // Lưu kết quả Prisma
+        let updatedApptPrisma, updatedRecordPrisma; 
 
         await this.prisma.$transaction(async (tx) => {
             const appointment = await this.appointmentRepo.findById(appointmentId);
             if (!appointment || appointment.serviceCenterId !== staffServiceCenterId) {
                 throw new Error('Appointment not found or not in your center.');
             }
-            if (appointment.status !== 'CONFIRMED') {
+            // (SỬA) Dùng Enum để so sánh trạng thái an toàn hơn
+            if (appointment.status !== AppointmentStatus.CONFIRMED) {
                 throw new Error('Appointment must be in CONFIRMED state to start.');
             }
 
             // 1. Cập nhật ServiceAppointment -> IN_PROGRESS
-            updatedApptPrisma = await this.appointmentRepo.updateStatus(appointmentId, 'IN_PROGRESS', tx);
+            updatedApptPrisma = await this.appointmentRepo.updateStatus(appointmentId, AppointmentStatus.IN_PROGRESS, tx);
 
-            // 2. Cập nhật ServiceRecord -> IN_PROGRESS
+            // 2. TÌM ServiceRecord liên quan đến Appointment
+            const record = await this.serviceRecordRepo.findByAppointmentId(appointmentId);
+            if (!record) {
+                throw new Error('Service record not found. Assignment might have failed.');
+            }
+
             updatedRecordPrisma = await this.serviceRecordRepo.update(record.id, { 
-                status: ServiceRecordStatus.DIAGNOSING // (Sửa: 'DIAGNOSING' hợp lý hơn 'IN_PROGRESS')
+                status: ServiceRecordStatus.DIAGNOSING // Chuyển sang DIAGNOSING
             }, tx);
 
-            // --- (MỚI) Cập nhật số km của xe ---
             if (currentMileage !== undefined && currentMileage !== null) {
                 const newMileage = parseInt(currentMileage, 10);
                 if (!isNaN(newMileage) && newMileage >= 0) {
@@ -38,12 +45,13 @@ class StartAppointmentProgress {
                         data: { currentMileage: newMileage }
                     });
                 } else {
-                    throw new Error("Invalid mileage provided.");
+                    // Ném lỗi nếu số km không hợp lệ
+                    throw new Error("Invalid mileage provided. Must be a positive number.");
                 }
             }
         });
 
-        // 3. Chuyển đổi kết quả Prisma sang Entities trước khi trả về
+        // 5. Chuyển đổi kết quả Prisma sang Entities (Giữ nguyên)
         const updatedApptEntity = new ServiceAppointmentEntity(
             updatedApptPrisma.id,
             updatedApptPrisma.customerId,

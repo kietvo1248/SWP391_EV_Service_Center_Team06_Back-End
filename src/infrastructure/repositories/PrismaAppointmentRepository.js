@@ -1,3 +1,4 @@
+// Tệp: src/infrastructure/repositories/PrismaAppointmentRepository.js
 const IAppointmentRepository = require('../../domain/repositories/IAppointmentRepository');
 
 class PrismaAppointmentRepository extends IAppointmentRepository {
@@ -6,18 +7,11 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
         this.prisma = prismaClient;
     }
 
-    /**
-     * Nâng cấp hàm 'add' để sử dụng transaction
-     * Lưu ServiceAppointment và AppointmentService cùng lúc
-     * @param {object} appointmentData - Dữ liệu từ domain entity
-     * @param {string[]} requestedServices - Mảng các ID của ServiceType
-     */
     async add(appointmentData, requestedServices = []) {
-
-        // Dùng $transaction để đảm bảo cả hai thao tác cùng thành công hoặc thất bại
+        // (Logic 'add' của bạn đã đúng, giữ nguyên)
         return this.prisma.$transaction(async (tx) => {
-
-            // 1. Tạo lịch hẹn chính
+            // ... (Logic tạo appointment và appointmentService) ...
+            // (Không thay đổi)
             const newAppointment = await tx.serviceAppointment.create({
                 data: {
                     customerId: appointmentData.customerId,
@@ -28,28 +22,26 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
                     customerNotes: appointmentData.customerNotes,
                 },
             });
-
-            // 2. Nếu có dịch vụ được yêu cầu, liên kết chúng
             if (requestedServices && requestedServices.length > 0) {
                 const servicesToLink = requestedServices.map(serviceTypeId => ({
                     appointmentId: newAppointment.id,
                     serviceTypeId: serviceTypeId,
                 }));
-
                 await tx.appointmentService.createMany({
                     data: servicesToLink,
                 });
             }
-
-            // 3. Trả về lịch hẹn vừa tạo
             return newAppointment;
         });
     }
+
+    /**
+     * Dùng cho /api/staff/appointments
+     */
     async findByCenterId(serviceCenterId, status) {
         const whereClause = {
             serviceCenterId: serviceCenterId,
         };
-
         if (status) {
             whereClause.status = status;
         }
@@ -63,14 +55,13 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
                 customer: { // Lấy thông tin khách hàng
                     select: { fullName: true, phoneNumber: true }
                 },
-                // --- (SỬA LỖI) ---
-                vehicle: { // Lấy thông tin xe
+                vehicle: {
                     select: { 
                         licensePlate: true,
                         vehicleModel: { // Lồng vào VehicleModel
                             select: {
                                 brand: true, // Trường mới
-                                name: true   // Trường mới
+                                name: true   // Trường mới (thay cho model)
                             }
                         }
                     }
@@ -81,6 +72,10 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
             }
         });
     }
+
+    /**
+     * Dùng cho /api/appointments/:id
+     */
     async findById(appointmentId) {
         return this.prisma.serviceAppointment.findUnique({
             where: { id: appointmentId },
@@ -88,7 +83,12 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
                 customer: { // Thông tin khách hàng
                     select: { id: true, fullName: true, email: true, phoneNumber: true }
                 },
-                vehicle: true, // Lấy tất cả thông tin xe
+                vehicle: {
+                    include: {
+                        vehicleModel: true, // Lấy VehicleModel (chứa brand, name)
+                        battery: true     // Lấy BatteryType (chứa capacityKwh)
+                    }
+                },
                 serviceCenter: { // Thông tin trung tâm
                     select: { id: true, name: true, address: true }
                 },
@@ -96,20 +96,27 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
                     include: {
                         serviceType: true // Lấy chi tiết của loại dịch vụ
                     }
+                },
+                serviceRecord: { // (Giữ nguyên)
+                    include: {
+                        quotation: true
+                    }
                 }
             }
         });
     }
 
     async updateStatus(appointmentId, status, tx) {
-        const db = tx || this.prisma; // Sử dụng transaction nếu được cung cấp
+        const db = tx || this.prisma;
         return db.serviceAppointment.update({
             where: { id: appointmentId },
             data: { status: status },
         });
     }
 
-    //tìm kiếm cho khách cho nhân viên
+    /**
+     * Dùng cho /api/staff/appointments/search
+     */
     async findConfirmedByCustomerPhone(serviceCenterId, phone) {
         return this.prisma.serviceAppointment.findMany({
             where: {
@@ -141,6 +148,9 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
         });
     }
 
+    /**
+     * Dùng cho /api/appointments/:id (khi Customer gọi)
+     */
     async findByIdAndCustomer(appointmentId, customerId) {
         return this.prisma.serviceAppointment.findFirst({
             where: {
@@ -148,10 +158,15 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
                 customerId: customerId,
             },
             include: {
-                vehicle: true,
+                vehicle: { 
+                    include: {
+                        vehicleModel: true,
+                        battery: true
+                    }
+                },
                 serviceCenter: { select: { name: true } },
                 requestedServices: { include: { serviceType: true } },
-                serviceRecord: { // Lấy báo giá liên quan
+                serviceRecord: { 
                     include: {
                         quotation: true
                     }
@@ -159,6 +174,10 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
             }
         });
     }
+    
+    /**
+     * Dùng cho /api/appointments/history
+     */
     async findByCustomerId(customerId, statuses = []) {
         const whereClause = {
             customerId: customerId,

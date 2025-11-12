@@ -1,6 +1,6 @@
 // Tệp: src/application/bookings/createAppointment.js
 const ServiceAppointment = require('../../domain/entities/ServiceAppointment');
-const { Prisma, AppointmentStatus } = require('@prisma/client'); // Import Prisma (cho lỗi)
+const { Prisma, AppointmentStatus } = require('@prisma/client'); 
 
 class CreateAppointmentUseCase {
     constructor(appointmentRepository, vehicleRepository, serviceCenterRepository, prismaClient) {
@@ -19,8 +19,8 @@ class CreateAppointmentUseCase {
             requestedServices
         } = appointmentData;
 
-        // --- VALIDATIONS 
-        const vehicle = await this.vehicleRepository.findByIdAndOwner(vehicleId, customerId);
+        const vehicle = await this.vehicleRepository.findById(vehicleId, customerId);
+        
         if (!vehicle) {
             throw new Error("Vehicle not found or you are not the owner.");
         }
@@ -37,9 +37,8 @@ class CreateAppointmentUseCase {
             }
             const capacity = center.capacityPerSlot;
 
-            // --- SỬA LỖI RACE CONDITION: Thêm { isolationLevel: 'Serializable' } ---
             const newAppointment = await this.prisma.$transaction(async (tx) => {
-                // Đếm số lịch hẹn
+
                 const existingCount = await tx.serviceAppointment.count({
                     where: {
                         serviceCenterId: serviceCenterId,
@@ -93,8 +92,8 @@ class CreateAppointmentUseCase {
                 return createdAppt; 
             }, {
                 isolationLevel: 'Serializable',
-                maxWait: 5000, // 5 giây
-                timeout: 10000 // 10 giây
+                maxWait: 5000, 
+                timeout: 10000 
             });
 
             const newAppointmentEntity = new ServiceAppointment(

@@ -128,6 +128,28 @@ class PrismaServiceRecordRepository extends IServiceRecordRepository {
             };
         });
     }
+    async findBusyTechnicianIds(serviceCenterId, appointmentDate, tx) {
+        const db = tx || this.prisma;
+        
+        const records = await db.serviceRecord.findMany({
+            where: {
+                status: { 
+                    notIn: ['COMPLETED', 'CANCELLED'] // Bất kỳ trạng thái nào đang hoạt động
+                },
+                appointment: {
+                    serviceCenterId: serviceCenterId,
+                    appointmentDate: appointmentDate // Kiểm tra chính xác slot thời gian
+                }
+            },
+            select: {
+                technicianId: true
+            }
+        });
+
+        // Trả về một mảng các ID unique
+        return [...new Set(records.map(r => r.technicianId))];
+    }
 }
+
 
 module.exports = PrismaServiceRecordRepository;
