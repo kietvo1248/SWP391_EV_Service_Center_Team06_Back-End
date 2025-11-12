@@ -18,7 +18,7 @@
     "deploy": "npm run build && npm start",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
-    "db:reset": "prisma migrate reset --force"
+    "db:reset": "prisma migrate reset --force --skip-seed"
   },
   "keywords": [],
   "author": "",
