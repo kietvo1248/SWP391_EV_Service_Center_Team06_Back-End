@@ -1,6 +1,6 @@
 // Tệp: src/application/bookings/getAppointmentDetails.js
 const ServiceAppointmentEntity = require('../../domain/entities/ServiceAppointment');
-const QuotationEntity = require('../../domain/entities/Quotation');
+// const QuotationEntity = require('../../domain/entities/Quotation');
 const VehicleEntity = require('../../domain/entities/Vehicle');
 const UserEntity = require('../../domain/entities/User');
 const ServiceTypeEntity = require('../../domain/entities/ServiceType');
@@ -96,14 +96,8 @@ class GetAppointmentDetailsUseCase {
         }
         // --- KẾT THÚC SỬA LỖI ---
 
-        if (appointmentPrisma.serviceRecord && appointmentPrisma.serviceRecord.quotation) {
-            const quotePrisma = appointmentPrisma.serviceRecord.quotation;
-            appointmentEntity.quotation = new QuotationEntity(
-                quotePrisma.id,
-                quotePrisma.serviceRecordId,
-                quotePrisma.estimatedCost,
-                quotePrisma.creationDate
-            );
+        if (appointmentPrisma.serviceRecord) {
+            appointmentEntity.serviceRecord = appointmentPrisma.serviceRecord;
         }
 
         return appointmentEntity;

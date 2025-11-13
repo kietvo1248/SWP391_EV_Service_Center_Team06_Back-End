@@ -57,7 +57,7 @@ class PrismaServiceCenterRepository extends IServiceCenterRepository {
                     lt: new Date(targetDate.setHours(23, 59, 59, 999)), // End of the day
                 },
                 status: {
-                    in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'PENDING_APPROVAL'], // Only consider active appointments
+                    in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS'], // Only consider active appointments
                 },
             },
             select: {

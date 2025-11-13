@@ -3,20 +3,22 @@ class InventoryController {
     constructor(
         viewInventoryUseCase,
         updateStockQuantityUseCase,
-        listRequestsForIssuingUseCase,
-        issuePartsForServiceUseCase,
+        // listRequestsForIssuingUseCase, // (XÓA)
+        // issuePartsForServiceUseCase, // (XÓA)
         createRestockRequestUseCase,
-        receiveStockUseCase
+        receiveStockUseCase,
+        findPartBySkuUseCase
     ) {
         this.viewInventoryUseCase = viewInventoryUseCase;
         this.updateStockQuantityUseCase = updateStockQuantityUseCase;
-        this.listRequestsForIssuingUseCase = listRequestsForIssuingUseCase;
-        this.issuePartsForServiceUseCase = issuePartsForServiceUseCase;
+        // this.listRequestsForIssuingUseCase = listRequestsForIssuingUseCase; // (XÓA)
+        // this.issuePartsForServiceUseCase = issuePartsForServiceUseCase; // (XÓA)
         this.createRestockRequestUseCase = createRestockRequestUseCase;
         this.receiveStockUseCase = receiveStockUseCase;
+        this.findPartBySkuUseCase = findPartBySkuUseCase;
     }
 
-    // Luồng 3.1
+    // ... (viewInventory, updateStockQuantity giữ nguyên) ...
     async viewInventory(req, res) {
         try {
             const items = await this.viewInventoryUseCase.execute(req.user);
@@ -31,23 +33,18 @@ class InventoryController {
             res.status(200).json(item);
         } catch (error) { res.status(400).json({ message: error.message }); }
     }
-    
-    // Luồng 3.2
-    async listRequestsForIssuing(req, res) {
-        try {
-            const records = await this.listRequestsForIssuingUseCase.execute(req.user);
-            res.status(200).json(records);
-        } catch (error) { res.status(400).json({ message: error.message }); }
-    }
-    async issueParts(req, res) {
-        try {
-            const { serviceRecordId } = req.params;
-            const record = await this.issuePartsForServiceUseCase.execute(serviceRecordId, req.user);
-            res.status(200).json({ message: 'Parts issued successfully.', record });
-        } catch (error) { res.status(400).json({ message: error.message }); }
-    }
 
-    // Luồng 3.3
+    // (XÓA) Xóa phương thức 'listRequestsForIssuing'
+    /*
+    async listRequestsForIssuing(req, res) { ... }
+    */
+
+    // (XÓA) Xóa phương thức 'issueParts'
+    /*
+    async issueParts(req, res) { ... }
+    */
+
+    // ... (createRestockRequest, receiveStock giữ nguyên) ...
     async createRestockRequest(req, res) {
         try {
             const { partId, quantity } = req.body;
@@ -61,6 +58,23 @@ class InventoryController {
             const item = await this.receiveStockUseCase.execute(requestId, Number(quantityReceived), req.user);
             res.status(200).json({ message: 'Stock received successfully.', item });
         } catch (error) { res.status(400).json({ message: error.message }); }
+    }
+    // GET /api/inventory/items/search?sku=...
+    async findPartBySku(req, res) {
+        try {
+            const actor = req.user;
+            const { sku } = req.query;
+            const item = await this.findPartBySkuUseCase.execute(sku, actor);
+            res.status(200).json(item);
+        } catch (error) {
+            if (error.message.includes('Forbidden')) {
+                return res.status(403).json({ message: error.message });
+            }
+            if (error.message.includes('not found')) {
+                return res.status(404).json({ message: error.message });
+            }
+            res.status(400).json({ message: error.message });
+        }
     }
 }
 module.exports = InventoryController;

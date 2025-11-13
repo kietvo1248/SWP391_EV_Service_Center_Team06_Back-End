@@ -11,7 +11,6 @@ class ListAppointmentHistory {
         const statuses = [
             AppointmentStatus.PENDING,
             AppointmentStatus.CONFIRMED,
-            AppointmentStatus.PENDING_APPROVAL,
             AppointmentStatus.IN_PROGRESS,
             AppointmentStatus.COMPLETED,
             AppointmentStatus.CANCELLED,

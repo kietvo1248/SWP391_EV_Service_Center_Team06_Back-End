@@ -15,7 +15,6 @@ class StaffController {
         createCustomerByStaffUseCase,
         addVehicleForCustomerUseCase,
         createAndStartWalkInAppointmentUseCase,
-        reviseQuotationUseCase,
         //handoverVehicleUseCase
     ) {
         this.listCenterAppointmentsUseCase = listCenterAppointmentsUseCase;
@@ -31,7 +30,6 @@ class StaffController {
         this.createCustomerByStaffUseCase = createCustomerByStaffUseCase;
         this.addVehicleForCustomerUseCase = addVehicleForCustomerUseCase;
         this.createAndStartWalkInAppointmentUseCase = createAndStartWalkInAppointmentUseCase;
-        this.reviseQuotationUseCase = reviseQuotationUseCase;
         //this.handoverVehicleUseCase = handoverVehicleUseCase;
     }
 
@@ -206,18 +204,18 @@ class StaffController {
         }
     }
     // PUT /api/staff/quotations/:id/revise
-    async reviseQuotation(req, res) {
-        try {
-            const { id } = req.params; // Quotation ID
-            const newData = req.body; // { estimatedCost }
-            const actor = req.user;
+    // async reviseQuotation(req, res) {
+    //     try {
+    //         const { id } = req.params; // Quotation ID
+    //         const newData = req.body; // { estimatedCost }
+    //         const actor = req.user;
 
-            const updatedAppointment = await this.reviseQuotationUseCase.execute(id, newData, actor);
-            res.status(200).json({ message: 'Quotation revised. Pending customer approval.', appointment: updatedAppointment });
-        } catch (error) {
-            res.status(400).json({ message: error.message });
-        }
-    }
+    //         const updatedAppointment = await this.reviseQuotationUseCase.execute(id, newData, actor);
+    //         res.status(200).json({ message: 'Quotation revised. Pending customer approval.', appointment: updatedAppointment });
+    //     } catch (error) {
+    //         res.status(400).json({ message: error.message });
+    //     }
+    // }
 
     // PUT /api/staff/appointments/:id/handover
     // async handoverVehicle(req, res) {
