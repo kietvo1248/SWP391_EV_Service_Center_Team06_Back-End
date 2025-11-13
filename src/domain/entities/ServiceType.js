@@ -1,9 +1,10 @@
+// Tệp: src/domain/entities/ServiceType.js
 class ServiceType{
-    constructor(id, name, description, price) {
+    constructor(id, name, description, price) { // (SỬA) Thêm price
         this.id = id;
         this.name = name;
         this.description = description;
-        //this.price = price;
+        this.price = price; // (SỬA) Gán price
 
         //validation
         if (!this.id || typeof this.id !== 'string') {

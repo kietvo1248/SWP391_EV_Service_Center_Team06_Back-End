@@ -80,28 +80,41 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
         return this.prisma.serviceAppointment.findUnique({
             where: { id: appointmentId },
             include: {
-                customer: { // Thông tin khách hàng
-                    select: { id: true, fullName: true, email: true, phoneNumber: true }
+                customer: { 
+                    select: { 
+                        id: true, fullName: true, email: true, phoneNumber: true,
+                        employeeCode: true, role: true, isActive: true,
+                        address: true, serviceCenterId: true
+                    }
                 },
                 vehicle: {
                     include: {
-                        vehicleModel: true, // Lấy VehicleModel (chứa brand, name)
-                        battery: true     // Lấy BatteryType (chứa capacityKwh)
+                        vehicleModel: true,
+                        battery: true
                     }
                 },
-                serviceCenter: { // Thông tin trung tâm
+                serviceCenter: { 
                     select: { id: true, name: true, address: true }
                 },
-                requestedServices: { // Dịch vụ đã yêu cầu
+                requestedServices: { 
                     include: {
-                        serviceType: true // Lấy chi tiết của loại dịch vụ
+                        serviceType: true 
                     }
                 },
-                serviceRecord: { // (Giữ nguyên)
+                // --- (SỬA LỖI/BỔ SUNG) ---
+                serviceRecord: {
                     include: {
-                        quotation: true
+                        quotation: true, // Báo giá (dự kiến)
+                        invoice: true,   // Hóa đơn (chính thức)
+                        partsUsed: {     // Phụ tùng đã sử dụng
+                            where: { status: 'ISSUED' }, // Chỉ lấy phụ tùng đã xuất kho
+                            include: {
+                                part: true // Lấy thông tin chi tiết phụ tùng (tên, giá)
+                            }
+                        }
                     }
                 }
+                // --- (KẾT THÚC SỬA) ---
             }
         });
     }

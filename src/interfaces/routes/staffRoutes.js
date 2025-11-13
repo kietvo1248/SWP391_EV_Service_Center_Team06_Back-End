@@ -5,7 +5,7 @@ const { authenticate, authorize } = require('../middlewares/authMiddleware');
 const staffRouter = (controller) => {
     const router = express.Router();
 
-    router.use(authenticate, authorize(['STAFF', 'ADMIN', 'STATION_ADMIN']));
+    router.use(authenticate, authorize(['STAFF','CUSTOMER',  'ADMIN', 'STATION_ADMIN']));
 
     router.get('/technicians', controller.listTechnicians.bind(controller));
 

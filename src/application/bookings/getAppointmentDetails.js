@@ -11,7 +11,7 @@ class GetAppointmentDetailsUseCase {
     }
 
     async execute(appointmentId, actor) {
-        // 1. Lấy dữ liệu (Repo đã được sửa để include vehicleModel)
+        // 1. Lấy dữ liệu (Repo cần được sửa để include sâu hơn)
         const appointmentPrisma = await this.appointmentRepository.findById(appointmentId);
 
         if (!appointmentPrisma) {
@@ -50,11 +50,15 @@ class GetAppointmentDetailsUseCase {
             appointmentPrisma.customerNotes,
             appointmentPrisma.createdAt
         );
+
+        // 4. Chuyển đổi và gán các Entities liên quan
         
         // (SỬA) Logic này sẽ hoạt động sau khi VehicleEntity (Bước 1) được sửa
         if (appointmentPrisma.vehicle) { 
             appointmentEntity.vehicle = new VehicleEntity(appointmentPrisma.vehicle);
         }
+
+        // --- SỬA LỖI 'userCode' ---
         if (appointmentPrisma.customer) { 
             appointmentEntity.customer = new UserEntity(
                 appointmentPrisma.customer.id,
@@ -64,15 +68,17 @@ class GetAppointmentDetailsUseCase {
                 null, // passwordHash
                 appointmentPrisma.customer.role,
                 appointmentPrisma.customer.phoneNumber,
-                null, // address
-                null, // serviceCenterId
+                appointmentPrisma.customer.address, // (SỬA) Thêm address
+                appointmentPrisma.customer.serviceCenterId, // (SỬA) Thêm serviceCenterId
                 null, // googleId
-                appointmentPrisma.customer.isActive 
+                appointmentPrisma.customer.isActive // (SỬA) Thêm isActive
             );
         }
+        // --- KẾT THÚC SỬA LỖI ---
 
         appointmentEntity.serviceCenterName = appointmentPrisma.serviceCenter?.name;
 
+        // --- SỬA LỖI 'price' ---
         if (appointmentPrisma.requestedServices && appointmentPrisma.requestedServices.length > 0) {
             appointmentEntity.requestedServices = appointmentPrisma.requestedServices.map(rs => {
                 if (rs.serviceType) {
@@ -80,7 +86,7 @@ class GetAppointmentDetailsUseCase {
                          rs.serviceType.id,
                          rs.serviceType.name,
                          rs.serviceType.description,
-                         rs.serviceType.price // (Sửa: Thêm price)
+                         rs.serviceType.price // (SỬA) Thêm price
                      );
                 }
                 return null;
@@ -88,6 +94,7 @@ class GetAppointmentDetailsUseCase {
         } else {
              appointmentEntity.requestedServices = [];
         }
+        // --- KẾT THÚC SỬA LỖI ---
 
         if (appointmentPrisma.serviceRecord && appointmentPrisma.serviceRecord.quotation) {
             const quotePrisma = appointmentPrisma.serviceRecord.quotation;
