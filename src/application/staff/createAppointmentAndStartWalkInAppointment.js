@@ -36,7 +36,7 @@ class CreateAndStartWalkInAppointment {
         // (Logic validations của bạn giữ nguyên, đã rất tốt)
         const [customer, vehicle, technician, center] = await Promise.all([
             this.userRepo.findById(customerId),
-            this.vehicleRepo.findByIdAndOwner(vehicleId, customerId),
+            this.vehicleRepo.findById(vehicleId, customerId),
             this.userRepo.findById(technicianId),
             this.serviceCenterRepo.getServiceCenterById(staffServiceCenterId)
         ]);
