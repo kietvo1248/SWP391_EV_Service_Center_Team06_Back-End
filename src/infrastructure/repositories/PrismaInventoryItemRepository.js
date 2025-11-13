@@ -23,18 +23,7 @@ class PrismaInventoryItemRepository extends IInventoryItemRepository {
         const db = tx || this.prisma;
         return db.inventoryItem.update({ where: { id: id }, data: data });
     }
-    async findLowStock(serviceCenterId) {
-        return this.prisma.inventoryItem.findMany({
-            where: {
-                serviceCenterId: serviceCenterId,
-                quantityInStock: {
-                    lte: this.prisma.inventoryItem.fields.minStockLevel
-                }
-            },
-            include: { part: true },
-            orderBy: { part: { name: 'asc' } }
-        });
-    }
+    
     async findBySku(sku, serviceCenterId) {
         return this.prisma.inventoryItem.findFirst({
             where: {
@@ -46,6 +35,33 @@ class PrismaInventoryItemRepository extends IInventoryItemRepository {
             include: {
                 part: true // Luôn kèm thông tin chi tiết phụ tùng
             }
+        });
+    }
+
+    async findLowStock(serviceCenterId) {
+        // Prisma không hỗ trợ so sánh trực tiếp 2 cột (quantity <= minStock) trong where đơn giản.
+        // Ta dùng findMany rồi lọc, hoặc dùng rawQuery. 
+        // Để an toàn và đơn giản, ta lấy hết về rồi lọc (với quy mô trạm dịch vụ thì OK).
+        const allItems = await this.prisma.inventoryItem.findMany({
+            where: { 
+                serviceCenterId: serviceCenterId,
+                isDeleted: false
+            },
+            include: { part: true }
+        });
+
+        return allItems.filter(item => item.quantityInStock <= item.minStockLevel);
+    }
+
+    async create(data) {
+        return this.prisma.inventoryItem.create({ data });
+    }
+
+    // Xóa mềm
+    async softDelete(id) {
+        return this.prisma.inventoryItem.update({
+            where: { id: id },
+            data: { isDeleted: true }
         });
     }
 }

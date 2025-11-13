@@ -310,6 +310,7 @@ model InventoryItem {
   id              String @id @default(uuid())
   quantityInStock Int    @default(0) @map("quantity_in_stock")
   minStockLevel   Int    @default(5) @map("min_stock_level")
+  isDeleted       Boolean @default(false) @map("is_deleted")
 
   partId          String
   serviceCenterId String

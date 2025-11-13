@@ -120,17 +120,17 @@ const CompleteTechnicianTask = require('./application/technician/completeTechnic
 const TechnicianRequestParts = require('./application/technician/technicianRequestParts');
 const AcceptTask = require('./application/technician/acceptTask'); // (THÊM MỚI)
 const ListCompletedTasks = require('./application/technician/listCompletedTasks');
-// (Inventory - Luồng 3 MỚI)
+// --- INVENTORY FLOW (CẬP NHẬT MỚI) ---
 const ViewInventory = require('./application/inventory/viewInventory');
-const UpdateStockQuantity = require('./application/inventory/updateStockQuantity');
-const ListRequestsForIssuing = require('./application/inventory/listIssuanceRequests');
-const IssuePartsForService = require('./application/inventory/issuePartForService');
-const CreateRestockRequest = require('./application/inventory/createRestockRequest');
-const ReceiveStock = require('./application/inventory/receiveStock');
 const FindPartBySku = require('./application/inventory/findPartBySku');
-// (Admin - Luồng 3 MỚI)
+const AddInventoryItem = require('./application/inventory/addInventoryItem');       // Mới
+const UpdateInventoryConfig = require('./application/inventory/updateInventoryConfig'); // Mới
+const RemoveInventoryItem = require('./application/inventory/removeInventoryItem');   // Mới
+const ListLowStockItems = require('./application/inventory/listLowStockItems');       // Mới
+const CreateRestockRequest = require('./application/inventory/createRestockRequest');
 const ListRestockRequests = require('./application/inventory/ListRestockRequests');
-const ProcessRestockRequest = require('./application/inventory/processRestockRequest'); // Sửa tên
+const ProcessRestockRequest = require('./application/inventory/processRestockRequest');
+const ImportRestock = require('./application/inventory/importRestock');
 
 // quản lý trạm 
 const ListStationStaff = require('./application/station/listStationStaff');
@@ -284,19 +284,19 @@ const technicianRequestPartsUseCase = new TechnicianRequestParts(serviceRecordRe
 const acceptTaskUseCase = new AcceptTask(serviceRecordRepository); // (THÊM MỚI)
 const listCompletedTasksUseCase = new ListCompletedTasks(serviceRecordRepository);
 // Inventory (Luồng 3)
+// Inventory (UPDATED INJECTION)
 const viewInventoryUseCase = new ViewInventory(inventoryItemRepository);
-const updateStockQuantityUseCase = new UpdateStockQuantity(inventoryItemRepository);
-// const listRequestsForIssuingUseCase = new ListRequestsForIssuing(serviceRecordRepository); 
-// const issuePartsForServiceUseCase = new IssuePartsForService(serviceRecordRepository, 
-//     inventoryItemRepository, 
-//     partUsageRepository, 
-//     prisma); // SỬA DI
-const createRestockRequestUseCase = new CreateRestockRequest(restockRequestRepository, partRepository); 
-const receiveStockUseCase = new ReceiveStock(inventoryItemRepository, restockRequestRepository, prisma); // SỬA DI (thêm prisma)
 const findPartBySkuUseCase = new FindPartBySku(inventoryItemRepository);
-// Admin (Luồng 3)
-const listRestockRequestsUseCase = new ListRestockRequests(restockRequestRepository);
-const processRestockRequestAdminUseCase = new ProcessRestockRequest(restockRequestRepository);
+const addInventoryItemUseCase = new AddInventoryItem(inventoryItemRepository, partRepository);
+// Lưu ý: UpdateInventoryConfig cần restockRequestRepo để kiểm tra validation
+const updateInventoryConfigUseCase = new UpdateInventoryConfig(inventoryItemRepository, restockRequestRepository);
+const removeInventoryItemUseCase = new RemoveInventoryItem(inventoryItemRepository);
+const listLowStockItemsUseCase = new ListLowStockItems(inventoryItemRepository);
+
+const createRestockRequestUseCase = new CreateRestockRequest(restockRequestRepository, partRepository);
+const listRestockRequestsUseCase = new ListRestockRequests(restockRequestRepository); // Dùng chung cho Admin/IM/Station
+const processRestockRequestUseCase = new ProcessRestockRequest(restockRequestRepository);
+const importRestockUseCase = new ImportRestock(restockRequestRepository, inventoryItemRepository, prisma);
 
 // quản lý trạm 
 const listStationStaffUseCase = new ListStationStaff(userRepository);
@@ -384,13 +384,21 @@ const technicianController = new TechnicianController(
     listCompletedTasksUseCase
 );
 const inventoryController = new InventoryController( 
-    viewInventoryUseCase, updateStockQuantityUseCase,
-     createRestockRequestUseCase, receiveStockUseCase, findPartBySkuUseCase
+    viewInventoryUseCase, 
+    findPartBySkuUseCase, 
+    addInventoryItemUseCase,      // 3
+    updateInventoryConfigUseCase, // 4
+    removeInventoryItemUseCase,   // 5
+    listLowStockItemsUseCase,     // 6
+    createRestockRequestUseCase,  // 7
+    listRestockRequestsUseCase,   // 8
+    importRestockUseCase,         // 9
+    processRestockRequestUseCase  // 10 (Phê duyệt - dùng cho route Station Admin gọi qua controller này hoặc StationController)
 );
 // quản lý trạm
 const adminController = new AdminController( 
     listRestockRequestsUseCase,
-    processRestockRequestAdminUseCase
+    processRestockRequestUseCase
 );
 const stationController = new StationController(
     listStationStaffUseCase,
@@ -401,7 +409,7 @@ const stationController = new StationController(
     updateTechnicianSpecificationUseCase,
     generateStationRevenueReportUseCase,
     generateTechnicianPerformanceReportUseCase,
-    processRestockRequestAdminUseCase
+    processRestockRequestUseCase
 );
 
 initializePassport(passport, userRepository);

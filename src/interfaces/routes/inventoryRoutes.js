@@ -1,31 +1,41 @@
-// Tệp: src/interfaces/routes/inventoryRoutes.js
 const express = require('express');
 const { authenticate, authorize } = require('../middlewares/authMiddleware');
 
 const inventoryRouter = (controller) => {
     const router = express.Router();
-    
-    // (SỬA) Phân quyền phức tạp hơn:
-    // KTV chỉ được xem, IM/SA được làm tất cả
-    // Chúng ta sẽ áp dụng middleware chung cho IM/SA
-    // và áp dụng middleware riêng cho KTV ở route GET
-    
-    // Middleware cho IM & SA
     const authorize_IM_SA = authorize(['INVENTORY_MANAGER', 'STATION_ADMIN']);
+    const authorize_SA = authorize(['STATION_ADMIN']); // Chỉ Station Admin
 
-    // Luồng 3.1: Quản lý chung
-    router.get('/items', authenticate, authorize(['INVENTORY_MANAGER', 'STATION_ADMIN', 'TECHNICIAN']), controller.viewInventory.bind(controller));
-    router.put('/items/:id/stock', authenticate, authorize_IM_SA, controller.updateStockQuantity.bind(controller));
+    router.use(authenticate);
 
-    // (THÊM MỚI) Tìm kiếm SKU cho IM/SA
-    router.get('/items/search', authenticate, authorize(['INVENTORY_MANAGER', 'STATION_ADMIN', 'TECHNICIAN']), controller.findPartBySku.bind(controller));
+    // ... (Các routes Quản lý kho cũ giữ nguyên: /items, /items/search, v.v...)
+    router.get('/items', authorize(['INVENTORY_MANAGER', 'STATION_ADMIN', 'TECHNICIAN']), controller.viewInventory.bind(controller));
+    router.get('/items/search', authorize(['INVENTORY_MANAGER', 'STATION_ADMIN', 'TECHNICIAN']), controller.findPartBySku.bind(controller));
+    router.get('/items/low-stock', authorize_IM_SA, controller.listLowStock.bind(controller));
+    router.post('/items', authorize_IM_SA, controller.addInventoryItem.bind(controller));
+    router.put('/items/:id', authorize_IM_SA, controller.updateInventoryConfig.bind(controller));
+    router.delete('/items/:id', authorize_SA, controller.removeInventoryItem.bind(controller));
+
+    // --- 2. QUY TRÌNH NHẬP HÀNG (Restock) ---
+
+    // Tạo yêu cầu (IM, SA)
+    router.post('/restock-requests', authorize_IM_SA, controller.createRestockRequest.bind(controller));
+
+    // Xem danh sách yêu cầu (IM, SA)
+    router.get('/restock-requests', authorize_IM_SA, controller.listRestockRequests.bind(controller));
+
+    // --- THÊM MỚI: Phê duyệt (Chỉ Station Admin) ---
+    
+    // Duyệt yêu cầu
+    router.put('/restock-requests/:id/approve', authorize_SA, controller.approveRestockRequest.bind(controller));
+    
+    // Từ chối yêu cầu
+    router.put('/restock-requests/:id/reject', authorize_SA, controller.rejectRestockRequest.bind(controller));
 
 
-    // Luồng 3.3: Nhập kho (Chỉ IM/SA)
-    router.post('/restock-requests', authenticate, authorize_IM_SA, controller.createRestockRequest.bind(controller));
-    router.post('/items/receive-stock', authenticate, authorize_IM_SA, controller.receiveStock.bind(controller)); 
+    // Nhập kho (Khi đã Approved - IM thực hiện)
+    router.post('/restock-requests/:requestId/import', authorize_IM_SA, controller.importRestock.bind(controller));
     
     return router;
 };
-
 module.exports = inventoryRouter;

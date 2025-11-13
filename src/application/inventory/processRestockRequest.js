@@ -1,49 +1,57 @@
-// Tệp: src/application/inventory/processRestockRequest.js
 const { Role, RestockRequestStatus } = require('@prisma/client');
 
 class ProcessRestockRequest {
-    constructor(restockRequestRepository) {
-        this.restockRequestRepo = restockRequestRepository;
+    constructor(restockRequestRepo) {
+        this.restockRequestRepo = restockRequestRepo;
     }
 
-    async execute(actor, requestId, newStatus) {
-        
-        // 1. Kiểm tra vai trò hợp lệ (ADMIN hoặc STATION_ADMIN)
-        if (![Role.ADMIN, Role.STATION_ADMIN].includes(actor.role)) {
-            throw new Error("Forbidden: Only ADMIN or STATION_ADMIN can process requests.");
+    /**
+     * Xử lý duyệt hoặc từ chối yêu cầu nhập hàng
+     * @param {Object} actor - Người thực hiện (phải là Station Admin)
+     * @param {String} requestId - ID của yêu cầu
+     * @param {String} status - Trạng thái mới (APPROVED hoặc REJECTED)
+     * @param {String} notes - Ghi chú thêm của quản lý (tùy chọn)
+     */
+    async execute(actor, requestId, status, notes) {
+        // 1. Kiểm tra quyền: Chỉ Station Admin mới được duyệt
+        if (actor.role !== Role.STATION_ADMIN) {
+            throw new Error("Forbidden: Only Station Admin can process restock requests.");
         }
 
-        // 2. Trạng thái mới phải hợp lệ (APPROVED hoặc REJECTED)
-        if (![RestockRequestStatus.APPROVED, RestockRequestStatus.REJECTED].includes(newStatus)) {
-            throw new Error("Invalid status. Must be APPROVED or REJECTED.");
-        }
-        
-        // 3. Lấy yêu cầu (request)
+        // 2. Lấy thông tin yêu cầu
         const request = await this.restockRequestRepo.findById(requestId);
         if (!request) {
             throw new Error("Restock request not found.");
         }
-        
+
+        // 3. Kiểm tra xem yêu cầu có thuộc trạm của Admin này không
+        if (request.serviceCenterId !== actor.serviceCenterId) {
+            throw new Error("Forbidden: This request belongs to another service center.");
+        }
+
+        // 4. Kiểm tra trạng thái hiện tại (Phải là PENDING mới được duyệt)
         if (request.status !== RestockRequestStatus.PENDING) {
-             throw new Error("This request is not in PENDING status.");
+            throw new Error(`Cannot process request. Current status is ${request.status}.`);
         }
 
-        // 4. Kiểm tra quyền sở hữu (nếu là STATION_ADMIN)
-        if (actor.role === Role.STATION_ADMIN) {
-            if (!actor.serviceCenterId) {
-                throw new Error("Forbidden: Station Admin is not assigned to a center.");
-            }
-            if (request.serviceCenterId !== actor.serviceCenterId) {
-                throw new Error("Forbidden: Station Admin can only process requests for their own center.");
-            }
+        // 5. Kiểm tra trạng thái đích hợp lệ
+        if (![RestockRequestStatus.APPROVED, RestockRequestStatus.REJECTED].includes(status)) {
+            throw new Error("Invalid status. Must be APPROVED or REJECTED.");
         }
-        const updateData = {
-            status: newStatus,
-            adminId: actor.id, // Ghi lại ID của người đã duyệt (bất kể là Admin hay Station Admin)
-            processedAt: new Date()
-        };
 
-        return this.restockRequestRepo.update(requestId, updateData);
+        // 6. Cập nhật DB
+        // Lưu ý: Ta cập nhật adminId (người duyệt) và processedAt (ngày duyệt)
+        // Nếu có ghi chú mới thì nối thêm vào ghi chú cũ
+        const updatedNotes = notes 
+            ? (request.notes ? `${request.notes}\n[${status}]: ${notes}` : notes)
+            : request.notes;
+
+        return this.restockRequestRepo.update(requestId, {
+            status: status,
+            adminId: actor.id, // ID của Station Admin
+            processedAt: new Date(),
+            notes: updatedNotes
+        });
     }
 }
 
