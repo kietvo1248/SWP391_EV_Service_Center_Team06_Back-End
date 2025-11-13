@@ -66,15 +66,22 @@ class TechnicianController {
     
     // PUT /api/technician/service-records/:id/complete
     async completeTask(req, res) {
-        // ... (Phương thức này giữ nguyên) ...
         try {
             const technicianId = req.user.id;
-            const { id } = req.params; 
-            const { completionNotes } = req.body;
+            const { id } = req.params; // ServiceRecord ID
+            
+            // (SỬA LỖI) Đọc "notes" thay vì "completionNotes"
+            const { notes } = req.body; // Lấy "notes" từ body
 
-            const result = await this.completeTechnicianTaskUseCase.execute(id, technicianId, completionNotes);
+            const result = await this.completeTechnicianTaskUseCase.execute(id, technicianId, notes); // Truyền "notes" vào
             res.status(200).json({ message: 'Task completed successfully.', data: result });
         } catch (error) {
+             if (error.message.includes('Forbidden')) {
+                return res.status(403).json({ message: error.message });
+            }
+            if (error.message.includes('not found')) {
+                return res.status(404).json({ message: error.message });
+            }
             res.status(400).json({ message: error.message });
         }
     }

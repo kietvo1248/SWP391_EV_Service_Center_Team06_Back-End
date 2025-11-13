@@ -11,7 +11,8 @@ class PrismaServiceTypeRepository extends IServiceTypeRepository {
             select: {
                 id: true,
                 name: true,
-                description: true
+                description: true,
+                price: true
             }
         });
     }

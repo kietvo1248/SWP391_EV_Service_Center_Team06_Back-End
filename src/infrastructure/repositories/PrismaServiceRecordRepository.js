@@ -37,6 +37,13 @@ class PrismaServiceRecordRepository extends IServiceRecordRepository {
                                     select: { brand: true, name: true }
                                 }
                             }
+                        },
+                        requestedServices: {
+                            include: {
+                                serviceType: {
+                                    select: { name: true }
+                                }
+                            }
                         }
                     }
                 }
