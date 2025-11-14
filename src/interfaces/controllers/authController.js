@@ -77,13 +77,15 @@ class AuthController {
     }
 
     async createAccount(req, res) {
-        const { fullName, email, role, serviceCenterId } = req.body; // Thêm serviceCenterId
+        const { fullName, email, role,phoneNumber, address, serviceCenterId } = req.body; // Thêm serviceCenterId
         const actor = req.user; // The admin/station_admin performing the action
         try {
             const user = await this.createUserUseCase.execute({
                 fullName,
                 email,
                 role, // Vai trò do admin chỉ định
+                phoneNumber,
+                address,
                 serviceCenterId, // Truyền serviceCenterId vào use case
             }, actor);
             res.status(201).json(user);
