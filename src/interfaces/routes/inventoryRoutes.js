@@ -13,7 +13,7 @@ const inventoryRouter = (controller) => {
     router.get('/items', authorize(['INVENTORY_MANAGER', 'STATION_ADMIN', 'TECHNICIAN']), controller.viewInventory.bind(controller));
     router.get('/items/search', authorize(['INVENTORY_MANAGER', 'STATION_ADMIN', 'TECHNICIAN']), controller.findPartBySku.bind(controller));
     router.get('/items/low-stock', authorize_IM_SA, controller.listLowStock.bind(controller));
-    router.post('/items/create', authorize_IM_SA, controller.addInventoryItem.bind(controller));
+    router.post('/items/create', authorize_IM, controller.addInventoryItem.bind(controller));
     router.get('/items/:id', authorize(['INVENTORY_MANAGER', 'STATION_ADMIN', 'TECHNICIAN']), controller.getInventoryItemDetails.bind(controller));
     router.put('/items/:id/update', authorize_IM, controller.updateInventoryItem.bind(controller));
     router.delete('/items/:id/remove', authorize_SA, controller.removeInventoryItem.bind(controller));
