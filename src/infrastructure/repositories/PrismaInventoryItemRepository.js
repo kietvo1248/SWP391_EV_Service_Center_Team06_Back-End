@@ -4,7 +4,7 @@ class PrismaInventoryItemRepository extends IInventoryItemRepository {
     constructor(prismaClient) { super(); this.prisma = prismaClient; }
     async findByCenter(serviceCenterId) {
         return this.prisma.inventoryItem.findMany({
-            where: { serviceCenterId: serviceCenterId },
+            where: { serviceCenterId: serviceCenterId, isDeleted: false},
             include: { part: true }, orderBy: { part: { name: 'asc' } }
         });
     }

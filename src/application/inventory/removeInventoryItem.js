@@ -6,9 +6,6 @@ class RemoveInventoryItem {
     }
 
     async execute(actor, itemId) {
-        if (![Role.STATION_ADMIN].includes(actor.role)) { // Chỉ Station Admin mới được xóa
-            throw new Error("Forbidden: Only Station Admin can delete items.");
-        }
 
         const item = await this.inventoryItemRepo.findById(itemId);
         if (!item || item.serviceCenterId !== actor.serviceCenterId) {
