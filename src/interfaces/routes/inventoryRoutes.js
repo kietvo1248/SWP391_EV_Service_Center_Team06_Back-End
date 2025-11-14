@@ -16,7 +16,7 @@ const inventoryRouter = (controller) => {
     router.post('/items/create', authorize_IM, controller.addInventoryItem.bind(controller));
     router.get('/items/:id', authorize(['INVENTORY_MANAGER', 'STATION_ADMIN', 'TECHNICIAN']), controller.getInventoryItemDetails.bind(controller));
     router.put('/items/:id/update', authorize_IM, controller.updateInventoryItem.bind(controller));
-    router.delete('/items/:id/remove', authorize_SA, controller.removeInventoryItem.bind(controller));
+    router.delete('/items/:id/remove', authorize_IM, controller.removeInventoryItem.bind(controller));
 
     // --- 2. QUY TRÌNH NHẬP HÀNG (Restock) ---
 

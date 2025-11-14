@@ -8,19 +8,34 @@ class ListRestockRequests {
     }
     
     async execute(status, actor) {
-        // (SỬA 1) Cho phép IM và SA
+        // 1. Kiểm tra vai trò (IM và SA)
         const allowedRoles = [Role.INVENTORY_MANAGER, Role.STATION_ADMIN];
         if (!allowedRoles.includes(actor.role)) {
             throw new Error("Forbidden.");
         }
 
-        // (SỬA 2) Yêu cầu phải có trung tâm
+        // 2. Kiểm tra trung tâm
         if (!actor.serviceCenterId) {
             throw new Error("User is not associated with a service center.");
         }
         
-        // (SỬA 3) Lọc theo trung tâm của người dùng, không phải "findAll"
-        return this.restockRequestRepo.findByCenter(actor.serviceCenterId, status); 
+        // 3. Lọc theo trung tâm của người dùng
+        // Hàm findByCenter (trong Repo) đã include 'part' (để lấy tên)
+        // và tự động lấy các trường 'quantity', 'unitPrice'
+        const requests = await this.restockRequestRepo.findByCenter(actor.serviceCenterId, status); 
+
+        // 4. (THÊM MỚI) Tính toán tổng tiền cho mỗi yêu cầu
+        return requests.map(request => {
+            
+            // Tính tổng tiền dựa trên Đơn giá (unitPrice) đã lưu
+            // (Chúng ta đã lưu unitPrice trong CSDL ở bước trước)
+            const totalPrice = Number(request.unitPrice) * request.quantity;
+            
+            return {
+                ...request, // Giữ lại toàn bộ thông tin (id, status, part, v.v.)
+                totalPrice: totalPrice // Thêm trường 'totalPrice' đã tính toán
+            };
+        });
     }
 }
 module.exports = ListRestockRequests;

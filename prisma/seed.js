@@ -1,5 +1,5 @@
 // Tệp: prisma/seed.js
-// (PHIÊN BẢN CẬP NHẬT - ĐÃ LOẠI BỎ QUOTATION VÀ SỬA LUỒNG)
+// (PHIÊN BẢN CẬP NHẬT HOÀN CHỈNH - Đã xóa Quotation, Cập nhật luồng KTV, Thêm unitPrice cho Restock)
 
 const { PrismaClient, Prisma, Role, AppointmentStatus, ServiceRecordStatus, InvoiceStatus, PaymentStatus, RestockRequestStatus, PartUsageStatus } = require('@prisma/client');
 const { Faker, vi, en } = require('@faker-js/faker'); 
@@ -20,7 +20,7 @@ async function cleanupDatabase() {
     // Xóa theo thứ tự phụ thuộc (từ con đến cha)
     await prisma.payment.deleteMany();
     await prisma.invoice.deleteMany();
-    // await prisma.quotation.deleteMany(); // (ĐÃ XÓA HOÀN TOÀN DÒNG NÀY)
+    // await prisma.quotation.deleteMany(); // (ĐÃ XÓA)
     await prisma.partUsage.deleteMany();
     await prisma.restockRequest.deleteMany(); 
     await prisma.feedback.deleteMany();
@@ -29,7 +29,7 @@ async function cleanupDatabase() {
     await prisma.serviceAppointment.deleteMany();
     await prisma.inventoryItem.deleteMany();
     await prisma.part.deleteMany();
-    //await prisma.maintenanceRecommendation.deleteMany();
+    await prisma.maintenanceRecommendation.deleteMany();
     await prisma.serviceType.deleteMany();
     
     await prisma.vehicle.deleteMany();
@@ -51,7 +51,7 @@ async function cleanupDatabase() {
 
 
 /**
- * seedServiceTypes: (Giữ nguyên) - Đây là các Gói Dịch Vụ
+ * seedServiceTypes: (Cập nhật giá tiền là bắt buộc)
  */
 async function seedServiceTypes() {
     console.log('Đang tạo các loại dịch vụ (Gói)...');
@@ -172,9 +172,8 @@ async function seedModelsAndBatteries() {
 
 /**
  * (CẬP NHẬT) seedAppointmentsForCustomer:
- * - Đồng bộ với ServiceRecordStatus (PENDING, IN_PROGRESS, COMPLETED)
- * - Chỉ chọn 1 Gói Dịch Vụ
- * - Xóa bỏ Quotation
+ * - Bỏ PENDING_APPROVAL
+ * - Bỏ Quotation
  * - Đổi PartUsageStatus.REQUESTED thành ISSUED
  */
 async function seedAppointmentsForCustomer(customer, serviceCenters, serviceTypes, parts, techniciansByCenter) {
@@ -186,6 +185,7 @@ async function seedAppointmentsForCustomer(customer, serviceCenters, serviceType
 
     const createdAppointments = [];
     
+    // (SỬA) Bỏ PENDING_APPROVAL
     const statusesToSeed = [
         AppointmentStatus.PENDING,     // Chờ Staff confirm
         AppointmentStatus.CONFIRMED,   // Staff đã confirm (ServiceRecord PENDING)
@@ -228,6 +228,7 @@ async function seedAppointmentsForCustomer(customer, serviceCenters, serviceType
             const endTime = appointmentStatus === AppointmentStatus.COMPLETED ? new Date(startTime.getTime() + faker.number.int({ min: 1, max: 4 }) * 60 * 60 * 1000) : null;
 
             let recordStatus;
+            // (SỬA) Bỏ các trạng thái cũ
             switch(appointmentStatus) {
                 case AppointmentStatus.CONFIRMED: 
                     recordStatus = ServiceRecordStatus.PENDING; // Chờ KTV accept
@@ -254,7 +255,7 @@ async function seedAppointmentsForCustomer(customer, serviceCenters, serviceType
             const partsCost = partsToUse.reduce((sum, p) => sum + Number(p.price), 0);
             
             const servicesCost = Number(servicePackage.price || 0);
-            const totalAmount = servicesCost + partsCost; 
+            const totalAmount = servicesCost + partsCost; // Đây là TotalAmount
 
             if (appointmentStatus === AppointmentStatus.IN_PROGRESS) {
                  serviceRecordInput.partsUsed = {
@@ -262,7 +263,7 @@ async function seedAppointmentsForCustomer(customer, serviceCenters, serviceType
                         partId: part.id,
                         quantity: 1,
                         unitPrice: part.price,
-                        status: PartUsageStatus.ISSUED 
+                        status: PartUsageStatus.ISSUED // (SỬA) KTV sử dụng trực tiếp
                     })),
                 };
             }
@@ -272,12 +273,13 @@ async function seedAppointmentsForCustomer(customer, serviceCenters, serviceType
                         partId: part.id,
                         quantity: 1,
                         unitPrice: part.price,
-                        status: PartUsageStatus.ISSUED 
+                        status: PartUsageStatus.ISSUED // (SỬA)
                     })),
                 };
                 
                 // (XÓA) Không tạo Quotation
 
+                // Tạo Invoice
                 serviceRecordInput.invoice = {
                     create: {
                         totalAmount: new Prisma.Decimal(totalAmount * 1.08), // Giả sử VAT 8%
@@ -335,7 +337,7 @@ async function seedMaintenanceRecommendations(serviceTypes) {
     console.log(` -> Đã tạo ${recommendations.length} gợi ý bảo dưỡng.`);
 }
 
-// --- HÀM MAIN (Giữ nguyên) ---
+// --- HÀM MAIN (ĐÃ CẬP NHẬT) ---
 async function main() {
     console.log('Bắt đầu quá trình seeding...');
     
@@ -546,6 +548,7 @@ async function main() {
     // --- TẠO LỊCH HẸN & FEEDBACK (Sẽ dùng logic mới) ---
     let allCreatedAppointments = [];
     for (const customer of customers) {
+        // (Sử dụng hàm seedAppointmentsForCustomer đã được cập nhật)
         const created = await seedAppointmentsForCustomer(customer, serviceCenters, serviceTypes, parts, techniciansByCenter);
         allCreatedAppointments = allCreatedAppointments.concat(created);
     }
@@ -570,7 +573,7 @@ async function main() {
     console.log(` -> Đã tạo ${feedbackCount} feedback.`);
 
 
-    // --- TẠO DỮ LIỆU CHO CÁC BẢNG CÒN LẠI (Giữ nguyên) ---
+    // --- TẠO DỮ LIỆU CHO CÁC BẢNG CÒN LẠI ---
     // 1. Tạo RestockRequest
     console.log('Đang tạo yêu cầu nhập kho (RestockRequest)...');
     for (let i = 0; i < 5; i++) {
@@ -587,9 +590,11 @@ async function main() {
             randomSA = faker.helpers.arrayElement(stationAdmins.filter(sa => sa.serviceCenterId === randomIM.serviceCenterId) || stationAdmins);
         }
         
+        // (SỬA) Thêm unitPrice
         await prisma.restockRequest.create({
             data: {
                 quantity: faker.number.int({ min: 10, max: 30 }),
+                unitPrice: randomPart.price, // <-- THÊM DÒNG NÀY
                 notes: faker.lorem.sentence(),
                 status: randomStatus,
                 partId: randomPart.id,

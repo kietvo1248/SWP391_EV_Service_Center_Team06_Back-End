@@ -5,7 +5,15 @@ class PrismaRestockRequestRepository extends IRestockRequestRepository {
     constructor(prismaClient) { super(); this.prisma = prismaClient; }
 
     async create(data) { 
-        return this.prisma.restockRequest.create({ data }); 
+        return this.prisma.restockRequest.create({ 
+            data: data,
+            include: {
+                part: true, // Lấy thông tin phụ tùng
+                inventoryManager: {
+                    select: { fullName: true, employeeCode: true }
+                }
+            }
+        }); 
     }
 
     async findByCenter(serviceCenterId, status) {
@@ -17,7 +25,7 @@ class PrismaRestockRequestRepository extends IRestockRequestRepository {
             include: { 
                 part: true, 
                 inventoryManager: { select: { fullName: true, employeeCode: true } },
-                admin: { select: { fullName: true } } // Người duyệt
+                admin: { select: { fullName: true } }
             },
             orderBy: { createdAt: 'desc' }
         });
@@ -40,7 +48,7 @@ class PrismaRestockRequestRepository extends IRestockRequestRepository {
                 partId: partId,
                 serviceCenterId: serviceCenterId,
                 status: {
-                    in: [RestockRequestStatus.PENDING, RestockRequestStatus.APPROVED] // Dòng này giờ đã hợp lệ
+                    in: [RestockRequestStatus.PENDING, RestockRequestStatus.APPROVED] 
                 }
             }
         });

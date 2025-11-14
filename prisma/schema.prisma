@@ -338,6 +338,7 @@ model PartUsage {
 model RestockRequest {
   id                 String   @id @default(uuid())
   quantity           Int // Số lượng yêu cầu
+  unitPrice          Decimal  @db.Decimal(12, 2) @map("unit_price")
   notes              String? // Ghi chú của IM
   status             RestockRequestStatus @default(PENDING)
   createdAt          DateTime @default(now()) @map("created_at")
