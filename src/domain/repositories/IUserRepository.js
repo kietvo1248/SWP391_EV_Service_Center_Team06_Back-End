@@ -51,6 +51,9 @@ class IUserRepository {
     async updateStatus(userId, isActive) {
         throw new Error("Method 'updateStatus()' must be implemented.");
     }
+    async findStaffByIdAndCenter(staffId, serviceCenterId) {
+        throw new Error("Method 'findStaffByIdAndCenter()' must be implemented.");
+    }
 }
 
 module.exports = IUserRepository;

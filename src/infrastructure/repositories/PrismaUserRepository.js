@@ -152,6 +152,41 @@ class PrismaUserRepository extends IUserRepository {
             data: { isActive: isActive }
         });
     }
+    async findStaffByIdAndCenter(staffId, serviceCenterId) {
+        return this.prisma.user.findFirst({
+            where: {
+                id: staffId,
+                serviceCenterId: serviceCenterId,
+                role: {
+                    not: 'CUSTOMER' // Không phải là khách hàng
+                }
+            },
+            select: { 
+                id: true, fullName: true, email: true,
+                employeeCode: true, role: true, isActive: true, phoneNumber: true, address: true,
+                technicianProfile: { // (THÊM) Tự động include chuyên môn
+                    select: {
+                        specialization: true
+                    }
+                },
+                certifications: {
+                    // Lấy thông tin từ bảng trung gian (StaffCertification)
+                    select: {
+                        certificateNumber: true,
+                        issueDate: true,
+                        // Lấy thông tin từ bảng gốc (Certification)
+                        certification: {
+                            select: {
+                                id: true,
+                                name: true,
+                                issuingOrganization: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 }
 
 module.exports = PrismaUserRepository;

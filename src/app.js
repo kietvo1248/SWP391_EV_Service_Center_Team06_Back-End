@@ -28,6 +28,7 @@ const PrismaPartRepository = require('./infrastructure/repositories/PrismaPartRe
 //repo trạm
 const PrismaTechnicianProfileRepository = require('./infrastructure/repositories/PrismaTechnicianProfileRepository');
 const PrismaCertificationRepository = require('./infrastructure/repositories/PrismaCertificationRepository');
+const PrismaStaffCertificationRepository = require('./infrastructure/repositories/PrismaStaffCertificationRepository');
 
 
 
@@ -144,6 +145,11 @@ const RevokeCertification = require('./application/station/revokeCertification')
 const UpdateTechnicianSpecification = require('./application/station/updateTechnicianSpecification');
 const GenerateStationRevenueReport = require('./application/station/generateStationRevenueReport');
 const GenerateTechnicianPerformanceReport = require('./application/station/generateTechnicianPerformanceReport');  
+const GetStaffDetails = require('./application/station/getStaffDetails');
+const CreateCertification = require('./application/station/createCertification');
+const UpdateCertification = require('./application/station/updateCertification');
+const DeleteCertification = require('./application/station/deleteCertification');
+
 
 // --- Khởi tạo ứng dụng Express ---
 const app = express();
@@ -176,6 +182,7 @@ const partRepository = new PrismaPartRepository(prisma);
 const maintenanceRecommendationRepository = new PrismaMaintenanceRecommendationRepository(prisma);
 const technicianProfileRepository = new PrismaTechnicianProfileRepository(prisma); // (Repo đã được khai báo)
 const certificationRepository = new PrismaCertificationRepository(prisma);
+const staffCertificationRepository = new PrismaStaffCertificationRepository(prisma);
 // Initialize Passport with userRepository
 
 
@@ -312,8 +319,15 @@ const getInventoryItemDetailsUseCase = new GetInventoryItemDetails(inventoryItem
 const listStationStaffUseCase = new ListStationStaff(userRepository);
 const updateStaffStatusUseCase = new UpdateStaffStatus(userRepository);
 const listAllCertificationsUseCase = new ListAllCertifications(certificationRepository);
-const assignCertificationUseCase = new AssignCertification(certificationRepository);
-const revokeCertificationUseCase = new RevokeCertification(certificationRepository);
+const assignCertificationUseCase = new AssignCertification(
+    staffCertificationRepository, 
+    userRepository, 
+    certificationRepository
+);
+const revokeCertificationUseCase = new RevokeCertification(
+    staffCertificationRepository, 
+    userRepository
+);
 const updateTechnicianSpecificationUseCase = new UpdateTechnicianSpecification(
     technicianProfileRepository, 
     userRepository
@@ -321,6 +335,13 @@ const updateTechnicianSpecificationUseCase = new UpdateTechnicianSpecification(
 // --------------------------------------------------
 const generateStationRevenueReportUseCase = new GenerateStationRevenueReport(invoiceRepository);
 const generateTechnicianPerformanceReportUseCase = new GenerateTechnicianPerformanceReport(serviceRecordRepository);
+const getStaffDetailsUseCase = new GetStaffDetails(userRepository);
+const createCertificationUseCase = new CreateCertification(certificationRepository);
+const updateCertificationUseCase = new UpdateCertification(certificationRepository);
+const deleteCertificationUseCase = new DeleteCertification(
+    certificationRepository,
+    staffCertificationRepository 
+);
 
 
 
@@ -422,7 +443,10 @@ const stationController = new StationController(
     updateTechnicianSpecificationUseCase,
     generateStationRevenueReportUseCase,
     generateTechnicianPerformanceReportUseCase,
-    processRestockRequestUseCase
+    getStaffDetailsUseCase,
+    createCertificationUseCase,
+    updateCertificationUseCase,
+    deleteCertificationUseCase
 );
 
 initializePassport(passport, userRepository);
