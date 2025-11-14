@@ -1,17 +1,30 @@
+// Tệp: src/interfaces/controllers/appointmentController.js
 class AppointmentController {
-    constructor(createAppointmentUseCase, listMyVehiclesUseCase, getServiceSuggestionsUseCase, listServiceTypesUseCase, getAppointmentDetailsUseCase, respondToQuotationUseCase, listAppointmentHistoryUseCase) {
+    constructor(
+        createAppointmentUseCase, 
+        listMyVehiclesUseCase, 
+        getServiceSuggestionsUseCase, 
+        listServiceTypesUseCase, 
+        getAppointmentDetailsUseCase, 
+        // respondToQuotationUseCase, // (XÓA)
+        listAppointmentHistoryUseCase,
+        cancelAppointmentByCustomerUseCase
+    ) {
         this.createAppointmentUseCase = createAppointmentUseCase;
         this.listMyVehiclesUseCase = listMyVehiclesUseCase;
         this.getServiceSuggestionsUseCase = getServiceSuggestionsUseCase;
         this.listServiceTypesUseCase = listServiceTypesUseCase;
         this.getAppointmentDetailsUseCase = getAppointmentDetailsUseCase;
-        this.respondToQuotationUseCase = respondToQuotationUseCase;
+        // this.respondToQuotationUseCase = respondToQuotationUseCase; // (XÓA)
         this.listAppointmentHistoryUseCase = listAppointmentHistoryUseCase;
+        this.cancelAppointmentByCustomerUseCase = cancelAppointmentByCustomerUseCase;
     }
 
+    // ... (getMyVehicles, getSuggestions, create, listServiceTypes, getAppointmentDetails, listAppointmentHistory giữ nguyên) ...
+    // ... (Lưu ý: phương thức 'create' sẽ nhận 'servicePackageId' từ body thay vì 'requestedServices')
     async getMyVehicles(req, res) {
         try {
-            const ownerId = req.user.id; // Lấy từ auth middleware
+            const ownerId = req.user.id; 
             const vehicles = await this.listMyVehiclesUseCase.execute(ownerId);
             res.status(200).json(vehicles);
         } catch (error) {
@@ -21,7 +34,6 @@ class AppointmentController {
 
     async getSuggestions(req, res) {
         try {
-            // Lấy 'vehicleId' từ query (thay vì mileage và model)
             const { vehicleId } = req.query;
             const ownerId = req.user.id;
             
@@ -43,14 +55,14 @@ class AppointmentController {
     async create(req, res) {
         try {
             const customerId = req.user.id;
-            const appointmentData = req.body;
+            const appointmentData = req.body; // body giờ nên chứa 'servicePackageId'
             const newAppointment = await this.createAppointmentUseCase.execute(appointmentData, customerId);
             res.status(201).json({ message: "Appointment created successfully.", appointment: newAppointment });
         } catch (error) {
             res.status(400).json({ message: error.message });
         }
     }
-    async listServiceTypes(req, res) { // xem dịch vụ khi tạo appointment
+    async listServiceTypes(req, res) { 
         try {
             const serviceTypes = await this.listServiceTypesUseCase.execute();
             res.status(200).json(serviceTypes);
@@ -62,7 +74,7 @@ class AppointmentController {
 
     async getAppointmentDetails(req, res) {
         try {
-            const actor = req.user; // Pass the whole user object (actor)
+            const actor = req.user; 
             const { id } = req.params;
 
             const appointment = await this.getAppointmentDetailsUseCase.execute(id, actor);
@@ -77,18 +89,12 @@ class AppointmentController {
             res.status(500).json({ message: error.message });
         }
     }
-    async respondToQuotation(req, res) {
-        try {
-            const customerId = req.user.id;
-            const { id } = req.params;
-            const { didAccept } = req.body;
-            const result = await this.respondToQuotationUseCase.execute(id, customerId, didAccept);
-            res.status(200).json(result);
-        } catch (error) {
-            res.status(400).json({ message: error.message });
-        }
-    }
-    // GET /api/appointments/history
+
+    // (XÓA) Xóa phương thức 'respondToQuotation'
+    /*
+    async respondToQuotation(req, res) { ... }
+    */
+
     async listAppointmentHistory(req, res) {
         try {
             const customerId = req.user.id;
@@ -96,6 +102,18 @@ class AppointmentController {
             res.status(200).json(history);
         } catch (error) {
             res.status(500).json({ message: error.message });
+        }
+    }
+    async cancel(req, res) {
+        try {
+            const customerId = req.user.id;
+            const { id } = req.params; // Appointment ID
+            const updatedAppointment = await this.cancelAppointmentByCustomerUseCase.execute(id, customerId);
+            res.status(200).json({ message: 'Lịch hẹn đã được hủy thành công.', appointment: updatedAppointment });
+        } catch (error) {
+            if (error.message.includes('Forbidden')) return res.status(403).json({ message: error.message });
+            if (error.message.includes('not found')) return res.status(404).json({ message: error.message });
+            res.status(400).json({ message: error.message }); // Lỗi logic nghiệp vụ (vd: Hủy khi đang IN_PROGRESS)
         }
     }
 }

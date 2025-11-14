@@ -31,19 +31,12 @@ class UpdateTechnicianSpecification {
             throw new Error("Specialization cannot be empty.");
         }
 
-        // 4. Tìm hoặc Tạo Profile
-        let profile = await this.technicianProfileRepo.findByUserId(technicianId);
-
-        if (profile) {
-            // Nếu đã có -> Cập nhật
-            return this.technicianProfileRepo.update(profile.id, { specialization });
-        } else {
-            // Nếu chưa có -> Tạo mới
-            return this.technicianProfileRepo.create({
-                userId: technicianId,
-                specialization: specialization
-            });
-        }
+        // 4. (SỬA) Sử dụng logic 'upsert' (Cập nhật hoặc Tạo mới)
+        // Repository đã hỗ trợ
+        return this.technicianProfileRepo.upsert(
+            technicianId, 
+            specialization
+        );
     }
 }
 

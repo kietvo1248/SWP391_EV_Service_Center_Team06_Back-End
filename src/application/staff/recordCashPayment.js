@@ -1,5 +1,6 @@
 const InvoiceEntity = require('../../domain/entities/Invoice');
 const PaymentEntity = require('../../domain/entities/Payment'); // Chỉ cần nếu muốn trả về Payment
+const { Prisma } = require('@prisma/client');
 
 class RecordCashPayment {
     constructor(invoiceRepo, paymentRepo, prismaClient) {

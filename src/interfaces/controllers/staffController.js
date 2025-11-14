@@ -15,7 +15,7 @@ class StaffController {
         createCustomerByStaffUseCase,
         addVehicleForCustomerUseCase,
         createAndStartWalkInAppointmentUseCase,
-        reviseQuotationUseCase,
+        cancelAppointmentByStaffUseCase
         //handoverVehicleUseCase
     ) {
         this.listCenterAppointmentsUseCase = listCenterAppointmentsUseCase;
@@ -31,7 +31,7 @@ class StaffController {
         this.createCustomerByStaffUseCase = createCustomerByStaffUseCase;
         this.addVehicleForCustomerUseCase = addVehicleForCustomerUseCase;
         this.createAndStartWalkInAppointmentUseCase = createAndStartWalkInAppointmentUseCase;
-        this.reviseQuotationUseCase = reviseQuotationUseCase;
+        this.cancelAppointmentByCustomerUseCase = cancelAppointmentByStaffUseCase;
         //this.handoverVehicleUseCase = handoverVehicleUseCase;
     }
 
@@ -205,19 +205,31 @@ class StaffController {
             res.status(400).json({ message: error.message });
         }
     }
-    // PUT /api/staff/quotations/:id/revise
-    async reviseQuotation(req, res) {
+    async cancelAppointment(req, res) {
         try {
-            const { id } = req.params; // Quotation ID
-            const newData = req.body; // { estimatedCost }
             const actor = req.user;
-
-            const updatedAppointment = await this.reviseQuotationUseCase.execute(id, newData, actor);
-            res.status(200).json({ message: 'Quotation revised. Pending customer approval.', appointment: updatedAppointment });
+            const { id } = req.params; // Appointment ID
+            const updatedAppointment = await this.cancelAppointmentByStaffUseCase.execute(id, actor);
+            res.status(200).json({ message: 'Lịch hẹn đã được hủy thành công.', appointment: updatedAppointment });
         } catch (error) {
-            res.status(400).json({ message: error.message });
+            if (error.message.includes('Forbidden')) return res.status(403).json({ message: error.message });
+            if (error.message.includes('not found')) return res.status(404).json({ message: error.message });
+            res.status(400).json({ message: error.message }); // Lỗi logic (vd: Hủy lịch đã COMPLETED)
         }
     }
+    // PUT /api/staff/quotations/:id/revise
+    // async reviseQuotation(req, res) {
+    //     try {
+    //         const { id } = req.params; // Quotation ID
+    //         const newData = req.body; // { estimatedCost }
+    //         const actor = req.user;
+
+    //         const updatedAppointment = await this.reviseQuotationUseCase.execute(id, newData, actor);
+    //         res.status(200).json({ message: 'Quotation revised. Pending customer approval.', appointment: updatedAppointment });
+    //     } catch (error) {
+    //         res.status(400).json({ message: error.message });
+    //     }
+    // }
 
     // PUT /api/staff/appointments/:id/handover
     // async handoverVehicle(req, res) {

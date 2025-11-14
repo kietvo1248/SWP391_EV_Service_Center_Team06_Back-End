@@ -1,12 +1,5 @@
-/**
- * Production seed script cho Render deployment
- * (ĐÃ VIẾT LẠI TOÀN BỘ)
- * - Sử dụng UUID tự động 100%, không dùng ID cứng (vd: 'appt-pending').
- * - Sửa lỗi Mật khẩu: Dùng bcrypt.hash() cho tất cả tài khoản.
- * - Tương thích schema mới (VehicleModel, BatteryType, employeeCode, currentMileage).
- * - Tự động tạo nhân sự cứng cho TẤT CẢ các trạm.
- * - Bổ sung seedMaintenanceRecommendations để fix lỗi Suggestion.
- */
+// Tệp: scripts/production-seed.js
+// (PHIÊN BẢN CẬP NHẬT HOÀN CHỈNH - Đã xóa Quotation, Cập nhật luồng KTV, Thêm unitPrice cho Restock)
 
 const { PrismaClient, Prisma, Role, AppointmentStatus, ServiceRecordStatus, InvoiceStatus, PaymentStatus, RestockRequestStatus, PartUsageStatus } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
@@ -18,14 +11,14 @@ const SALT_ROUNDS = 10;
 const hashPassword = (pass) => bcrypt.hash(pass, SALT_ROUNDS);
 
 /**
- * Dọn dẹp CSDL theo đúng thứ tự
+ * (SỬA) Dọn dẹp CSDL (Đã xóa Quotation)
  */
 async function cleanupDatabase() {
     console.log('🗑️ Đang dọn dẹp CSDL...');
     // Xóa theo thứ tự phụ thuộc (từ con đến cha)
     await prisma.payment.deleteMany();
     await prisma.invoice.deleteMany();
-    await prisma.quotation.deleteMany();
+    // await prisma.quotation.deleteMany(); // (ĐÃ XÓA)
     await prisma.partUsage.deleteMany();
     await prisma.restockRequest.deleteMany(); 
     await prisma.feedback.deleteMany();
@@ -34,11 +27,14 @@ async function cleanupDatabase() {
     await prisma.serviceAppointment.deleteMany();
     await prisma.inventoryItem.deleteMany();
     await prisma.part.deleteMany();
-    await prisma.maintenanceRecommendation.deleteMany(); 
+    await prisma.maintenanceRecommendation.deleteMany();
     await prisma.serviceType.deleteMany();
+    
     await prisma.vehicle.deleteMany();
+    
     await prisma.batteryType.deleteMany(); 
     await prisma.vehicleModel.deleteMany(); 
+
     await prisma.servicePackage.deleteMany(); 
     await prisma.message.deleteMany(); 
     await prisma.notification.deleteMany(); 
@@ -57,28 +53,28 @@ async function cleanupDatabase() {
 async function seedMasterData() {
     console.log('🔧 Tạo Dữ liệu Gốc (Dịch vụ, Phụ tùng, Model, Pin)...');
     
-    // 1. Dịch vụ (Dùng createMany vì 'name' không unique và seed chạy trên DB trống)
+    // 1. Dịch vụ (Thêm 'price' cho tất cả)
     const serviceTypesData = [
-        { name: 'Bảo dưỡng định kỳ', price: 500000 },
-        { name: 'Kiểm tra Pin Cao Áp', price: 300000 },
-        { name: 'Hệ thống Phanh', price: 250000 },
-        { name: 'Hệ thống Điều hòa', price: 150000 } 
+        { name: 'Gói Bảo dưỡng Cơ bản', description: 'Kiểm tra tổng quát, kiểm tra phanh.', price: 500000 },
+        { name: 'Gói Kiểm tra Pin Cao Áp', description: 'Đo dung lượng, kiểm tra hệ thống làm mát pin.', price: 300000 },
+        { name: 'Gói Hệ thống Phanh', description: 'Kiểm tra má phanh, đĩa phanh, dầu phanh.', price: 250000 },
+        { name: 'Gói Hệ thống Điều hòa', description: 'Kiểm tra gas, thay lọc gió cabin.', price: 150000 } 
     ];
     await prisma.serviceType.createMany({ data: serviceTypesData });
-    const serviceTypes = await prisma.serviceType.findMany(); // Lấy lại các dịch vụ đã tạo
+    const serviceTypes = await prisma.serviceType.findMany();
     
     // 2. Phụ tùng (Dùng upsert vì 'sku' là @unique)
     const part_lop = await prisma.part.upsert({ 
         where: { sku: 'VF-TYRE-001' }, update: { price: 4500000 },
-        create: { sku: 'VF-TYRE-001', name: 'Lốp VinFast VF8', price: 4500000 } 
+        create: { sku: 'VF-TYRE-001', name: 'Lốp VinFast VF8', price: new Prisma.Decimal(4500000) } 
     });
     const part_locgio = await prisma.part.upsert({ 
         where: { sku: 'VF-FILTER-AC' }, update: { price: 780000 },
-        create: { sku: 'VF-FILTER-AC', name: 'Lọc gió điều hòa HEPA', price: 780000 } 
+        create: { sku: 'VF-FILTER-AC', name: 'Lọc gió điều hòa HEPA', price: new Prisma.Decimal(780000) } 
     });
     const part_nuocmat = await prisma.part.upsert({ 
         where: { sku: 'VF-BAT-COOL' }, update: { price: 350000 },
-        create: { sku: 'VF-BAT-COOL', name: 'Nước làm mát pin (1L)', price: 350000 } 
+        create: { sku: 'VF-BAT-COOL', name: 'Nước làm mát pin (1L)', price: new Prisma.Decimal(350000) } 
     });
     
     // 3. Pin (Dùng 'name' làm where vì @unique)
@@ -92,7 +88,6 @@ async function seedMasterData() {
     });
 
     // 4. Model (Dùng 'create' vì CSDL đã được dọn dẹp)
-    // (Lưu ý: Nếu 'name' trong VehicleModel là @unique, bạn có thể dùng upsert)
     const modelVF8 = await prisma.vehicleModel.create({
         data: { brand: 'VinFast', name: 'VF8', compatibleBatteries: { connect: [{ id: battery90.id }] } },
         include: { compatibleBatteries: true }
@@ -115,26 +110,20 @@ async function seedMaintenanceRecommendations(serviceTypes) {
     console.log('Đang tạo gợi ý bảo dưỡng (MaintenanceRecommendations)...');
     
     // Lấy ID bằng tên
-    const bdDinhKy = serviceTypes.find(s => s.name.includes('Bảo dưỡng định kỳ'))?.id;
+    const bdDinhKy = serviceTypes.find(s => s.name.includes('Bảo dưỡng'))?.id;
     const kiemTraPin = serviceTypes.find(s => s.name.includes('Pin Cao Áp'))?.id;
     const heThongPhanh = serviceTypes.find(s => s.name.includes('Hệ thống Phanh'))?.id;
     const dieuHoa = serviceTypes.find(s => s.name.includes('Hệ thống Điều hòa'))?.id;
 
     const recommendations = [];
 
-    // Tạo các mốc dữ liệu
     if (bdDinhKy) recommendations.push({ model: 'ALL', mileageMilestone: 5000, serviceTypeId: bdDinhKy });
     if (bdDinhKy) recommendations.push({ model: 'ALL', mileageMilestone: 10000, serviceTypeId: bdDinhKy });
     if (dieuHoa) recommendations.push({ model: 'ALL', mileageMilestone: 10000, serviceTypeId: dieuHoa }); 
-    
-    // Mốc 15000 (cho xe 1)
     if (bdDinhKy) recommendations.push({ model: 'VF8', mileageMilestone: 15000, serviceTypeId: bdDinhKy });
-    
     if (bdDinhKy) recommendations.push({ model: 'VF8', mileageMilestone: 20000, serviceTypeId: bdDinhKy });
     if (kiemTraPin) recommendations.push({ model: 'VF8', mileageMilestone: 20000, serviceTypeId: kiemTraPin });
     if (heThongPhanh) recommendations.push({ model: 'VF8', mileageMilestone: 20000, serviceTypeId: heThongPhanh });
-    
-    // Mốc 30000 (cho xe 2)
     if (bdDinhKy) recommendations.push({ model: 'VF e34', mileageMilestone: 30000, serviceTypeId: bdDinhKy });
     if (kiemTraPin) recommendations.push({ model: 'VF e34', mileageMilestone: 30000, serviceTypeId: kiemTraPin });
 
@@ -158,7 +147,6 @@ async function createProductionSeedData() {
 
         // --- 1. TẠO TRUNG TÂM DỊCH VỤ (2 TRẠM) ---
         console.log('🏢 Tạo 2 trung tâm dịch vụ...');
-        // (SỬA) Bỏ ID cứng 'prod-center-hcm'
         const centerHcm = await prisma.serviceCenter.create({
             data: {
                 name: 'EV Service Center Hồ Chí Minh',
@@ -167,7 +155,6 @@ async function createProductionSeedData() {
                 capacityPerSlot: 3
             }
         });
-        // (SỬA) Bỏ ID cứng 'prod-center-hn'
         const centerHn = await prisma.serviceCenter.create({
             data: {
                 name: 'EV Service Center Hà Nội',
@@ -183,13 +170,12 @@ async function createProductionSeedData() {
         const { serviceTypes, parts, models } = await seedMasterData();
         const modelVF8 = models.find(m => m.name === 'VF8');
         const modelVFe34 = models.find(m => m.name === 'VF e34');
-        const svt_bdk = serviceTypes.find(s => s.name.includes('Bảo dưỡng định kỳ'));
+        const svt_bdk = serviceTypes.find(s => s.name.includes('Bảo dưỡng'));
         const svt_pin = serviceTypes.find(s => s.name.includes('Pin Cao Áp'));
         const [part_lop, part_locgio, part_nuocmat] = parts;
 
-        // --- (SỬA) GỌI HÀM SEED GỢI Ý ---
+        // --- GỌI HÀM SEED GỢI Ý ---
         await seedMaintenanceRecommendations(serviceTypes);
-        // --- (KẾT THÚC SỬA) ---
 
         // 3. TẠO KHO HÀNG CHO CÁC TRẠM
         console.log('📦 Tạo kho hàng cho các trạm...');
@@ -211,7 +197,6 @@ async function createProductionSeedData() {
         // --- 4. TẠO TÀI KHOẢN (CỨNG VÀ CHO TỪNG TRẠM) ---
         console.log('👥 Tạo các tài khoản test...');
         
-        // (SỬA) Dùng hashPassword
         const admin = await prisma.user.upsert({
             where: { email: 'admin@evservice.com' },
             update: { employeeCode: 'ADMIN001', isActive: true },
@@ -224,7 +209,6 @@ async function createProductionSeedData() {
         for (const center of allCenters) {
             const suffix = center.name.includes('HCM') ? 'hcm' : 'hn';
             
-            // (SỬA) Dùng hashPassword
             const sa = await prisma.user.upsert({
                 where: { email: `station.${suffix}@evservice.com` }, update: {},
                 create: { fullName: `Trưởng trạm ${suffix.toUpperCase()}`, email: `station.${suffix}@evservice.com`, passwordHash: await hashPassword('station123'), role: Role.STATION_ADMIN, employeeCode: `SA_${suffix.toUpperCase()}001`, serviceCenterId: center.id, isActive: true }
@@ -245,7 +229,6 @@ async function createProductionSeedData() {
             staffByCenter[center.id] = { sa, staff, tech, im };
         }
         
-        // Khách hàng (Dùng upsert và hashPassword)
         const customer1 = await prisma.user.upsert({
             where: { email: 'customer1@example.com' }, update: {},
             create: { fullName: 'Khách hàng 001 (HCM)', email: 'customer1@example.com', passwordHash: await hashPassword('customer123'), role: Role.CUSTOMER, isActive: true }
@@ -284,8 +267,8 @@ async function createProductionSeedData() {
         });
         console.log('✅ Đã tạo xe.');
 
-        // --- 6. TẠO DỮ LIỆU CHO TỪNG TRẠNG THÁI (ENUMS) ---
-        console.log('🔄 Tạo dữ liệu mẫu cho các trạng thái (Enums)...');
+        // --- 6. TẠO DỮ LIỆU MẪU CHO CÁC TRẠNG THÁI (ĐÃ CẬP NHẬT) ---
+        console.log('🔄 Tạo dữ liệu mẫu cho các trạng thái (Luồng mới)...');
         const now = new Date();
         const tomorrow = new Date(new Date().setDate(now.getDate() + 1));
         const nextWeek = new Date(new Date().setDate(now.getDate() + 7));
@@ -316,77 +299,70 @@ async function createProductionSeedData() {
             }
         });
 
-        // 6.3. APPOINTMENT_PENDING_APPROVAL (-> SR WAITING_APPROVAL, PartUsage REQUESTED, Quotation) (HCM)
+        // 6.3. APPOINTMENT_IN_PROGRESS (-> SR IN_PROGRESS) (HCM)
+        // (Thay thế cho PENDING_APPROVAL)
         await prisma.serviceAppointment.create({
             data: {
                 customerId: customer1.id, vehicleId: vehicle1.id, serviceCenterId: centerHcm.id,
-                appointmentDate: lastWeek, status: AppointmentStatus.PENDING_APPROVAL,
+                appointmentDate: lastWeek, status: AppointmentStatus.IN_PROGRESS,
+                requestedServices: { create: [{ serviceTypeId: svt_bdk.id }] },
                 serviceRecord: {
                     create: {
                         technicianId: staffByCenter[centerHcm.id].tech.id, 
-                        status: ServiceRecordStatus.WAITING_APPROVAL,
-                        quotation: {
-                            create: { estimatedCost: new Prisma.Decimal(780000) }
-                        },
-                        partsUsed: {
-                            create: { partId: part_locgio.id, quantity: 1, unitPrice: 780000, status: PartUsageStatus.REQUESTED }
+                        status: ServiceRecordStatus.IN_PROGRESS,
+                        // (XÓA) Bỏ Quotation
+                        partsUsed: { // (SỬA) KTV đã dùng
+                            create: { partId: part_locgio.id, quantity: 1, unitPrice: part_locgio.price, status: PartUsageStatus.ISSUED }
                         }
                     }
                 }
             }
         });
 
-        // 6.4. APPOINTMENT_IN_PROGRESS (-> SR WAITING_PARTS) (HN)
-        await prisma.serviceAppointment.create({
-            data: {
-                customerId: customer2.id, vehicleId: vehicle2.id, serviceCenterId: centerHn.id,
-                appointmentDate: lastWeek, status: AppointmentStatus.IN_PROGRESS,
-                serviceRecord: {
-                    create: {
-                        technicianId: staffByCenter[centerHn.id].tech.id, 
-                        status: ServiceRecordStatus.WAITING_PARTS,
-                        quotation: { create: { estimatedCost: 350000 } },
-                        partsUsed: { create: { partId: part_nuocmat.id, quantity: 1, unitPrice: 350000, status: PartUsageStatus.REQUESTED } }
-                    }
-                }
-            }
-        });
-
-        // 6.5. APPOINTMENT_COMPLETED (-> SR COMPLETED, Invoice UNPAID) (HCM)
+        // 6.4. APPOINTMENT_COMPLETED (-> SR COMPLETED, Invoice UNPAID) (HCM)
+        // (Thay thế cho WAITING_PARTS)
         await prisma.serviceAppointment.create({
             data: {
                 customerId: customer1.id, vehicleId: vehicle1.id, serviceCenterId: centerHcm.id,
                 appointmentDate: lastMonth, status: AppointmentStatus.COMPLETED,
+                requestedServices: { create: [{ serviceTypeId: svt_bdk.id }] },
                 serviceRecord: {
                     create: {
                         technicianId: staffByCenter[centerHcm.id].tech.id, 
                         status: ServiceRecordStatus.COMPLETED, 
                         endTime: lastMonth,
-                        quotation: { create: { estimatedCost: 4500000 } },
-                        partsUsed: { create: { partId: part_lop.id, quantity: 1, unitPrice: 4500000, status: PartUsageStatus.ISSUED } },
+                        // (XÓA) Bỏ Quotation
+                        partsUsed: { create: { partId: part_lop.id, quantity: 1, unitPrice: part_lop.price, status: PartUsageStatus.ISSUED } },
                         invoice: {
-                            create: { totalAmount: 4500000, dueDate: nextWeek, status: InvoiceStatus.UNPAID }
+                            create: { 
+                                // (SỬA) Tính tổng = Gói (500k) + Lốp (4.5M)
+                                totalAmount: new Prisma.Decimal(500000 + 4500000), 
+                                dueDate: nextWeek, 
+                                status: InvoiceStatus.UNPAID 
+                            }
                         }
                     }
                 }
             }
         });
         
-        // 6.6. APPOINTMENT_COMPLETED (-> SR COMPLETED, Invoice PAID, Payment SUCCESSFUL) (HN)
+        // 6.5. APPOINTMENT_COMPLETED (-> SR COMPLETED, Invoice PAID) (HN)
         await prisma.serviceAppointment.create({
             data: {
                 customerId: customer2.id, vehicleId: vehicle2.id, serviceCenterId: centerHn.id,
                 appointmentDate: lastMonth, status: AppointmentStatus.COMPLETED,
+                requestedServices: { create: [{ serviceTypeId: svt_pin.id }] },
                 serviceRecord: {
                     create: {
                         technicianId: staffByCenter[centerHn.id].tech.id, 
                         status: ServiceRecordStatus.COMPLETED, 
                         endTime: lastMonth,
-                        quotation: { create: { estimatedCost: 350000 } },
-                        partsUsed: { create: { partId: part_nuocmat.id, quantity: 1, unitPrice: 350000, status: PartUsageStatus.ISSUED } },
+                        // (XÓA) Bỏ Quotation
+                        partsUsed: { create: { partId: part_nuocmat.id, quantity: 1, unitPrice: part_nuocmat.price, status: PartUsageStatus.ISSUED } },
                         invoice: {
                             create: { 
-                                totalAmount: 350000, 
+                                // (SỬA) Tính tổng = Gói (300k) + Nước mát (350k)
+                                totalAmount: new Prisma.Decimal(300000 + 350000), 
                                 dueDate: lastMonth, 
                                 status: InvoiceStatus.PAID,
                                 payments: {
@@ -403,36 +379,33 @@ async function createProductionSeedData() {
             }
         });
 
-        // 6.7. APPOINTMENT_CANCELLED (-> SR CANCELLED) (HCM)
+        // 6.6. APPOINTMENT_CANCELLED (-> SR CANCELLED) (HCM)
         await prisma.serviceAppointment.create({
             data: {
                 customerId: customer1.id, vehicleId: vehicle1.id, serviceCenterId: centerHcm.id,
                 appointmentDate: lastWeek, status: AppointmentStatus.CANCELLED,
-                serviceRecord: {
-                    create: {
-                        technicianId: staffByCenter[centerHcm.id].tech.id, 
-                        status: ServiceRecordStatus.CANCELLED,
-                    }
-                }
+                requestedServices: { create: [{ serviceTypeId: svt_bdk.id }] }
+                // (Không cần tạo ServiceRecord nếu Hủy trước khi CONFIRMED)
             }
         });
         console.log('✅ Đã tạo dữ liệu mẫu cho các trạng thái Lịch hẹn.');
 
-        // 6.8. RESTOCK_REQUEST (Tất cả trạng thái, 2 trạm)
+        // 6.7. RESTOCK_REQUEST (Đã thêm unitPrice)
+        // (SỬA) Thêm unitPrice vào
         await prisma.restockRequest.createMany({
             data: [
                 // HCM
-                { quantity: 10, partId: part_lop.id, inventoryManagerId: staffByCenter[centerHcm.id].im.id, serviceCenterId: centerHcm.id, status: RestockRequestStatus.PENDING },
-                { quantity: 5, partId: part_locgio.id, inventoryManagerId: staffByCenter[centerHcm.id].im.id, serviceCenterId: centerHcm.id, status: RestockRequestStatus.APPROVED, adminId: staffByCenter[centerHcm.id].sa.id, processedAt: now },
+                { quantity: 10, partId: part_lop.id, unitPrice: part_lop.price, inventoryManagerId: staffByCenter[centerHcm.id].im.id, serviceCenterId: centerHcm.id, status: RestockRequestStatus.PENDING },
+                { quantity: 5, partId: part_locgio.id, unitPrice: part_locgio.price, inventoryManagerId: staffByCenter[centerHcm.id].im.id, serviceCenterId: centerHcm.id, status: RestockRequestStatus.APPROVED, adminId: staffByCenter[centerHcm.id].sa.id, processedAt: now },
                 // HN
-                { quantity: 20, partId: part_nuocmat.id, inventoryManagerId: staffByCenter[centerHn.id].im.id, serviceCenterId: centerHn.id, status: RestockRequestStatus.REJECTED, adminId: admin.id, processedAt: now },
-                { quantity: 15, partId: part_lop.id, inventoryManagerId: staffByCenter[centerHn.id].im.id, serviceCenterId: centerHn.id, status: RestockRequestStatus.COMPLETED, adminId: staffByCenter[centerHn.id].sa.id, processedAt: lastWeek }
+                { quantity: 20, partId: part_nuocmat.id, unitPrice: part_nuocmat.price, inventoryManagerId: staffByCenter[centerHn.id].im.id, serviceCenterId: centerHn.id, status: RestockRequestStatus.REJECTED, adminId: admin.id, processedAt: now },
+                { quantity: 15, partId: part_lop.id, unitPrice: part_lop.price, inventoryManagerId: staffByCenter[centerHn.id].im.id, serviceCenterId: centerHn.id, status: RestockRequestStatus.COMPLETED, adminId: staffByCenter[centerHn.id].sa.id, processedAt: lastWeek }
             ]
         });
         console.log('✅ Đã tạo dữ liệu mẫu cho các trạng thái Nhập kho.');
 
         console.log('\n🎉 Production seed data hoàn tất!');
-        console.log('\n📋 Thông tin đăng nhập:');
+        console.log('\n📋 Thông tin đăng nhập (khớp với yêu cầu của bạn):');
         console.log(`  👤 Admin:         admin@evservice.com       (pass: admin123)`);
         console.log(`  👨‍💼 Station HCM:   station.hcm@evservice.com (pass: station123)`);
         console.log(`  👨‍🔧 Staff HCM:     staff.hcm@evservice.com     (pass: staff123)`);
@@ -440,13 +413,13 @@ async function createProductionSeedData() {
         console.log(`  📦 IM HCM:        inventory.hcm@evservice.com (pass: inventory123)`);
         console.log(`  👨‍💼 Station HN:    station.hn@evservice.com  (pass: station123)`);
         
-        // (SỬA) Thêm các user HN còn lại vào danh sách
+        // (SỬA) Đảm bảo email khớp 100% với yêu cầu
         const techHN = staffByCenter[centerHn.id].tech;
         const staffHN = staffByCenter[centerHn.id].staff;
         const imHN = staffByCenter[centerHn.id].im;
         console.log(`  👨‍🔧 Staff HN:      ${staffHN.email}     (pass: staff123)`);
         console.log(`  🔧 Tech HN:       ${techHN.email}      (pass: tech123)`);
-        console.log(`  📦 IM HN:         ${imHN.email}  (pass: inventory123)`);
+        console.log(`  📦 IM HN:         ${imHN.email} (pass: inventory123)`);
         
         console.log(`  👤 Customer 1:    customer1@example.com     (pass: customer123)`);
         console.log(`  👤 Customer 2:    customer2@example.com     (pass: customer123)`);

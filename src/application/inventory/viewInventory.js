@@ -8,9 +8,12 @@ class ViewInventory {
         if (!actor.serviceCenterId) {
             throw new Error("User is not associated with a service center.");
         }
-        if (![Role.INVENTORY_MANAGER, Role.STATION_ADMIN].includes(actor.role)) {
+        
+        // (SỬA) Thêm Role.TECHNICIAN vào danh sách được phép
+        if (![Role.INVENTORY_MANAGER, Role.STATION_ADMIN, Role.TECHNICIAN].includes(actor.role)) {
             throw new Error("Forbidden: Access denied.");
         }
+        
         return this.inventoryItemRepo.findByCenter(actor.serviceCenterId);
     }
 }

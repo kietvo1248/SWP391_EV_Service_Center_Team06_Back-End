@@ -1,4 +1,5 @@
 // Tệp: src/application/staff/assignAndConfirmAppointment.js
+const { Prisma } = require('@prisma/client');
 class AssignAndConfirmAppointment {
     constructor(appointmentRepository, serviceRecordRepository, userRepository, prismaClient) {
         this.appointmentRepository = appointmentRepository;

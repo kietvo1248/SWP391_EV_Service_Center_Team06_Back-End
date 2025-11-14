@@ -16,11 +16,17 @@ class CreateAppointmentUseCase {
             appointmentDate,
             serviceCenterId,
             customerNotes,
-            requestedServices
+            // (SỬA) Đổi tên biến để rõ ràng hơn
+            servicePackageId // Thay vì requestedServices (mảng)
         } = appointmentData;
 
+        // (SỬA) Kiểm tra servicePackageId
+        if (!servicePackageId) {
+            throw new Error("A service package (servicePackageId) must be selected.");
+        }
+
+        // ... (Logic kiểm tra vehicle, appointmentDate, center, capacity vẫn giữ nguyên) ...
         const vehicle = await this.vehicleRepository.findById(vehicleId, customerId);
-        
         if (!vehicle) {
             throw new Error("Vehicle not found or you are not the owner.");
         }
@@ -29,7 +35,6 @@ class CreateAppointmentUseCase {
             throw new Error("Appointment date must be a valid date in the future.");
         }
 
-        // --- KIỂM TRA SLOT TRONG TRANSACTION ---
         try {
             const center = await this.serviceCenterRepository.getServiceCenterById(serviceCenterId);
             if (!center) {
@@ -38,7 +43,7 @@ class CreateAppointmentUseCase {
             const capacity = center.capacityPerSlot;
 
             const newAppointment = await this.prisma.$transaction(async (tx) => {
-
+                // ... (Logic kiểm tra existingCount vẫn giữ nguyên) ...
                 const existingCount = await tx.serviceAppointment.count({
                     where: {
                         serviceCenterId: serviceCenterId,
@@ -48,18 +53,16 @@ class CreateAppointmentUseCase {
                                 AppointmentStatus.PENDING,
                                 AppointmentStatus.CONFIRMED,
                                 AppointmentStatus.IN_PROGRESS,
-                                AppointmentStatus.PENDING_APPROVAL
+                                // (XÓA) PENDING_APPROVAL
                             ]
                         }
                     }
                 });
-
-                // Nếu đã đủ slot -> Ném lỗi để rollback
                 if (existingCount >= capacity) {
                     throw new Error("This time slot is no longer available.");
                 }
 
-                // Nếu còn slot -> Tạo lịch hẹn
+                // Tạo lịch hẹn (vẫn giữ nguyên)
                  const createdAppt = await tx.serviceAppointment.create({
                     data: {
                         customerId: customerId,
@@ -71,24 +74,22 @@ class CreateAppointmentUseCase {
                     },
                 });
 
-                 // Liên kết services nếu có
-                if (requestedServices && requestedServices.length > 0) {
-                    const validServiceTypes = await tx.serviceType.findMany({
-                        where: { id: { in: requestedServices } },
-                        select: { id: true }
-                    });
-                    if (validServiceTypes.length !== requestedServices.length) {
-                        throw new Error("One or more requested service types are invalid.");
-                    }
-                    
-                    const servicesToLink = requestedServices.map(serviceTypeId => ({
-                        appointmentId: createdAppt.id,
-                        serviceTypeId: serviceTypeId,
-                    }));
-                    await tx.appointmentService.createMany({
-                        data: servicesToLink,
-                    });
+                 // (SỬA) Liên kết chỉ 1 service package
+                const validServiceType = await tx.serviceType.findUnique({
+                    where: { id: servicePackageId },
+                    select: { id: true }
+                });
+                if (!validServiceType) {
+                    throw new Error("The selected service package is invalid.");
                 }
+                
+                await tx.appointmentService.create({
+                    data: {
+                        appointmentId: createdAppt.id,
+                        serviceTypeId: servicePackageId,
+                    }
+                });
+                
                 return createdAppt; 
             }, {
                 isolationLevel: 'Serializable',
@@ -96,18 +97,18 @@ class CreateAppointmentUseCase {
                 timeout: 10000 
             });
 
+            // ... (Logic trả về Entity vẫn giữ nguyên) ...
             const newAppointmentEntity = new ServiceAppointment(
                 newAppointment.id, customerId, vehicleId, serviceCenterId,
                 newAppointment.appointmentDate, newAppointment.status,
                 newAppointment.customerNotes, newAppointment.createdAt
             );
-
             return newAppointmentEntity;
 
         } catch (error) {
             console.error("Error creating appointment:", error.message);
-            if (error.message.includes("slot is no longer available") ||
-                error.message.includes("service types are invalid") ||
+            if (error.message.includes("slot") ||
+                error.message.includes("service package") || // (SỬA)
                 error instanceof Prisma.PrismaClientKnownRequestError) {
                  throw new Error(error.message);
             }

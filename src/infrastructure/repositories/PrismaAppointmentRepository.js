@@ -22,13 +22,15 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
                     customerNotes: appointmentData.customerNotes,
                 },
             });
-            if (requestedServices && requestedServices.length > 0) {
-                const servicesToLink = requestedServices.map(serviceTypeId => ({
-                    appointmentId: newAppointment.id,
-                    serviceTypeId: serviceTypeId,
-                }));
-                await tx.appointmentService.createMany({
-                    data: servicesToLink,
+            
+            // (SỬA TỪ BƯỚC TRƯỚC) Đảm bảo chỉ 1 service package được thêm
+            const servicePackageId = requestedServices; // Giả sử requestedServices giờ là 1 ID
+            if (servicePackageId) {
+                await tx.appointmentService.create({
+                    data: {
+                        appointmentId: newAppointment.id,
+                        serviceTypeId: servicePackageId,
+                    }
                 });
             }
             return newAppointment;
@@ -60,8 +62,8 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
                         licensePlate: true,
                         vehicleModel: { // Lồng vào VehicleModel
                             select: {
-                                brand: true, // Trường mới
-                                name: true   // Trường mới (thay cho model)
+                                brand: true, 
+                                name: true   
                             }
                         }
                     }
@@ -101,11 +103,17 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
                         serviceType: true 
                     }
                 },
-                // --- (SỬA LỖI/BỔ SUNG) ---
+                // --- (SỬA LỖI Ở ĐÂY) ---
                 serviceRecord: {
                     include: {
-                        quotation: true, // Báo giá (dự kiến)
-                        invoice: true,   // Hóa đơn (chính thức)
+                        // quotation: true, // (Đã xóa)
+                        
+                        invoice: {       // (SỬA)
+                            include: {
+                                payments: true // (THÊM) Đính kèm lịch sử thanh toán
+                            }
+                        },
+                        
                         partsUsed: {     // Phụ tùng đã sử dụng
                             where: { status: 'ISSUED' }, // Chỉ lấy phụ tùng đã xuất kho
                             include: {
@@ -181,7 +189,15 @@ class PrismaAppointmentRepository extends IAppointmentRepository {
                 requestedServices: { include: { serviceType: true } },
                 serviceRecord: { 
                     include: {
-                        quotation: true
+                        invoice: { // (SỬA)
+                            include: {
+                                payments: true // (THÊM)
+                            }
+                        },
+                        partsUsed: { // (THÊM)
+                            where: { status: 'ISSUED' },
+                            include: { part: true }
+                        }
                     }
                 }
             }

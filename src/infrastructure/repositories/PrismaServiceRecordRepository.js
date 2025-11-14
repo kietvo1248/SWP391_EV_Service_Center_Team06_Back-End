@@ -13,25 +13,35 @@ class PrismaServiceRecordRepository extends IServiceRecordRepository {
             data: data,
         });
     }
-    async findByTechnician(technicianId, status) {
+    async findByTechnician(technicianId, statusArray) { // (Đổi tên 'status' thành 'statusArray' cho rõ)
         const whereClause = {
             technicianId: technicianId,
         };
-        if (status) {
-            whereClause.status = status;
+        
+        // (SỬA LỖI LOGIC PRISMA)
+        if (statusArray && statusArray.length > 0) {
+            // Phải dùng 'in:' để Prisma lọc theo mảng
+            whereClause.status = { in: statusArray }; 
         }
+
         return this.prisma.serviceRecord.findMany({
-            where: whereClause,
+            where: whereClause, // Giờ whereClause sẽ đúng
             include: {
                 appointment: {
                     include: {
                         customer: { select: { fullName: true } },
-                        // --- SỬA LỖI ---
                         vehicle: { 
                             select: { 
                                 licensePlate: true,
                                 vehicleModel: {
                                     select: { brand: true, name: true }
+                                }
+                            }
+                        },
+                        requestedServices: {
+                            include: {
+                                serviceType: {
+                                    select: { name: true }
                                 }
                             }
                         }

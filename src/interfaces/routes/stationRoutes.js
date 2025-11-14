@@ -5,6 +5,9 @@ const { authenticate, authorize } = require('../middlewares/authMiddleware');
 const stationRouter = (controller) => {
     const router = express.Router();
 
+    const authorize_SA_ADMIN = authorize(['STATION_ADMIN', 'ADMIN']);
+    const authorize_SA = authorize(['STATION_ADMIN']);
+
     // Middleware bảo vệ chung cho toàn bộ router này
     // (Swagger định nghĩa tất cả các API này đều cần xác thực)
     router.use(authenticate);
@@ -13,37 +16,25 @@ const stationRouter = (controller) => {
     
     // API: GET /api/station/stations/{stationId}/staff
     // Chức năng: (L6.1) Lấy danh sách nhân viên tại trạm
-    router.get(
-        '/stations/:stationId/staff',
-        authorize(['STATION_ADMIN', 'ADMIN']), 
-        (req, res) => controller.listStaff(req, res)
-    );
+    router.get('/staff', authorize_SA_ADMIN, controller.listStaff.bind(controller));
+
+    router.get('/staff/:staffId', authorize_SA, controller.getStaffDetails.bind(controller));
 
     // API: PUT /api/station/stations/{stationId}/staff/{staffId}/status
     // Chức năng: (L6.2) Cập nhật trạng thái nhân viên
-    router.put(
-        '/stations/:stationId/staff/:staffId/status',
-        authorize(['STATION_ADMIN', 'ADMIN']), 
-        (req, res) => controller.updateStaffStatus(req, res)
-    );
+    router.put('/staff/:staffId/status', authorize_SA_ADMIN, controller.updateStaffStatus.bind(controller));
 
     // API: PUT /api/station/stations/{stationId}/technicians/{technicianId}/specialization
     // Chức năng: (L6.6) Cập nhật chuyên môn KTV
-    router.put(
-        '/stations/:stationId/technicians/:technicianId/specialization',
-        authorize(['STATION_ADMIN', 'ADMIN']), 
-        (req, res) => controller.updateTechnicianSpecification(req, res)
-    );
+    router.put('/technicians/:technicianId/specialization', authorize_SA_ADMIN, controller.updateTechnicianSpecification.bind(controller));
 
     // --- 2. Quản lý Chứng chỉ ---
 
-    // API: GET /api/station/certifications
-    // Chức năng: (L6.3) Lấy danh sách tất cả chứng chỉ
-    router.get(
-        '/certifications', 
-        authorize(['STATION_ADMIN', 'ADMIN']), 
-        (req, res) => controller.listAllCerts(req, res)
-    ); 
+    // (CRUD Master Data)
+    router.get('/certifications', authorize_SA_ADMIN, controller.listAllCerts.bind(controller));
+    router.post('/certifications', authorize_SA_ADMIN, controller.createCertification.bind(controller));
+    router.put('/certifications/:id', authorize_SA_ADMIN, controller.updateCertification.bind(controller));
+    router.delete('/certifications/:id', authorize_SA_ADMIN, controller.deleteCertification.bind(controller)); 
 
     // API: POST /api/station/technicians/{technicianId}/certifications
     // Chức năng: (L6.4) Gán chứng chỉ cho KTV
@@ -65,37 +56,12 @@ const stationRouter = (controller) => {
 
     // API: GET /api/station/stations/{stationId}/reports/revenue
     // Chức năng: (L6.7) Báo cáo doanh thu
-    router.get(
-        '/stations/:stationId/reports/revenue',
-        authorize(['STATION_ADMIN', 'ADMIN']), 
-        (req, res) => controller.getRevenueReport(req, res)
-    );
+   // (SỬA) GET /api/station/reports/revenue (Bỏ {stationId})
+    router.get('/reports/revenue', authorize_SA_ADMIN, controller.getRevenueReport.bind(controller));
 
-    // API: GET /api/station/stations/{stationId}/reports/technician-performance
-    // Chức năng: (L6.8) Báo cáo hiệu suất KTV
-    router.get(
-        '/stations/:stationId/reports/technician-performance',
-        authorize(['STATION_ADMIN', 'ADMIN']), 
-        (req, res) => controller.getPerformanceReport(req, res)
-    );
+    // (SỬA) GET /api/station/reports/technician-performance (Bỏ {stationId})
+    router.get('/reports/technician-performance', authorize_SA_ADMIN, controller.getPerformanceReport.bind(controller));
 
-    // --- 4. Quản lý Nhập kho (Chức năng của Station Admin) ---
-
-    // API: PUT /api/station/restock-requests/{id}/approve
-    // Chức năng: (L6.9) [Trưởng trạm] Duyệt Y/C nhập hàng
-    router.put(
-        '/restock-requests/:id/approve', 
-        authorize(['STATION_ADMIN']), // Chỉ STATION_ADMIN (ADMIN dùng route /api/admin/...)
-        (req, res) => controller.approveRestockRequest(req, res)
-    );
-
-    // API: PUT /api/station/restock-requests/{id}/reject
-    // Chức năng: (L6.10) [Trưởng trạm] Từ chối Y/C nhập hàng
-    router.put(
-        '/restock-requests/:id/reject', 
-        authorize(['STATION_ADMIN']), // Chỉ STATION_ADMIN (ADMIN dùng route /api/admin/...)
-        (req, res) => controller.rejectRestockRequest(req, res)
-    );
 
     return router;
 };

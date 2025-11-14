@@ -1,5 +1,5 @@
 // Tệp: src/application/technician/completeTechnicianTask.js
-const { ServiceRecordStatus, AppointmentStatus } = require('@prisma/client'); // Import Enums
+const { Prisma, ServiceRecordStatus, AppointmentStatus } = require('@prisma/client');
 const ServiceRecordEntity = require('../../domain/entities/ServiceRecord');
 const ServiceAppointmentEntity = require('../../domain/entities/ServiceAppointment');
 
@@ -28,23 +28,19 @@ class CompleteTechnicianTask {
             if (record.technicianId !== technicianId) {
                 throw new Error('Forbidden. You are not assigned to this task.');
             }
-            const allowedPreviousStatuses = [
-                ServiceRecordStatus.REPAIRING,
-                ServiceRecordStatus.DIAGNOSING,
-                ServiceRecordStatus.WAITING_PARTS, // Giả sử KTV có thể hoàn thành sau khi có phụ tùng
-                ServiceRecordStatus.QUALITY_CHECK,
-                ServiceRecordStatus.IN_PROGRESS // Trạng thái chung
-            ];
-             if (!allowedPreviousStatuses.includes(record.status)) {
-                 throw new Error(`Cannot complete task from current status: ${record.status}`);
-             }
-
+            
+            // (SỬA) Chỉ cho phép hoàn thành từ IN_PROGRESS (theo luồng mới)
+            if (record.status !== ServiceRecordStatus.IN_PROGRESS) {
+                 throw new Error(`Cannot complete task from current status: ${record.status}. Must be IN_PROGRESS.`);
+            }
 
             // 2. Cập nhật Service Record
             const updateData = {
                 status: ServiceRecordStatus.COMPLETED,
                 endTime: new Date(),
             };
+            
+            // Nối ghi chú (nếu có)
             if (completionNotes) {
                 updateData.staffNotes = record.staffNotes
                     ? `${record.staffNotes}\n[COMPLETED]: ${completionNotes}`
@@ -55,6 +51,7 @@ class CompleteTechnicianTask {
 
             updatedRecordPrisma = await this.serviceRecordRepo.update(serviceRecordId, updateData, tx);
 
+            // 3. Cập nhật Appointment
             updatedApptPrisma = await this.appointmentRepo.updateStatus(record.appointmentId, AppointmentStatus.COMPLETED, tx);
         });
 
