@@ -12,6 +12,7 @@ const appointmentRouter = (appointmentController) => {
     router.get('/history', authenticate, appointmentController.listAppointmentHistory.bind(appointmentController));
     router.post('/create-appointment', authenticate, appointmentController.create.bind(appointmentController));
     router.get('/:id', authenticate, appointmentController.getAppointmentDetails.bind(appointmentController));
+    router.put('/:id/cancel', authenticate, appointmentController.cancel.bind(appointmentController));// khách hàng tự hủy lịch hẹn
 
     // (XÓA) Phản hồi báo giá
     // router.put('/:id/respond-quotation', authenticate, appointmentController.respondToQuotation.bind(appointmentController));

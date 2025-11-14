@@ -5,6 +5,7 @@ const inventoryRouter = (controller) => {
     const router = express.Router();
     const authorize_IM_SA = authorize(['INVENTORY_MANAGER', 'STATION_ADMIN']);
     const authorize_SA = authorize(['STATION_ADMIN']); // Chỉ Station Admin
+    const authorize_IM = authorize(['INVENTORY_MANAGER']); // Chỉ Inventory Manager
 
     router.use(authenticate);
 
@@ -12,9 +13,10 @@ const inventoryRouter = (controller) => {
     router.get('/items', authorize(['INVENTORY_MANAGER', 'STATION_ADMIN', 'TECHNICIAN']), controller.viewInventory.bind(controller));
     router.get('/items/search', authorize(['INVENTORY_MANAGER', 'STATION_ADMIN', 'TECHNICIAN']), controller.findPartBySku.bind(controller));
     router.get('/items/low-stock', authorize_IM_SA, controller.listLowStock.bind(controller));
-    router.post('/items', authorize_IM_SA, controller.addInventoryItem.bind(controller));
-    router.put('/items/:id', authorize_IM_SA, controller.updateInventoryConfig.bind(controller));
-    router.delete('/items/:id', authorize_SA, controller.removeInventoryItem.bind(controller));
+    router.post('/items/create', authorize_IM_SA, controller.addInventoryItem.bind(controller));
+    router.get('/items/:id', authorize(['INVENTORY_MANAGER', 'STATION_ADMIN', 'TECHNICIAN']), controller.getInventoryItemDetails.bind(controller));
+    router.put('/items/:id/update', authorize_IM, controller.updateInventoryItem.bind(controller));
+    router.delete('/items/:id/remove', authorize_SA, controller.removeInventoryItem.bind(controller));
 
     // --- 2. QUY TRÌNH NHẬP HÀNG (Restock) ---
 

@@ -3,24 +3,26 @@ class InventoryController {
         viewInventoryUseCase,
         findPartBySkuUseCase,
         addInventoryItemUseCase,      // Mới
-        updateInventoryConfigUseCase, // Mới
+        updateInventoryItemUseCase, // Mới
         removeInventoryItemUseCase,   // Mới
         listLowStockItemsUseCase,     // Mới
         createRestockRequestUseCase,
         listRestockRequestsUseCase,   // Mới (Dùng chung cho IM xem lịch sử)
         importRestockUseCase,          // Mới
-        processRestockRequestUseCase
+        processRestockRequestUseCase,
+        getInventoryItemDetailsUseCase
     ) {
         this.viewInventoryUseCase = viewInventoryUseCase;
         this.findPartBySkuUseCase = findPartBySkuUseCase;
         this.addInventoryItemUseCase = addInventoryItemUseCase;
-        this.updateInventoryConfigUseCase = updateInventoryConfigUseCase;
+        this.updateInventoryItemUseCase = updateInventoryItemUseCase;
         this.removeInventoryItemUseCase = removeInventoryItemUseCase;
         this.listLowStockItemsUseCase = listLowStockItemsUseCase;
         this.createRestockRequestUseCase = createRestockRequestUseCase;
         this.listRestockRequestsUseCase = listRestockRequestsUseCase;
         this.importRestockUseCase = importRestockUseCase;
         this.processRestockRequestUseCase = processRestockRequestUseCase;
+        this.getInventoryItemDetailsUseCase = getInventoryItemDetailsUseCase;
     }
 
     // --- 1. Quản lý Kho (CRUD) ---
@@ -43,20 +45,45 @@ class InventoryController {
     // (Mới) Thêm mặt hàng vào kho
     async addInventoryItem(req, res) {
         try {
-            const { partId, minStockLevel } = req.body;
-            const item = await this.addInventoryItemUseCase.execute(req.user, { partId, minStockLevel });
+            // Lấy tất cả thông tin từ body
+            const { sku, name, description, price, minStockLevel } = req.body;
+            
+            const item = await this.addInventoryItemUseCase.execute(req.user, { 
+                sku, name, description, price, minStockLevel 
+            });
             res.status(201).json(item);
-        } catch (error) { res.status(400).json({ message: error.message }); }
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
     }
 
-    // (Mới) Cập nhật cấu hình (minStock)
-    async updateInventoryConfig(req, res) {
+    
+    async getInventoryItemDetails(req, res) {
         try {
-            const { id } = req.params;
-            const { minStockLevel } = req.body;
-            const item = await this.updateInventoryConfigUseCase.execute(req.user, id, { minStockLevel });
+            const { id } = req.params; // Lấy ID của InventoryItem
+            const item = await this.getInventoryItemDetailsUseCase.execute(req.user, id);
             res.status(200).json(item);
-        } catch (error) { res.status(400).json({ message: error.message }); }
+        } catch (error) { 
+            if (error.message.includes('not found')) return res.status(404).json({ message: error.message });
+            if (error.message.includes('Forbidden')) return res.status(403).json({ message: error.message });
+            res.status(400).json({ message: error.message }); 
+        }
+    }
+
+    async updateInventoryItem(req, res) {
+        try {
+            const { id } = req.params; // Lấy ID của InventoryItem
+            
+            // Lấy tất cả dữ liệu có thể cập nhật từ body
+            const { sku, name, description, price, minStockLevel } = req.body;
+            
+            const item = await this.updateInventoryItemUseCase.execute(req.user, id, { 
+                sku, name, description, price, minStockLevel 
+            });
+            res.status(200).json(item);
+        } catch (error) { 
+            res.status(400).json({ message: error.message }); 
+        }
     }
 
     // (Mới) Xóa mềm
@@ -90,9 +117,7 @@ class InventoryController {
     async listRestockRequests(req, res) {
         try {
             const { status } = req.query;
-            // Tái sử dụng UseCase listRequestForApproval nhưng sửa logic một chút để support cả việc xem lịch sử
-            // Hoặc dùng listRestockRequestsUseCase (cần đảm bảo nó filter theo center của user)
-            const requests = await this.listRestockRequestsUseCase.execute(req.user, status);
+            const requests = await this.listRestockRequestsUseCase.execute(status, req.user);
             res.status(200).json(requests);
         } catch (error) { res.status(400).json({ message: error.message }); }
     }

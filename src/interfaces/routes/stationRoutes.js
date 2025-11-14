@@ -79,23 +79,6 @@ const stationRouter = (controller) => {
         (req, res) => controller.getPerformanceReport(req, res)
     );
 
-    // --- 4. Quản lý Nhập kho (Chức năng của Station Admin) ---
-
-    // API: PUT /api/station/restock-requests/{id}/approve
-    // Chức năng: (L6.9) [Trưởng trạm] Duyệt Y/C nhập hàng
-    router.put(
-        '/restock-requests/:id/approve', 
-        authorize(['STATION_ADMIN']), // Chỉ STATION_ADMIN (ADMIN dùng route /api/admin/...)
-        (req, res) => controller.approveRestockRequest(req, res)
-    );
-
-    // API: PUT /api/station/restock-requests/{id}/reject
-    // Chức năng: (L6.10) [Trưởng trạm] Từ chối Y/C nhập hàng
-    router.put(
-        '/restock-requests/:id/reject', 
-        authorize(['STATION_ADMIN']), // Chỉ STATION_ADMIN (ADMIN dùng route /api/admin/...)
-        (req, res) => controller.rejectRestockRequest(req, res)
-    );
 
     return router;
 };

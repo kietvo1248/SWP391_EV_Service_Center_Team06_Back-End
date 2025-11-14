@@ -24,8 +24,7 @@ const staffRouter = (controller) => {
     router.post('/customers/:customerId/vehicles', controller.addVehicleForCustomer.bind(controller));
     router.post('/appointments/create-walk-in', controller.createAndStartWalkInAppointment.bind(controller));
 
-    // (XÓA) Sửa đổi báo giá
-    // router.put('/quotations/:id/revise', controller.reviseQuotation.bind(controller));
+    router.put('/appointments/:id/cancel', controller.cancelAppointment.bind(controller)); // hủy lịch hẹn khi khách hàng yêu cầu/ko đến
     
     return router;
 };

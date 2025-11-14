@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
   title: EV Service Center API
-  description: Tài liệu API cho hệ thống Trung tâm Dịch vụ Xe điện (Cập nhật CRUD Kho & Phân quyền).
-  version: 1.5.0
+  description: Tài liệu API cho hệ thống Trung tâm Dịch vụ Xe điện (Đã cải tổ Booking & Inventory).
+  version: 2.0.0
 servers:
   - url: http://localhost:6969/api
     description: Development server
@@ -20,11 +20,11 @@ tags:
   - name: '[3] Luồng Kỹ thuật viên (Technician)'
     description: Kịch bản kỹ thuật viên nhận việc, xem kho, sử dụng phụ tùng và hoàn thành.
   - name: '[4] Luồng Quản lý Kho (Inventory)'
-    description: Kịch bản quản lý kho (IM) kiểm kê, CRUD hàng hóa, tạo Y/C nhập hàng và nhập kho.
+    description: Kịch bản dành cho INVENTORY MANAGER (Kiểm kê, Yêu cầu nhập, Nhập hàng vào kho).
   - name: '[5] Luồng Quản trị viên (Admin)'
-    description: Kịch bản quản trị viên (Admin) tạo tài khoản và quản lý trạm.
+    description: Kịch bản quản trị viên (Admin) tạo tài khoản Station Admin.
   - name: '[6] Luồng Quản lý Trạm (Station)'
-    description: Kịch bản Trưởng trạm (Station Admin) quản lý nhân sự và Phê duyệt yêu cầu nhập hàng.
+    description: Kịch bản dành cho STATION ADMIN (Quản lý nhân sự, Phê duyệt yêu cầu nhập hàng).
 security:
   - bearerAuth: []
 paths:
@@ -127,11 +127,7 @@ paths:
       tags: ['[V] Quản lý Xe (Vehicle)']
       summary: (Hỗ trợ) Lấy danh sách Dòng xe
       responses:
-        '200':
-          description: Danh sách dòng xe.
-          content:
-            application/json:
-              schema: { type: array, items: { $ref: '#/components/schemas/VehicleModel' } }
+        '200': { description: Danh sách dòng xe., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/VehicleModel' } } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
   /vehicle/models/{modelId}/batteries:
     get:
@@ -140,11 +136,7 @@ paths:
       parameters:
         - { $ref: '#/components/parameters/VehicleModelIdPath' }
       responses:
-        '200':
-          description: Danh sách các loại pin.
-          content:
-            application/json:
-              schema: { type: array, items: { $ref: '#/components/schemas/BatteryType' } }
+        '200': { description: Danh sách các loại pin., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/BatteryType' } } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
   /vehicle/add-vehicle:
@@ -154,11 +146,7 @@ paths:
       description: Roles: CUSTOMER, STAFF
       requestBody: { $ref: '#/components/requestBodies/CreateVehicleInput' }
       responses:
-        '201':
-          description: Thêm xe thành công.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Vehicle' }
+        '201': { description: Thêm xe thành công., content: { application/json: { schema: { $ref: '#/components/schemas/Vehicle' } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
@@ -168,11 +156,7 @@ paths:
       summary: (CRUD) Lấy danh sách xe của tôi
       description: Roles: CUSTOMER
       responses:
-        '200':
-          description: Danh sách xe (chưa xóa) của khách hàng.
-          content:
-            application/json:
-              schema: { type: array, items: { $ref: '#/components/schemas/Vehicle' } }
+        '200': { description: Danh sách xe (chưa xóa) của khách hàng., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Vehicle' } } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
   /vehicle/vehicle-details/{id}:
@@ -183,11 +167,7 @@ paths:
       parameters:
         - { $ref: '#/components/parameters/VehicleIdPath' }
       responses:
-        '200':
-          description: Chi tiết xe.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Vehicle' }
+        '200': { description: Chi tiết xe., content: { application/json: { schema: { $ref: '#/components/schemas/Vehicle' } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
@@ -200,11 +180,7 @@ paths:
         - { $ref: '#/components/parameters/VehicleIdPath' }
       requestBody: { $ref: '#/components/requestBodies/UpdateVehicleInput' }
       responses:
-        '200':
-          description: Cập nhật thành công.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Vehicle' }
+        '200': { description: Cập nhật thành công., content: { application/json: { schema: { $ref: '#/components/schemas/Vehicle' } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
@@ -248,9 +224,7 @@ paths:
         - name: vehicleId
           in: query
           required: true
-          schema:
-            type: string
-            format: uuid
+          schema: { type: string, format: uuid }
           description: "ID của xe (lấy từ /api/vehicle/my-vehicles)"
       responses:
         '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ServiceType' } } } } }
@@ -303,6 +277,17 @@ paths:
       responses:
         '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/AppointmentHistoryView' } } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
+  /appointments/{id}/cancel:
+    put:
+      tags: ['[1] Luồng Khách hàng (Customer)']
+      summary: '(L1.10) [Khách hàng] Hủy lịch hẹn'
+      description: Khách hàng chỉ có thể hủy lịch hẹn ở trạng thái PENDING hoặc CONFIRMED.
+      parameters: [{ $ref: '#/components/parameters/AppointmentIdPath' }]
+      responses:
+        '200': { description: Lịch hẹn đã được hủy thành công., content: { application/json: { schema: { $ref: '#/components/schemas/ServiceAppointment' } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
   # ===============================================
   # === [2] LUỒNG NHÂN VIÊN (STAFF)
   # ===============================================
@@ -381,6 +366,17 @@ paths:
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
+  /staff/appointments/{id}/cancel:
+    put:
+      tags: ['[2] Luồng Nhân viên (Staff)']
+      summary: '(L1/L2) [Nhân viên] Hủy lịch hẹn'
+      description: Nhân viên hủy lịch hẹn (do khách gọi điện, hoặc lý do nghiệp vụ).
+      parameters: [{ $ref: '#/components/parameters/AppointmentIdPath' }]
+      responses:
+        '200': { description: Lịch hẹn đã được hủy thành công., content: { application/json: { schema: { $ref: '#/components/schemas/ServiceAppointment' } } } }
+        '400': { $ref: '#/components/responses/BadRequestError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
   /staff/customers/search:
     get:
       tags: ['[2] Luồng Nhân viên (Staff)']
@@ -478,10 +474,9 @@ paths:
         - name: status
           in: query
           required: false
-          description: "Lọc theo trạng thái. Chọn 1 trạng thái (PENDING hoặc IN_PROGRESS)."
+          description: "Lọc theo trạng thái. (Mặc định là PENDING, IN_PROGRESS)."
           schema:
-            type: string
-            enum: [PENDING, IN_PROGRESS]
+            $ref: '#/components/schemas/ServiceRecordStatusEnum_Pending_InProgress'
       responses:
         '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/TechnicianTaskSummary' } } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
@@ -541,15 +536,18 @@ paths:
         '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/InventoryItemView' } } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
+  
+  /inventory/items/create: # (SỬA) Cập nhật đường dẫn
     post:
       tags: ['[4] Luồng Quản lý Kho (Inventory)']
-      summary: '(L4.2) Thêm mặt hàng mới vào kho'
-      description: (Roles: INVENTORY_MANAGER, STATION_ADMIN)
+      summary: '(L4.2) Thêm mặt hàng mới vào kho (Định nghĩa Part & Kho)'
+      description: (Roles: INVENTORY_MANAGER, STATION_ADMIN) Cung cấp SKU, Tên, Giá, v.v. để tạo Phụ tùng (Part) và Mục kho (InventoryItem) tại trạm.
       requestBody: { $ref: '#/components/requestBodies/AddInventoryItemInput' }
       responses:
         '201': { description: Thêm thành công., content: { application/json: { schema: { $ref: '#/components/schemas/InventoryItem' } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
+  
   /inventory/items/search:
     get:
       tags: ['[4] Luồng Quản lý Kho (Inventory)']
@@ -566,6 +564,7 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
+  
   /inventory/items/low-stock:
     get:
       tags: ['[4] Luồng Quản lý Kho (Inventory)']
@@ -574,21 +573,35 @@ paths:
       responses:
         '200': { description: Thành công., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/InventoryItemView' } } } } }
         '403': { $ref: '#/components/responses/ForbiddenError' }
+  
   /inventory/items/{id}:
+    get:
+      tags: ['[4] Luồng Quản lý Kho (Inventory)']
+      summary: '(L4.4) Xem chi tiết 1 mặt hàng trong kho'
+      description: (Roles: INVENTORY_MANAGER, STATION_ADMIN, TECHNICIAN)
+      parameters: [{ $ref: '#/components/parameters/InventoryItemIdPath' }]
+      responses:
+        '200': { description: Thành công., content: { application/json: { schema: { $ref: '#/components/schemas/InventoryItemView' } } } }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  
+  /inventory/items/{id}/update: # (SỬA) Cập nhật đường dẫn
     put:
       tags: ['[4] Luồng Quản lý Kho (Inventory)']
-      summary: '(L4.4) Cập nhật cấu hình kho (minStockLevel)'
-      description: (Roles: INVENTORY_MANAGER, STATION_ADMIN) Chỉ cập nhật mức tồn kho tối thiểu, không cập nhật số lượng thực tế.
+      summary: '(L4.5) Cập nhật thông tin/cấu hình kho'
+      description: (Roles: INVENTORY_MANAGER) Cập nhật Tên, SKU, Giá, Mô tả, và minStockLevel. Không cập nhật số lượng tồn kho.
       parameters: [{ $ref: '#/components/parameters/InventoryItemIdPath' }]
-      requestBody: { $ref: '#/components/requestBodies/UpdateInventoryConfigInput' }
+      requestBody: { $ref: '#/components/requestBodies/UpdateInventoryItemInput' }
       responses:
         '200': { description: Cập nhật thành công., content: { application/json: { schema: { $ref: '#/components/schemas/InventoryItem' } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
+  
+  /inventory/items/{id}/remove: # (SỬA) Cập nhật đường dẫn
     delete:
       tags: ['[4] Luồng Quản lý Kho (Inventory)']
-      summary: '(L4.4b) Xóa mềm mặt hàng khỏi kho'
-      description: (Roles: STATION_ADMIN) Chỉ xóa được khi số lượng tồn kho bằng 0.
+      summary: '(L4.6) Xóa mềm mặt hàng khỏi kho'
+      description: (Roles: STATION_ADMIN) Chỉ Station Admin mới được xóa (và chỉ khi tồn kho = 0).
       parameters: [{ $ref: '#/components/parameters/InventoryItemIdPath' }]
       responses:
         '204': { description: Xóa thành công. }
@@ -596,7 +609,7 @@ paths:
   /inventory/restock-requests:
     post:
       tags: ['[4] Luồng Quản lý Kho (Inventory)']
-      summary: '(L4.5) Tạo Y/C nhập hàng (gửi cho Station Admin duyệt)'
+      summary: '(L4.7) Tạo Y/C nhập hàng (gửi cho Station Admin duyệt)'
       description: (Roles: INVENTORY_MANAGER) Nhân viên kho tạo yêu cầu nhập thêm hàng.
       requestBody: { $ref: '#/components/requestBodies/CreateRestockInput' }
       responses:
@@ -606,7 +619,7 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
     get:
       tags: ['[4] Luồng Quản lý Kho (Inventory)']
-      summary: '(L4.5b) Xem lịch sử yêu cầu nhập hàng'
+      summary: '(L4.8) Xem lịch sử yêu cầu nhập hàng (của trạm mình)'
       description: (Roles: INVENTORY_MANAGER, STATION_ADMIN) Xem danh sách các yêu cầu đã tạo và trạng thái của chúng.
       parameters:
         - name: status
@@ -619,7 +632,7 @@ paths:
   /inventory/restock-requests/{requestId}/import:
     post:
       tags: ['[4] Luồng Quản lý Kho (Inventory)']
-      summary: '(L4.6) Xác nhận nhập kho (APPROVED -> COMPLETED)'
+      summary: '(L4.9) Xác nhận nhập kho (APPROVED -> COMPLETED)'
       description: (Roles: INVENTORY_MANAGER) Nhân viên kho xác nhận hàng đã về kho (sau khi Station Admin đã duyệt). Hành động này sẽ tăng số lượng tồn kho.
       parameters:
         - name: requestId
@@ -647,65 +660,9 @@ paths:
       summary: (Admin) Lấy danh sách TẤT CẢ tài khoản
       description: Lấy danh sách tất cả người dùng trong hệ thống (Customer, Staff, Admin...). Roles: ADMIN
       responses:
-        '200':
-          description: Danh sách tất cả người dùng.
-          content:
-            application/json:
-              schema: { type: array, items: { $ref: '#/components/schemas/User' } }
+        '200': { description: Danh sách tất cả người dùng., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/User' } } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
-  /admin/restock-requests:
-    get:
-      tags: ['[5] Luồng Quản trị viên (Admin)']
-      summary: (Admin) Xem TẤT CẢ Y/C nhập hàng
-      description: Admin tổng xem Y/C nhập hàng từ mọi trạm.
-      parameters:
-        - name: status
-          in: query
-          required: false
-          schema: { $ref: '#/components/schemas/RestockRequestStatusEnum' }
-      responses:
-        '200':
-          description: Danh sách yêu cầu nhập hàng.
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/RestockRequestAdminView' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-  /admin/restock-requests/{id}/approve:
-    put:
-      tags: ['[5] Luồng Quản trị viên (Admin)']
-      summary: (Admin) Duyệt Y/C nhập hàng
-      parameters:
-        - { $ref: '#/components/parameters/RestockRequestIdPath' }
-      responses:
-        '200':
-          description: Đã duyệt thành công.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/RestockRequest' }
-        '400': { $ref: '#/components/responses/BadRequestError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
-  /admin/restock-requests/{id}/reject:
-    put:
-      tags: ['[5] Luồng Quản trị viên (Admin)']
-      summary: (Admin) Từ chối Y/C nhập hàng
-      parameters:
-        - { $ref: '#/components/parameters/RestockRequestIdPath' }
-      responses:
-        '200':
-          description: Đã từ chối thành công.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/RestockRequest' }
-        '400': { $ref: '#/components/responses/BadRequestError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
   # ===============================================
   # === [6] LUỒNG QUẢN LÝ TRẠM (STATION)
   # ===============================================
@@ -716,11 +673,7 @@ paths:
       description: Trưởng trạm (Station Admin) tạo tài khoản cho nhân viên (Staff, Tech, IM) tại trạm của mình.
       requestBody: { $ref: '#/components/requestBodies/CreateAccountInput' }
       responses:
-        '201':
-          description: Tạo tài khoản thành công.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/CreateAccountResponse' }
+        '201': { description: Tạo tài khoản thành công., content: { application/json: { schema: { $ref: '#/components/schemas/CreateAccountResponse' } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
@@ -822,27 +775,21 @@ paths:
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
-  /station/restock-requests:
+  /inventory/restock-requests:
     get:
       tags: ['[6] Luồng Quản lý Trạm (Station)']
       summary: (L6.9) [Trưởng trạm] Xem Y/C nhập hàng
-      description: Trưởng trạm (Station Admin) xem các yêu cầu nhập hàng tại trạm của mình.
+      description: Trưởng trạm (Station Admin) xem các yêu cầu nhập hàng tại trạm của mình (do IM tạo).
       parameters:
         - name: status
           in: query
           required: false
           schema: { $ref: '#/components/schemas/RestockRequestStatusEnum' }
       responses:
-        '200':
-          description: Danh sách yêu cầu nhập hàng.
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/RestockRequestView' }
+        '200': { description: Danh sách yêu cầu nhập hàng., content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/RestockRequestView' } } } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
-  /station/restock-requests/{id}/approve:
+  /inventory/restock-requests/{id}/approve:
     put:
       tags: ['[6] Luồng Quản lý Trạm (Station)']
       summary: (L6.10) [Trưởng trạm] Duyệt Y/C nhập hàng
@@ -851,16 +798,12 @@ paths:
         - { $ref: '#/components/parameters/RestockRequestIdPath' }
       requestBody: { $ref: '#/components/requestBodies/ApproveRejectRestockInput' }
       responses:
-        '200':
-          description: Đã duyệt thành công.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/RestockRequest' }
+        '200': { description: Đã duyệt thành công., content: { application/json: { schema: { $ref: '#/components/schemas/RestockRequest' } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
-  /station/restock-requests/{id}/reject:
+  /inventory/restock-requests/{id}/reject:
     put:
       tags: ['[6] Luồng Quản lý Trạm (Station)']
       summary: (L6.11) [Trưởng trạm] Từ chối Y/C nhập hàng
@@ -869,11 +812,7 @@ paths:
         - { $ref: '#/components/parameters/RestockRequestIdPath' }
       requestBody: { $ref: '#/components/requestBodies/ApproveRejectRestockInput' }
       responses:
-        '200':
-          description: Đã từ chối thành công.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/RestockRequest' }
+        '200': { description: Đã từ chối thành công., content: { application/json: { schema: { $ref: '#/components/schemas/RestockRequest' } } } }
         '400': { $ref: '#/components/responses/BadRequestError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
@@ -969,7 +908,7 @@ components:
         status: { $ref: '#/components/schemas/ServiceRecordStatusEnum', nullable: true }
         startTime: { type: string, format: date-time, nullable: true }
         endTime: { type: string, format: date-time, nullable: true }
-        staffNotes: { type: string, nullable: true }
+        staffNotes: { type: string, nullable: true, description: "Ghi chú của KTV khi hoàn thành" }
     Part:
       type: object
       properties:
@@ -1137,15 +1076,20 @@ components:
             requestedServices:
               type: array
               items: { $ref: '#/components/schemas/ServiceType' }
-            # (XÓA) Bỏ Quotation
-            # quotation: { $ref: '#/components/schemas/Quotation', nullable: true }
             serviceRecord:
               type: object
               properties:
-                # (THÊM) Thêm các chi tiết từ ServiceRecord vào đây nếu cần
+                id: { type: string, format: uuid }
                 status: { $ref: '#/components/schemas/ServiceRecordStatusEnum' }
                 staffNotes: { type: string, nullable: true }
-                invoice: { $ref: '#/components/schemas/Invoice', nullable: true }
+                invoice: 
+                  allOf:
+                    - { $ref: '#/components/schemas/Invoice' }
+                    - type: object
+                      properties:
+                        payments: # Đính kèm thanh toán
+                          type: array
+                          items: { $ref: '#/components/schemas/Payment' }
                 partsUsed:
                   type: array
                   items:
@@ -1167,13 +1111,23 @@ components:
             appointmentDate: { type: string, format: date-time }
             customer: { $ref: '#/components/schemas/CustomerInfoSummary' }
             vehicle: { $ref: '#/components/schemas/VehicleInfoSummary' }
+            requestedServices: # Thêm gói dịch vụ
+              type: array
+              items:
+                type: object
+                properties:
+                  serviceType:
+                    type: object
+                    properties:
+                      name: { type: string }
     RestockRequestView:
       allOf:
         - { $ref: '#/components/schemas/RestockRequest' }
         - type: object
           properties:
             part: { $ref: '#/components/schemas/Part' }
-            stationAdmin: { $ref: '#/components/schemas/UserSummary', nullable: true }
+            inventoryManager: { $ref: '#/components/schemas/UserSummary', nullable: true }
+            admin: { $ref: '#/components/schemas/UserSummary', nullable: true }
     RestockRequestAdminView:
       allOf:
         - { $ref: '#/components/schemas/RestockRequest' }
@@ -1182,6 +1136,7 @@ components:
             part: { $ref: '#/components/schemas/Part' }
             serviceCenter: { $ref: '#/components/schemas/ServiceCenter' }
             inventoryManager: { $ref: '#/components/schemas/UserSummary' }
+            admin: { $ref: '#/components/schemas/UserSummary', nullable: true }
 
     # --- ENUMS ---
     RoleEnum:
@@ -1189,10 +1144,10 @@ components:
       enum: [CUSTOMER, STAFF, TECHNICIAN, INVENTORY_MANAGER, ADMIN, STATION_ADMIN]
     AppointmentStatusEnum:
       type: string
-      enum: [PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED] # (ĐÃ XÓA PENDING_APPROVAL)
+      enum: [PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED]
     ServiceRecordStatusEnum:
       type: string
-      enum: [PENDING, IN_PROGRESS, COMPLETED, CANCELLED] # (ĐÃ ĐƠN GIẢN HÓA)
+      enum: [PENDING, IN_PROGRESS, COMPLETED, CANCELLED]
     # (THÊM MỚI) Enum con chỉ dành cho KTV
     ServiceRecordStatusEnum_Pending_InProgress:
       type: string
@@ -1205,7 +1160,7 @@ components:
       enum: [PENDING, SUCCESSFUL, FAILED]
     PartUsageStatusEnum:
       type: string
-      enum: [ISSUED, CANCELLED] # (ĐÃ XÓA REQUESTED)
+      enum: [ISSUED, CANCELLED]
     RestockRequestStatusEnum:
       type: string
       enum: [PENDING, APPROVED, REJECTED, COMPLETED]
@@ -1334,8 +1289,6 @@ components:
     ConfirmAppointmentInput:
       required: true
       content: { application/json: { schema: { type: object, required: [technicianId], properties: { technicianId: { type: string, format: uuid } } } } }
-    
-    # (ĐỔI TÊN) Từ RequestPartsInput -> UsePartsInput
     UsePartsInput:
       required: true
       content:
@@ -1359,35 +1312,33 @@ components:
           schema:
             type: object
             properties:
-              notes: { type: string, nullable: true }
-    UpdateStockInput:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required: [minStockLevel]
-            properties:
-              minStockLevel: { type: integer, minimum: 0 }
+              notes: { type: string, nullable: true, description: "Ghi chú của KTV khi hoàn thành" }
     AddInventoryItemInput:
       required: true
       content:
         application/json:
           schema:
             type: object
-            required: [partId, minStockLevel]
+            required: [sku, name, price, minStockLevel]
             properties:
-              partId: { type: string, format: uuid }
-              minStockLevel: { type: integer, minimum: 0 }
-    UpdateInventoryConfigInput:
+              sku: { type: string, example: "VIN-PART-NEW" }
+              name: { type: string, example: "Phụ tùng mới" }
+              description: { type: string, nullable: true }
+              price: { type: number, format: double, minimum: 1, example: 100000 }
+              minStockLevel: { type: integer, minimum: 1, example: 5 }
+    UpdateInventoryItemInput:
       required: true
       content:
         application/json:
           schema:
             type: object
-            required: [minStockLevel]
+            description: "Gửi bất kỳ trường nào bạn muốn cập nhật. Số lượng (quantityInStock) không được phép cập nhật tại đây."
             properties:
-              minStockLevel: { type: integer, minimum: 0 }
+              sku: { type: string, example: "VIN-PART-NEW" }
+              name: { type: string, example: "Tên phụ tùng mới" }
+              description: { type: string, nullable: true }
+              price: { type: number, format: double, minimum: 1 }
+              minStockLevel: { type: integer, minimum: 1 }
     CreateRestockInput:
       required: true
       content:
@@ -1396,7 +1347,7 @@ components:
             type: object
             required: [partId, quantity]
             properties:
-              partId: { type: string, format: uuid }
+              partId: { type: string, format: uuid, description: "ID của phụ tùng (Part)" }
               quantity: { type: integer, minimum: 1 }
               notes: { type: string, nullable: true }
     ApproveRejectRestockInput:
@@ -1406,17 +1357,7 @@ components:
           schema:
             type: object
             properties:
-              notes: { type: string, nullable: true }
-    ReceiveStockInput:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required: [requestId, quantityReceived]
-            properties:
-              requestId: { type: string, format: uuid }
-              quantityReceived: { type: integer, minimum: 1 }
+              notes: { type: string, nullable: true, description: "Ghi chú lý do từ chối/duyệt" }
     UpdateStaffStatusInput:
       required: true
       content:

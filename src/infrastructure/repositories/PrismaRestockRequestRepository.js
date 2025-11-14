@@ -1,4 +1,5 @@
 const IRestockRequestRepository = require('../../domain/repositories/IRestockRequestRepository');
+const { RestockRequestStatus } = require('@prisma/client');
 
 class PrismaRestockRequestRepository extends IRestockRequestRepository {
     constructor(prismaClient) { super(); this.prisma = prismaClient; }
@@ -39,9 +40,7 @@ class PrismaRestockRequestRepository extends IRestockRequestRepository {
                 partId: partId,
                 serviceCenterId: serviceCenterId,
                 status: {
-                    in: [RestockRequestStatus.PENDING, RestockRequestStatus.APPROVED] 
-                    // Chỉ chặn nếu đang chờ duyệt hoặc đã duyệt nhưng chưa nhập kho
-                    // Nếu là REJECTED hoặc COMPLETED thì được phép update
+                    in: [RestockRequestStatus.PENDING, RestockRequestStatus.APPROVED] // Dòng này giờ đã hợp lệ
                 }
             }
         });

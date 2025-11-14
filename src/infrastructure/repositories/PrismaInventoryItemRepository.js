@@ -9,13 +9,20 @@ class PrismaInventoryItemRepository extends IInventoryItemRepository {
         });
     }
     async findById(id) {
-        return this.prisma.inventoryItem.findUnique({ where: { id: id } });
+        return this.prisma.inventoryItem.findFirst({ 
+            where: { 
+                id: id,
+                isDeleted: false 
+            },
+            include: { part: true } // Kèm thông tin chi tiết phụ tùng
+        });
     }
     async findByPartAndCenter(partId, serviceCenterId) {
         return this.prisma.inventoryItem.findFirst({ 
             where: { 
                 partId: partId, 
-                serviceCenterId: serviceCenterId 
+                serviceCenterId: serviceCenterId,
+                isDeleted: false
             } 
         });
     }

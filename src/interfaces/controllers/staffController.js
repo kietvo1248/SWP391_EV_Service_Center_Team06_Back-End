@@ -15,6 +15,7 @@ class StaffController {
         createCustomerByStaffUseCase,
         addVehicleForCustomerUseCase,
         createAndStartWalkInAppointmentUseCase,
+        cancelAppointmentByStaffUseCase
         //handoverVehicleUseCase
     ) {
         this.listCenterAppointmentsUseCase = listCenterAppointmentsUseCase;
@@ -30,6 +31,7 @@ class StaffController {
         this.createCustomerByStaffUseCase = createCustomerByStaffUseCase;
         this.addVehicleForCustomerUseCase = addVehicleForCustomerUseCase;
         this.createAndStartWalkInAppointmentUseCase = createAndStartWalkInAppointmentUseCase;
+        this.cancelAppointmentByCustomerUseCase = cancelAppointmentByStaffUseCase;
         //this.handoverVehicleUseCase = handoverVehicleUseCase;
     }
 
@@ -201,6 +203,18 @@ class StaffController {
             res.status(201).json({ message: 'Walk-in appointment created and started successfully.', data: result });
         } catch (error) {
             res.status(400).json({ message: error.message });
+        }
+    }
+    async cancelAppointment(req, res) {
+        try {
+            const actor = req.user;
+            const { id } = req.params; // Appointment ID
+            const updatedAppointment = await this.cancelAppointmentByStaffUseCase.execute(id, actor);
+            res.status(200).json({ message: 'Lịch hẹn đã được hủy thành công.', appointment: updatedAppointment });
+        } catch (error) {
+            if (error.message.includes('Forbidden')) return res.status(403).json({ message: error.message });
+            if (error.message.includes('not found')) return res.status(404).json({ message: error.message });
+            res.status(400).json({ message: error.message }); // Lỗi logic (vd: Hủy lịch đã COMPLETED)
         }
     }
     // PUT /api/staff/quotations/:id/revise

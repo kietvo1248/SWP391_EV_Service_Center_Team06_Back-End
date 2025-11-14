@@ -1,6 +1,6 @@
 // Tệp: src/application/staff/createInvoice.js
 const InvoiceEntity = require('../../domain/entities/Invoice');
-const { Decimal } = require('@prisma/client/runtime/library');
+const { Prisma, Decimal } = require('@prisma/client/runtime/library');
 
 class CreateInvoice {
     constructor(

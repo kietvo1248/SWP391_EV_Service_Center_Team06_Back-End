@@ -1,5 +1,5 @@
 // Tệp: src/application/technician/completeTechnicianTask.js
-const { ServiceRecordStatus, AppointmentStatus } = require('@prisma/client');
+const { Prisma, ServiceRecordStatus, AppointmentStatus } = require('@prisma/client');
 const ServiceRecordEntity = require('../../domain/entities/ServiceRecord');
 const ServiceAppointmentEntity = require('../../domain/entities/ServiceAppointment');
 

@@ -7,7 +7,8 @@ class AppointmentController {
         listServiceTypesUseCase, 
         getAppointmentDetailsUseCase, 
         // respondToQuotationUseCase, // (XÓA)
-        listAppointmentHistoryUseCase
+        listAppointmentHistoryUseCase,
+        cancelAppointmentByCustomerUseCase
     ) {
         this.createAppointmentUseCase = createAppointmentUseCase;
         this.listMyVehiclesUseCase = listMyVehiclesUseCase;
@@ -16,6 +17,7 @@ class AppointmentController {
         this.getAppointmentDetailsUseCase = getAppointmentDetailsUseCase;
         // this.respondToQuotationUseCase = respondToQuotationUseCase; // (XÓA)
         this.listAppointmentHistoryUseCase = listAppointmentHistoryUseCase;
+        this.cancelAppointmentByCustomerUseCase = cancelAppointmentByCustomerUseCase;
     }
 
     // ... (getMyVehicles, getSuggestions, create, listServiceTypes, getAppointmentDetails, listAppointmentHistory giữ nguyên) ...
@@ -100,6 +102,18 @@ class AppointmentController {
             res.status(200).json(history);
         } catch (error) {
             res.status(500).json({ message: error.message });
+        }
+    }
+    async cancel(req, res) {
+        try {
+            const customerId = req.user.id;
+            const { id } = req.params; // Appointment ID
+            const updatedAppointment = await this.cancelAppointmentByCustomerUseCase.execute(id, customerId);
+            res.status(200).json({ message: 'Lịch hẹn đã được hủy thành công.', appointment: updatedAppointment });
+        } catch (error) {
+            if (error.message.includes('Forbidden')) return res.status(403).json({ message: error.message });
+            if (error.message.includes('not found')) return res.status(404).json({ message: error.message });
+            res.status(400).json({ message: error.message }); // Lỗi logic nghiệp vụ (vd: Hủy khi đang IN_PROGRESS)
         }
     }
 }

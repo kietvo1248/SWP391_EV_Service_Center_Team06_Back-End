@@ -91,6 +91,7 @@ const GetServiceSuggestions = require('./application/bookings/suggestion');
 const ListServiceTypes = require('./application/bookings/listAllServiceType');
 //const RespondToQuotation = require('./application/bookings/respondToQuotation');
 const ListAppointmentHistory = require('./application/bookings/appointmentHistory');
+const CancelAppointmentByCustomer = require('./application/bookings/cancelAppointmentByCustomer');
 
 //service center
 const ListAllServiceCenters = require('./application/service_centers/listAllServiceCenter');
@@ -111,6 +112,7 @@ const ListVehiclesForCustomer = require('./application/staff/listVehicleForCusto
 const CreateCustomerByStaff = require('./application/staff/createCustomerByStaff');
 const AddVehicleForCustomer = require('./application/staff/addVehicleForCustomer');
 const CreateAndStartWalkInAppointment = require('./application/staff/createAppointmentAndStartWalkInAppointment');
+const CancelAppointmentByStaff = require('./application/staff/cancelAppointmentByStaff');
 //const ReviseQuotation = require('./application/staff/reviseQuotation'); // THÊM MỚI
 //const HandoverVehicle = require('./application/staff/handoverVehicle');
 
@@ -124,13 +126,14 @@ const ListCompletedTasks = require('./application/technician/listCompletedTasks'
 const ViewInventory = require('./application/inventory/viewInventory');
 const FindPartBySku = require('./application/inventory/findPartBySku');
 const AddInventoryItem = require('./application/inventory/addInventoryItem');       // Mới
-const UpdateInventoryConfig = require('./application/inventory/updateInventoryConfig'); // Mới
+const UpdateInventoryItem = require('./application/inventory/updateInventoryItem'); // Mới
 const RemoveInventoryItem = require('./application/inventory/removeInventoryItem');   // Mới
 const ListLowStockItems = require('./application/inventory/listLowStockItems');       // Mới
 const CreateRestockRequest = require('./application/inventory/createRestockRequest');
 const ListRestockRequests = require('./application/inventory/ListRestockRequests');
 const ProcessRestockRequest = require('./application/inventory/processRestockRequest');
 const ImportRestock = require('./application/inventory/importRestock');
+const GetInventoryItemDetails = require('./application/inventory/getInventoryItemDetails');
 
 // quản lý trạm 
 const ListStationStaff = require('./application/station/listStationStaff');
@@ -213,6 +216,7 @@ const listServiceTypesUseCase = new ListServiceTypes(serviceTypeRepository);
 //     prisma
 // );
 const listAppointmentHistoryUseCase = new ListAppointmentHistory(appointmentRepository);
+const cancelAppointmentByCustomerUseCase = new CancelAppointmentByCustomer(appointmentRepository, serviceRecordRepository, prisma);
 // luồng 2 đặt lịch tại quầy
 const searchCustomerUseCase = new SearchCustomer(userRepository);
 const listVehiclesForCustomerUseCase = new ListVehiclesForCustomer(vehicleRepository);
@@ -226,6 +230,7 @@ const createAndStartWalkInAppointmentUseCase = new CreateAndStartWalkInAppointme
     vehicleRepository,
     prisma
 );
+const cancelAppointmentByStaffUseCase = new CancelAppointmentByStaff(appointmentRepository, serviceRecordRepository, prisma);
 // const reviseQuotationUseCase = new ReviseQuotation(quotationRepository, 
 //     appointmentRepository, 
 //     serviceRecordRepository, 
@@ -287,9 +292,13 @@ const listCompletedTasksUseCase = new ListCompletedTasks(serviceRecordRepository
 // Inventory (UPDATED INJECTION)
 const viewInventoryUseCase = new ViewInventory(inventoryItemRepository);
 const findPartBySkuUseCase = new FindPartBySku(inventoryItemRepository);
-const addInventoryItemUseCase = new AddInventoryItem(inventoryItemRepository, partRepository);
-// Lưu ý: UpdateInventoryConfig cần restockRequestRepo để kiểm tra validation
-const updateInventoryConfigUseCase = new UpdateInventoryConfig(inventoryItemRepository, restockRequestRepository);
+const addInventoryItemUseCase = new AddInventoryItem(partRepository, inventoryItemRepository, prisma);
+const updateInventoryItemUseCase = new UpdateInventoryItem(
+    inventoryItemRepository, 
+    partRepository,
+    restockRequestRepository, 
+    prisma
+);
 const removeInventoryItemUseCase = new RemoveInventoryItem(inventoryItemRepository);
 const listLowStockItemsUseCase = new ListLowStockItems(inventoryItemRepository);
 
@@ -297,6 +306,7 @@ const createRestockRequestUseCase = new CreateRestockRequest(restockRequestRepos
 const listRestockRequestsUseCase = new ListRestockRequests(restockRequestRepository); // Dùng chung cho Admin/IM/Station
 const processRestockRequestUseCase = new ProcessRestockRequest(restockRequestRepository);
 const importRestockUseCase = new ImportRestock(restockRequestRepository, inventoryItemRepository, prisma);
+const getInventoryItemDetailsUseCase = new GetInventoryItemDetails(inventoryItemRepository);
 
 // quản lý trạm 
 const listStationStaffUseCase = new ListStationStaff(userRepository);
@@ -350,7 +360,8 @@ const appointmentController = new AppointmentController(
     listServiceTypesUseCase,
     getAppointmentDetailsUseCase, // Đây là use case chung
     // responseToQuotationUseCase,
-    listAppointmentHistoryUseCase
+    listAppointmentHistoryUseCase,
+    cancelAppointmentByCustomerUseCase
 );
 
 const serviceCenterController = new ServiceCenterController(
@@ -371,7 +382,8 @@ const staffController = new StaffController(
     listVehiclesForCustomerUseCase,
     createCustomerByStaffUseCase,
     addVehicleForCustomerUseCase,
-    createAndStartWalkInAppointmentUseCase
+    createAndStartWalkInAppointmentUseCase,
+    cancelAppointmentByStaffUseCase,
     //handoverVehicleUseCase
 );
 const technicianController = new TechnicianController(
@@ -387,13 +399,14 @@ const inventoryController = new InventoryController(
     viewInventoryUseCase, 
     findPartBySkuUseCase, 
     addInventoryItemUseCase,      // 3
-    updateInventoryConfigUseCase, // 4
+    updateInventoryItemUseCase, // 4
     removeInventoryItemUseCase,   // 5
     listLowStockItemsUseCase,     // 6
     createRestockRequestUseCase,  // 7
     listRestockRequestsUseCase,   // 8
     importRestockUseCase,         // 9
-    processRestockRequestUseCase  // 10 (Phê duyệt - dùng cho route Station Admin gọi qua controller này hoặc StationController)
+    processRestockRequestUseCase,  // 10 (Phê duyệt - dùng cho route Station Admin gọi qua controller này hoặc StationController)
+    getInventoryItemDetailsUseCase
 );
 // quản lý trạm
 const adminController = new AdminController( 

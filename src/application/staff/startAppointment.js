@@ -1,6 +1,6 @@
 // Tệp: src/application/staff/startAppointment.js
 const ServiceAppointmentEntity = require('../../domain/entities/ServiceAppointment');
-const { AppointmentStatus } = require('@prisma/client');
+const { Prisma, ServiceRecordStatus, AppointmentStatus } = require('@prisma/client');
 
 class StartAppointmentProgress {
     constructor(appointmentRepo, prismaClient) {
