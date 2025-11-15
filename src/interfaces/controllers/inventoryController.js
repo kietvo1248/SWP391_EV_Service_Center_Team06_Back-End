@@ -39,7 +39,11 @@ class InventoryController {
             const { sku } = req.query;
             const item = await this.findPartBySkuUseCase.execute(sku, req.user);
             res.status(200).json(item);
-        } catch (error) { res.status(400).json({ message: error.message }); }
+            
+        } catch (error) { 
+            if (error.message.includes('Forbidden')) return res.status(403).json({ message: error.message });
+            res.status(400).json({ message: error.message }); 
+        }
     }
 
     // (Mới) Thêm mặt hàng vào kho
