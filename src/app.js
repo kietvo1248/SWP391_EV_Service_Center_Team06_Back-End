@@ -306,7 +306,7 @@ const updateInventoryItemUseCase = new UpdateInventoryItem(
     restockRequestRepository, 
     prisma
 );
-const removeInventoryItemUseCase = new RemoveInventoryItem(inventoryItemRepository);
+const removeInventoryItemUseCase = new RemoveInventoryItem(inventoryItemRepository, restockRequestRepository);
 const listLowStockItemsUseCase = new ListLowStockItems(inventoryItemRepository);
 
 const createRestockRequestUseCase = new CreateRestockRequest(restockRequestRepository, partRepository);

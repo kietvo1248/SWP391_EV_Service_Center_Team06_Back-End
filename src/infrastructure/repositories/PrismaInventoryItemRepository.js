@@ -32,15 +32,20 @@ class PrismaInventoryItemRepository extends IInventoryItemRepository {
     }
     
     async findBySku(sku, serviceCenterId) {
-        return this.prisma.inventoryItem.findFirst({
+        return this.prisma.inventoryItem.findMany({ 
             where: {
                 serviceCenterId: serviceCenterId,
                 part: {
-                    sku: sku // Tìm kiếm lồng nhau qua model Part
-                }
+                    // (SỬA) Thêm 'contains' và 'mode' (để không phân biệt hoa/thường)
+                    sku: {
+                        contains: sku,
+                        mode: 'insensitive' 
+                    }
+                },
+                isDeleted: false
             },
             include: {
-                part: true // Luôn kèm thông tin chi tiết phụ tùng
+                part: true 
             }
         });
     }

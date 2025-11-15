@@ -19,13 +19,9 @@ class FindPartBySku {
         }
 
         // Gọi phương thức repo mới
-        const item = await this.inventoryItemRepo.findBySku(sku, actor.serviceCenterId);
+        const items = await this.inventoryItemRepo.findBySku(sku, actor.serviceCenterId);
         
-        if (!item) {
-            throw new Error(`Part with SKU '${sku}' not found in your center's inventory.`);
-        }
-        
-        return item;
+        return items;
     }
 }
 module.exports = FindPartBySku;
